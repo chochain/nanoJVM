@@ -117,7 +117,8 @@ It can be seen that the instruction operand type at the beginning of i is intege
 
 ---
 # All instruction set
-||Script||Mnemonic||Description||
+|Script|Mnemonic|Description|
+|:---|:---|:---|
 |0×00|nop|do nothing|
 |0×01|aconst_null|Push null to the top of the stack|
 |0×02|iconst_m1|Push int -1 to the top of the stack|
