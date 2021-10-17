@@ -14,8 +14,8 @@ JVM instructions are mainly divided into:
 The instruction operand type at the beginning of i is integer type, the instruction operand type at the beginning of l is long type, the instruction operand type at the beginning of f is float type, the instruction operand type at the beginning of d is double, and the instruction operand type at the beginning of a Is the reference type (reference).
 Load instructions load data from the local variable table to the operand stack, and store instructions store data from the operand stack to the local variable table. The other instructions are mainly used for the operand stack.
 
-## Operand stack (operand stack) related
-### Constant to operand stack
+## Operand stack related
+### const => ss, Constant to operand stack
 * bipush	Push the single-byte constant value (-128~127) to the top of the stack
 * sipush	Push a short integer constant value (-32768~32767) to the top of the stack
 * ldc	Push int, float or String constant values ​​from the constant pool to the top of the stack
@@ -27,7 +27,7 @@ Load instructions load data from the local variable table to the operand stack, 
 * fconst_x	Push float type x to the top of the stack, x range: [0, 1]
 * dconst_x	Push double type x to the top of the stack, x range: [0, 1]
 
-### Local variable table (local variable table) to operand stack (operand stack)
+### local => ss, Local variable table to operand stack
 * iload	Push the specified int type local variable to the top of the stack
 * iload_x	Push the xth int type local variable to the top of the stack, x range: [0, 3]
 * lload	Push the specified long type local variable to the top of the stack
@@ -39,7 +39,7 @@ Load instructions load data from the local variable table to the operand stack, 
 * aload	Push the specified reference type local variable to the top of the stack
 * aload_x	Push the x-th reference type local variable to the top of the stack, x range: [0, 3]
  
-### Operand stack (operand stack) to local variable table (local variable table)
+### ss => local, Operand stack to local variable table
 * istore	Store the int value of the top of the stack into the specified local variable
 * istore_x	Store the int type value on the top of the stack into the xth local variable, x range: [0, 3]
 * lstore	Store the long value on the top of the stack into the specified local variable
@@ -51,7 +51,7 @@ Load instructions load data from the local variable table to the operand stack, 
 * astore	Store the top reference type of the stack in the specified local variable
 * astore_x	Store the top reference type of the stack in the xth local variable, x range: [0, 3]
 
-### Push the array with the specified index of the array to the operand stack (operand stack)
+### [i] => ss, Push the array with the specified index of the array to the operand stack
 * iaload	Push the value of the specified index of the int type array to the top of the stack
 * laload	Push the value of the specified index of the long array to the top of the stack
 * faload	Push the value of the specified index of the float type array to the top of the stack
@@ -61,7 +61,7 @@ Load instructions load data from the local variable table to the operand stack, 
 * caload	Push the value of the specified index of the char array to the top of the stack
 * saload	Push the value of the specified index of the short array to the top of the stack
 
-### Store the operand stack number to the specified index of the array
+### top => a[i], Store the operand stack number to the specified index of the array
 * iastore	Store the top int value of the stack in the specified index position of the specified array
 * lastore	Store the long value on the top of the stack into the specified index position of the specified array
 * fastore	Store the float value on the top of the stack into the specified index position of the specified array
@@ -71,7 +71,7 @@ Load instructions load data from the local variable table to the operand stack, 
 * castore	Store the top char value of the stack into the specified index position of the specified array
 * sastore	Store the short value on the top of the stack into the specified index position of the specified array
 
-### Operand stack other related
+### ss, Operand stack other related
 * pop	Pop the top value of the stack (the value cannot be of type long or double)
 * pop2	Pop one (long or double type) or two values ​​at the top of the stack (other)
 * dup	Copy the top value of the stack and push the copied value onto the top of the stack
@@ -82,7 +82,7 @@ Load instructions load data from the local variable table to the operand stack, 
 * dup2_x2	Copy the top 2 values ​​of the stack and push them to the top of the stack 3 times
 * swap	Swap the top two values ​​of the stack (the values ​​cannot be of type long or double)
 
-## Calculation related
+## ALU, Calculation related
 * plus	iadd,ladd,fadd,dadd
 * Less	is,ls,fs,ds
 * Multiply	imul,lmul,fmul,dmul
