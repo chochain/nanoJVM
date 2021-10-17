@@ -83,49 +83,47 @@ Load instructions load data from the local variable table to the operand stack, 
 * swap	Swap the top two values ​​of the stack (the values ​​cannot be of type long or double)
 
 ## ALU, Calculation related
-* plus	iadd,ladd,fadd,dadd
-* Less	is,ls,fs,ds
-* Multiply	imul,lmul,fmul,dmul
-* except	idiv,ldiv,fdiv,ddiv
-* remainder	irem,lrem,frem,drem
-* Negative	ineg,lneg,fneg,dneg
-* Shift	ishl,lshr,iushr,lshl,lshr,lushr
-* Bitwise or	ior,lor
-* Bitwise and	iand,land
-* Bitwise XOR	ixor,lxor
+* Plus:	iadd,ladd,fadd,dadd
+* Less:	is,ls,fs,ds
+* Multiply:	imul,lmul,fmul,dmul
+* Devide: idiv,ldiv,fdiv,ddiv
+* Remainder: irem,lrem,frem,drem
+* Negative: ineg,lneg,fneg,dneg
+* Shift: ishl,lshr,iushr,lshl,lshr,lushr
+* Bitwise: ior,lor, iand, land, ixor, lxor
 
 ### Type conversion
-* i2l, i2f, i2d, l2f, l2d, f2d (relaxed numerical conversion)
-* i2b, i2c, i2s, l2i, f2i, f2l, d2i, d2l, d2f (narrowed numerical conversion)
+* relaxed conversion: i2l, i2f, i2d, l2f, l2d, f2d 
+* narrowed conversion: i2b, i2c, i2s, l2i, f2i, f2l, d2i, d2l, d2f
 
 ### Comparison
-* compare lcmp,fcmpl,fcmpg,dcmpl,dcmpg
+* compare lcmp, fcmpl, fcmpg, dcmpl, dcmpg
 
 ### Branch
-* conditional_logical: ifeq,iflt,ifle,ifne,ifgt,ifge,ifnull,ifnonnull,
-* conditional_compare: if_icmpeq,if_icmpene, if_icmplt,if_icmpgt,if_icmple,if_icmpge,if_acmpeq,if_acmpne,
-* Compound: tableswitch,lookupswitch
-* unconditional: goto,goto_w,jsr,jsr_w,ret
+* Conditional_logical: ifeq, iflt, ifle, ifne, ifgt, ifge, ifnull, ifnonnull
+* Conditional_compare: if_icmpeq, if_icmpene, if_icmplt, if_icmpgt, if_icmple, if_icmpge, if_acmpeq, if_acmpne
+* Compound: tableswitch, lookupswitch
+* Unconditional: goto, goto_w, jsr, jsr_w, ret
 
 ### Field access
 * getstatic, putstatic, getfield, putfield
  
 ### Class and array
-* Create class	new
-* Create new array	newarray,anewarray,multianwarray
-* Access class domain and class instance domain	getfield,putfield,getstatic,putstatic
-* Get array length	arraylength
-* Phase detection class instance or array attribute	instanceof,checkcast
+* Create class:	new
+* Create new array:	newarray,anewarray,multianwarray
+* Access class domain and class instance domain: getfield, putfield, getstatic, putstatic
+* Get array length:	arraylength
+* Phase detection class instance or array attribute: instanceof, checkcast
  
 ### Other instructions
-* A practical way to schedule objects	invokevirtual
-* Call the method implemented by the interface	invokeinterface
-* Call instance methods that require special handling	invokespecial
-* Call static methods in named classes	invokestatic
-* Method returns	ireturn,lreturn,freturn,dreturn,areturn,return
-* abnormal	athrow
-* Implementation of the finally keyword	jsr,jsr_w,ret
-* synchronized lock	monitorenter,monitorexit
+* A practical way to schedule objects: invokevirtual
+* Call the method implemented by the interface: invokeinterface
+* Call instance methods that require special handling: invokespecial
+* Call static methods in named classes: invokestatic
+* Method returns: ireturn, lreturn, freturn, dreturn, areturn, return
+* abnormal: athrow
+* Implementation of the finally keyword: jsr, jsr_w, ret
+* Synchronized lock: monitorenter, monitorexit
 
 ---
 # All instruction set
