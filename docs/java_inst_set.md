@@ -322,7 +322,7 @@ It can be seen that the instruction operand type at the beginning of i is intege
 |0xc8|goto_w|goes to another instruction at branchoffset (signed int constructed from unsigned bytes branchbyte1 << 24 + branchbyte2 << 16 + branchbyte3 << 8 + branchbyte4)|
 |0xc9|jsr_w|jump to subroutine at branchoffset (signed int constructed from unsigned bytes branchbyte1 << 24 + branchbyte2 << 16 + branchbyte3 << 8 + branchbyte4) and place the return address on the stack|
 |0xca|breakpoint|reserved for breakpoints in Java debuggers; should not appear in any class file|
-|0xcb-0xfd|unnamed these values are currently unassigned for opcodes and are reserved for future use|
+|0xcb-0xfd||unnamed these values are currently unassigned for opcodes and are reserved for future use|
 |0xfe|impdep1|reserved for implementation-dependent operations within debuggers; should not appear in any class file|
 |0xff|impdep2|reserved for implementation-dependent operations within debuggers; should not appear in any class file|
 
