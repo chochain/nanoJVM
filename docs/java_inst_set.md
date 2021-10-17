@@ -1,7 +1,7 @@
-* JVM instruction set
-** Operand stack (operand stack) related
-Local variable table (local variable table) to operand stack (operand stack)
-instruction	Description
+# JVM instruction set
+## Operand stack (operand stack) related
+
+### Local variable table (local variable table) to operand stack (operand stack)
 iload	Push the specified int type local variable to the top of the stack
 iload_x	Push the xth int type local variable to the top of the stack, x range: [0, 3]
 lload	Push the specified long type local variable to the top of the stack
@@ -14,8 +14,8 @@ aload	Push the specified reference type local variable to the top of the stack
 aload_x	Push the x-th reference type local variable to the top of the stack, x range: [0, 3]
 
 It can be seen that the instruction operand type at the beginning of i is integer type, the instruction operand type at the beginning of l is long type, the instruction operand type at the beginning of f is float type, the instruction operand type at the beginning of d is double, and the instruction operand type at the beginning of a The instruction operand type is a reference type (reference).
-Operand stack (operand stack) to local variable table (local variable table)
-instruction	Description
+
+### Operand stack (operand stack) to local variable table (local variable table)
 istore	Store the int value of the top of the stack into the specified local variable
 istore_x	Store the int type value on the top of the stack into the xth local variable, x range: [0, 3]
 lstore	Store the long value on the top of the stack into the specified local variable
@@ -26,8 +26,8 @@ dstore	Store the double value on the top of the stack into the specified local v
 dstore_x	Store the double value on the top of the stack into the xth local variable, the range of x: [0, 3]
 astore	Store the top reference type of the stack in the specified local variable
 astore_x	Store the top reference type of the stack in the xth local variable, x range: [0, 3]
-Constant to operand stack
-instruction	Description
+
+### Constant to operand stack
 bipush	Push the single-byte constant value (-128~127) to the top of the stack
 sipush	Push a short integer constant value (-32768~32767) to the top of the stack
 ldc	Push int, float or String constant values ​​from the constant pool to the top of the stack
@@ -38,8 +38,8 @@ iconst_x	Push int type x to the top of the stack, x range: [0, 5]
 lconst_x	Push long type x to the top of the stack, x range: [0, 1]
 fconst_x	Push float type x to the top of the stack, x range: [0, 1]
 dconst_x	Push double type x to the top of the stack, x range: [0, 1]
-Push the array with the specified index of the array to the operand stack (operand stack)
-instruction	Description
+
+### Push the array with the specified index of the array to the operand stack (operand stack)
 iaload	Push the value of the specified index of the int type array to the top of the stack
 laload	Push the value of the specified index of the long array to the top of the stack
 faload	Push the value of the specified index of the float type array to the top of the stack
@@ -48,8 +48,8 @@ aaload	Push the value of the specified index of the reference array to the top o
 baload	Push the value of the specified index of the boolean or byte array to the top of the stack
 caload	Push the value of the specified index of the char array to the top of the stack
 saload	Push the value of the specified index of the short array to the top of the stack
-Store the operand stack number to the specified index of the array
-instruction	Description
+
+### Store the operand stack number to the specified index of the array
 iastore	Store the top int value of the stack in the specified index position of the specified array
 lastore	Store the long value on the top of the stack into the specified index position of the specified array
 fastore	Store the float value on the top of the stack into the specified index position of the specified array
@@ -58,8 +58,8 @@ aastore	Store the top reference value of the stack in the specified index positi
 bastore	Store the boolean or byte value at the top of the stack into the specified index position of the specified array
 castore	Store the top char value of the stack into the specified index position of the specified array
 sastore	Store the short value on the top of the stack into the specified index position of the specified array
-Operand stack other related
-instruction	Description
+
+### Operand stack other related
 pop	Pop the top value of the stack (the value cannot be of type long or double)
 pop2	Pop one (long or double type) or two values ​​at the top of the stack (other)
 dup	Copy the top value of the stack and push the copied value onto the top of the stack
@@ -69,8 +69,8 @@ dup2	Copy one (long or double type) or two (other) values ​​from the top of 
 dup2_x1	Copy the top 2 values ​​of the stack and push them to the top of the stack twice
 dup2_x2	Copy the top 2 values ​​of the stack and push them to the top of the stack 3 times
 swap	Swap the top two values ​​of the stack (the values ​​cannot be of type long or double)
-Calculation related
-Features	instruction
+
+## Calculation related
 plus	iadd,ladd,fadd,dadd
 Less	is,ls,fs,ds
 Multiply	imul,lmul,fmul,dmul
@@ -81,21 +81,21 @@ Shift	ishl,lshr,iushr,lshl,lshr,lushr
 Bitwise or	ior,lor
 Bitwise and	iand,land
 Bitwise XOR	ixor,lxor
-Type conversion	i2l, i2f, i2d, l2f, l2d, f2d (relaxed numerical conversion); i2b, i2c, i2s, l2i, f2i, f2l, d2i, d2l, d2f (narrowed numerical conversion)
-Conditional transfer
-Features	instruction
+
+### Type conversion	i2l, i2f, i2d, l2f, l2d, f2d (relaxed numerical conversion); i2b, i2c, i2s, l2i, f2i, f2l, d2i, d2l, d2f (narrowed numerical conversion)
+### Conditional transfer
 Conditional transfer	ifeq,iflt,ifle,ifne,ifgt,ifge,ifnull,ifnonnull,if_icmpeq,if_icmpene, if_icmplt,if_icmpgt,if_icmple,if_icmpge,if_acmpeq,if_acmpne,lcmp,fcmpl,fcmpg,dcmpl,dcmpg
 Compound conditional transfer	tableswitch,lookupswitch
 Unconditional transfer	goto,goto_w,jsr,jsr_w,ret
-Class and array
-Features	instruction
+
+### Class and array
 Create class	new
 Create new array	newarray,anewarray,multianwarray
 Access class domain and class instance domain	getfield,putfield,getstatic,putstatic
 Get array length	arraylength
 Phase detection class instance or array attribute	instanceof,checkcast
-Other instructions
-Features	instruction
+
+### Other instructions
 A practical way to schedule objects	invokevirtual
 Call the method implemented by the interface	invokeinterface
 Call instance methods that require special handling	invokespecial
@@ -104,7 +104,8 @@ Method returns	ireturn,lreturn,freturn,dreturn,areturn,return
 abnormal	athrow
 Implementation of the finally keyword	jsr,jsr_w,ret
 synchronized lock	monitorenter,monitorexit
-All instruction set
+
+# All instruction set
 Script	Mnemonic	Description
 0×00	nop	do nothing
 0×01	aconst_null	Push null to the top of the stack
@@ -312,16 +313,19 @@ Script	Mnemonic	Description
 0xcb-0xfd	unnamed	these values are currently unassigned for opcodes and are reserved for future use
 0xfe	impdep1	reserved for implementation-dependent operations within debuggers; should not appear in any class file
 0xff	impdep2	reserved for implementation-dependent operations within debuggers; should not appear in any class file
-summary
 
-    JVM instructions are mainly divided into: local variable table to operand stack instructions, operand stack to local variable table instructions, constants to operand stack instructions, push the array specified index of the array to the operand stack instruction, and operate The number stack is stored in the array designated index instruction, operand stack other related instructions, operation related instructions, conditional transfer instructions, class and array instructions and other instructions.
-    The instruction operand type at the beginning of i is integer type, the instruction operand type at the beginning of l is long type, the instruction operand type at the beginning of f is float type, the instruction operand type at the beginning of d is double, and the instruction operand type at the beginning of a Is the reference type (reference).
-    Load instructions load data from the local variable table to the operand stack, and store instructions store data from the operand stack to the local variable table. The other instructions are mainly used for the operand stack.
+# summary
+JVM instructions are mainly divided into:
+* local variable table to operand stack instructions,
+* operand stack to local variable table instructions,
+* constants to operand stack instructions,
+* push the array specified index of the array to the operand stack instruction, and
+* operate The number stack is stored in the array designated index instruction,
+* operand stack other related instructions,
+* operation related instructions,
+* conditional transfer instructions,
+* class and array instructions and other instructions.
 
-Reference
+The instruction operand type at the beginning of i is integer type, the instruction operand type at the beginning of l is long type, the instruction operand type at the beginning of f is float type, the instruction operand type at the beginning of d is double, and the instruction operand type at the beginning of a Is the reference type (reference).
+Load instructions load data from the local variable table to the operand stack, and store instructions store data from the operand stack to the local variable table. The other instructions are mainly used for the operand stack.
 
-"In-depth understanding of the Java Virtual Machine-JVM advanced features and best practices"-Zhou Zhiming The Java Virtual Machine Specification
-
-Reference : https://blog.csdn.net/weixin_34126215/article/details/91394960
-© 2021 - Titan Wolf  
-Policies   Contact  About
