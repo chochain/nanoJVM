@@ -1,5 +1,19 @@
 # JVM instruction set
+
+It can be seen that the instruction operand type at the beginning of i is integer type, the instruction operand type at the beginning of l is long type, the instruction operand type at the beginning of f is float type, the instruction operand type at the beginning of d is double, and the instruction operand type at the beginning of a The instruction operand type is a reference type (reference).
+
 ## Operand stack (operand stack) related
+### Constant to operand stack
+* bipush	Push the single-byte constant value (-128~127) to the top of the stack
+* sipush	Push a short integer constant value (-32768~32767) to the top of the stack
+* ldc	Push int, float or String constant values ​​from the constant pool to the top of the stack
+* ldc_w	Push int, float or String constant values ​​from the constant pool to the top of the stack (wide index)
+* aconst_null	Push null to the top of the stack
+* iconst_m1	Push int -1 to the top of the stack
+* iconst_x	Push int type x to the top of the stack, x range: [0, 5]
+* lconst_x	Push long type x to the top of the stack, x range: [0, 1]
+* fconst_x	Push float type x to the top of the stack, x range: [0, 1]
+* dconst_x	Push double type x to the top of the stack, x range: [0, 1]
 
 ### Local variable table (local variable table) to operand stack (operand stack)
 * iload	Push the specified int type local variable to the top of the stack
@@ -13,8 +27,6 @@
 * aload	Push the specified reference type local variable to the top of the stack
 * aload_x	Push the x-th reference type local variable to the top of the stack, x range: [0, 3]
  
-It can be seen that the instruction operand type at the beginning of i is integer type, the instruction operand type at the beginning of l is long type, the instruction operand type at the beginning of f is float type, the instruction operand type at the beginning of d is double, and the instruction operand type at the beginning of a The instruction operand type is a reference type (reference).
-
 ### Operand stack (operand stack) to local variable table (local variable table)
 * istore	Store the int value of the top of the stack into the specified local variable
 * istore_x	Store the int type value on the top of the stack into the xth local variable, x range: [0, 3]
@@ -26,18 +38,6 @@ It can be seen that the instruction operand type at the beginning of i is intege
 * dstore_x	Store the double value on the top of the stack into the xth local variable, the range of x: [0, 3]
 * astore	Store the top reference type of the stack in the specified local variable
 * astore_x	Store the top reference type of the stack in the xth local variable, x range: [0, 3]
-
-### Constant to operand stack
-* bipush	Push the single-byte constant value (-128~127) to the top of the stack
-* sipush	Push a short integer constant value (-32768~32767) to the top of the stack
-* ldc	Push int, float or String constant values ​​from the constant pool to the top of the stack
-* ldc_w	Push int, float or String constant values ​​from the constant pool to the top of the stack (wide index)
-* aconst_null	Push null to the top of the stack
-* iconst_m1	Push int -1 to the top of the stack
-* iconst_x	Push int type x to the top of the stack, x range: [0, 5]
-* lconst_x	Push long type x to the top of the stack, x range: [0, 1]
-* fconst_x	Push float type x to the top of the stack, x range: [0, 1]
-* dconst_x	Push double type x to the top of the stack, x range: [0, 1]
 
 ### Push the array with the specified index of the array to the operand stack (operand stack)
 * iaload	Push the value of the specified index of the int type array to the top of the stack
@@ -82,11 +82,21 @@ It can be seen that the instruction operand type at the beginning of i is intege
 * Bitwise and	iand,land
 * Bitwise XOR	ixor,lxor
 
-### Type conversion	i2l, i2f, i2d, l2f, l2d, f2d (relaxed numerical conversion); i2b, i2c, i2s, l2i, f2i, f2l, d2i, d2l, d2f (narrowed numerical conversion)
-### Conditional transfer
-* Conditional transfer	ifeq,iflt,ifle,ifne,ifgt,ifge,ifnull,ifnonnull,if_icmpeq,if_icmpene, if_icmplt,if_icmpgt,if_icmple,if_icmpge,if_acmpeq,if_acmpne,lcmp,fcmpl,fcmpg,dcmpl,dcmpg
-* Compound conditional transfer	tableswitch,lookupswitch
-* Unconditional transfer	goto,goto_w,jsr,jsr_w,ret
+### Type conversion
+* i2l, i2f, i2d, l2f, l2d, f2d (relaxed numerical conversion)
+* i2b, i2c, i2s, l2i, f2i, f2l, d2i, d2l, d2f (narrowed numerical conversion)
+
+### Comparison
+* compare lcmp,fcmpl,fcmpg,dcmpl,dcmpg
+
+### Branch
+* conditional_logical: ifeq,iflt,ifle,ifne,ifgt,ifge,ifnull,ifnonnull,
+* conditional_compare: if_icmpeq,if_icmpene, if_icmplt,if_icmpgt,if_icmple,if_icmpge,if_acmpeq,if_acmpne,
+* Compound: tableswitch,lookupswitch
+* unconditional: goto,goto_w,jsr,jsr_w,ret
+
+### Field access
+* getstatic, putstatic, getfield, putfield
  
 ### Class and array
 * Create class	new
