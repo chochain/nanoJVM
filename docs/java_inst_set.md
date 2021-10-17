@@ -1,6 +1,18 @@
 # JVM instruction set
 
-It can be seen that the instruction operand type at the beginning of i is integer type, the instruction operand type at the beginning of l is long type, the instruction operand type at the beginning of f is float type, the instruction operand type at the beginning of d is double, and the instruction operand type at the beginning of a The instruction operand type is a reference type (reference).
+JVM instructions are mainly divided into:
+* constants to operand stack instructions,
+* local variable table to operand stack instructions,
+* operand stack to local variable table instructions,
+* push the array specified index of the array to the operand stack instruction, and
+* operate The number stack is stored in the array designated index instruction,
+* operand stack other related instructions,
+* operation related instructions,
+* conditional transfer instructions,
+* class and array instructions and other instructions.
+ 
+The instruction operand type at the beginning of i is integer type, the instruction operand type at the beginning of l is long type, the instruction operand type at the beginning of f is float type, the instruction operand type at the beginning of d is double, and the instruction operand type at the beginning of a Is the reference type (reference).
+Load instructions load data from the local variable table to the operand stack, and store instructions store data from the operand stack to the local variable table. The other instructions are mainly used for the operand stack.
 
 ## Operand stack (operand stack) related
 ### Constant to operand stack
@@ -325,19 +337,4 @@ It can be seen that the instruction operand type at the beginning of i is intege
 |0xcb-0xfd||unnamed these values are currently unassigned for opcodes and are reserved for future use|
 |0xfe|impdep1|reserved for implementation-dependent operations within debuggers; should not appear in any class file|
 |0xff|impdep2|reserved for implementation-dependent operations within debuggers; should not appear in any class file|
-
-# summary
-## JVM instructions are mainly divided into:
-* local variable table to operand stack instructions,
-* operand stack to local variable table instructions,
-* constants to operand stack instructions,
-* push the array specified index of the array to the operand stack instruction, and
-* operate The number stack is stored in the array designated index instruction,
-* operand stack other related instructions,
-* operation related instructions,
-* conditional transfer instructions,
-* class and array instructions and other instructions.
- 
-The instruction operand type at the beginning of i is integer type, the instruction operand type at the beginning of l is long type, the instruction operand type at the beginning of f is float type, the instruction operand type at the beginning of d is double, and the instruction operand type at the beginning of a Is the reference type (reference).
-Load instructions load data from the local variable table to the operand stack, and store instructions store data from the operand stack to the local variable table. The other instructions are mainly used for the operand stack.
 
