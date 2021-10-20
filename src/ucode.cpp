@@ -13,25 +13,65 @@
 #define PopD()      ((F64)t->ss.pop())
 #define PopA()      ((P32)t->ss.pop())
 #define PopR()      ((P32)t->ss.pop())
-#define LoadI(i)    (S32)t->load((U32)i)
-#define LoadL(i)    (S64)t->load((U32)i)
-#define LoadF(i)    (F32)t->load((U32)i)
-#define LoadD(i)    (F64)t->load((U32)i)
-#define LoadA(i)    (P32)t->load((U32)i)
+#define LoadI(i)    (S32)t->load((U32)i, (S32)i)
+#define LoadL(i)    (S64)t->load((U32)i, (S64)i)
+#define LoadF(i)    (F32)t->load((U32)i, (F32)i)
+#define LoadD(i)    (F64)t->load((U32)i, (F64)i)
+#define LoadA(i)    (P32)t->load((U32)i, (P32)i)
 #define StorI(i,n)  (t->store((U32)i, (S32)n))
 #define StorL(i,n)  (t->store((U32)i, (S64)n))
 #define StorF(i,n)  (t->store((U32)i, (F32)n))
 #define StorD(i,n)  (t->store((U32)i, (F64)n))
 #define StorR(i,n)  (t->store((U32)i, (P32)n))
-#define Dup(a, b)   ()
-#define Ret()       (h)
-#define Nest(t)     Invoke(h, 0, t, (t == 3) ? 4 : 2)
+///
+/// array access macros (CC: TODO)
+///
+#define GetI_A(i,n)   ((S32)0)
+#define GetL_A(i,n)   ((S64)0)
+#define GetF_A(i,n)   ((F32)0)
+#define GetD_A(i,n)   ((F64)0)
+#define GetA_A(i,n)   ((P32)0)
+#define GetB_A(i,n)   ((U8)0)
+#define GetC_A(i,n)   ((U16)0)
+#define GetS_A(i,n)   ((S16)0)
+#define SetI_A(i,n,v) (0)
+#define SetL_A(i,n,v) (0)
+#define SetF_A(i,n,v) (0)
+#define SetD_A(i,n,v) (0)
+#define SetA_A(i,n,v) (0)
+#define SetB_A(i,n,v) (0)
+#define SetC_A(i,n,v) (0)
+#define SetS_A(i,n,v) (0)
+///
+/// Class method, field access macros
+///
+#define GetI_S(n)   (0)
+#define SetI_S(n,v) (0)
+#define GetI_F(n)   (0)
+#define SetI_F(n,v) (0)
+#define Jump(a)     (0)
+#define Dup(a, b)   (0)
+#define Ret()       (_Return())
+#define Nest(n)     (_Invoke(n))
+#define OFF         (t->wide)
 
-#define UCODE(s, g)   { s, [](Thread*){ g; } }
+U8  GetB_C(U32 i)   { return 0; }
+U16 GetBE16(U32 i)  { return 0; }
+U32 GetBE32(U32 i)  { return 0; }
+void _Return() {
+	U32 h = 0;  // HANDLE
+}
+void _Invoke(U32 n) {
+	U32 h = 0;  // HANDLE
+	U32 i = 0;  // ??
+	U32 n1 = (n==3) ? 4 : 2;
+}
+
+#define UCODE(s, g)   { s, [](Thread *t){ g; } }
 ///
 /// micro-code (built-in methods)
 ///
-static Methods ucode[256] = {
+static Method ucode[256] = {
     ///
     /// @definegroup Constant ops
     /// @{
@@ -54,16 +94,16 @@ static Methods ucode[256] = {
     /// @}
     /// @definegroup Load ops
     /// @{
-    /*10*/  UCODE("bipush",   PushI(FetchClassByte(t->pc++))),
+    /*10*/  UCODE("bipush",   PushI(GetB_C(t->pc++))),
     /*11*/  UCODE("sipush",   PushI(GetBE16(t->pc)); t->pc += 2),
     /*12*/  UCODE("ldc",      {}),
     /*13*/  UCODE("ldcw",     {}),
     /*14*/  UCODE("ldc2_w",   {}),
-    /*15*/  UCODE("iload",    PushI(LoadI(Off(wide)))),
-    /*16*/  UCODE("lload",    PushL(LoadL(Off(wide)))),
-    /*17*/  UCODE("fload",    PushF(LoadF(Off(wide)))),
-    /*18*/  UCODE("dload",    PushD(LoadD(Off(wide)))),
-    /*19*/  UCODE("aload",    PushA(LoadR(Off(wide)))),
+    /*15*/  UCODE("iload",    PushI(LoadI(OFF))),
+    /*16*/  UCODE("lload",    PushL(LoadL(OFF))),
+    /*17*/  UCODE("fload",    PushF(LoadF(OFF))),
+    /*18*/  UCODE("dload",    PushD(LoadD(OFF))),
+    /*19*/  UCODE("aload",    PushA(LoadA(OFF))),
     /*1A*/  UCODE("iload_0",  PushI(LoadI(0))),
     /*1B*/  UCODE("iload_1",  PushI(LoadI(1))),
     /*1C*/  UCODE("iload_2",  PushI(LoadI(2))),
@@ -80,10 +120,10 @@ static Methods ucode[256] = {
     /*27*/  UCODE("dload_1",  PushD(LoadD(1))),
     /*28*/  UCODE("dload_2",  PushD(LoadD(2))),
     /*29*/  UCODE("dload_3",  PushD(LoadD(3))),
-    /*2A*/  UCODE("aload_0",  PushA(LoadR(0))),
-    /*2B*/  UCODE("aload_1",  PushA(LoadR(1))),
-    /*2C*/  UCODE("aload_2",  PushA(LoadR(2))),
-    /*2D*/  UCODE("aload_3",  PushA(LoadR(3))),
+    /*2A*/  UCODE("aload_0",  PushA(LoadA(0))),
+    /*2B*/  UCODE("aload_1",  PushA(LoadA(1))),
+    /*2C*/  UCODE("aload_2",  PushA(LoadA(2))),
+    /*2D*/  UCODE("aload_3",  PushA(LoadA(3))),
     /*2E*/  UCODE("iaload",   S32 n = PopI(); PushI(GetI_A(PopR(), n))),
     /*2F*/  UCODE("faload",   S32 n = PopI(); PushF(GetF_A(PopR(), n))),
     /*30*/  UCODE("laload",   S32 n = PopI(); PushL(GetL_A(PopR(), n))),
@@ -95,11 +135,11 @@ static Methods ucode[256] = {
     /// @}
     /// @definegroup Store ops
     /// @{
-    /*36*/  UCODE("istore",   StorI(Off(wide), PopI())),
-    /*37*/  UCODE("lstore",   StorL(Off(wide), PopL())),
-    /*38*/  UCODE("fstore",   StorF(Off(wide), PopF())),
-    /*39*/  UCODE("dstore",   StorD(Off(wide), PopD())),
-    /*3A*/  UCODE("astore",   StorR(Off(wide), PopA())),
+    /*36*/  UCODE("istore",   StorI(OFF, PopI())),
+    /*37*/  UCODE("lstore",   StorL(OFF, PopL())),
+    /*38*/  UCODE("fstore",   StorF(OFF, PopF())),
+    /*39*/  UCODE("dstore",   StorD(OFF, PopD())),
+    /*3A*/  UCODE("astore",   StorR(OFF, PopA())),
     /*3B*/  UCODE("istore_0", StorI(0, PopI())),
     /*3C*/  UCODE("istore_1", StorI(1, PopI())),
     /*3D*/  UCODE("istore_2", StorI(2, PopI())),
@@ -120,14 +160,14 @@ static Methods ucode[256] = {
     /*4C*/  UCODE("astore_1", StorR(1, PopA())),
     /*4D*/  UCODE("astore_2", StorR(2, PopA())),
     /*4E*/  UCODE("astore_3", StorR(3, PopA())),
-    /*4F*/  UCODE("iastore",  S32 v = PopI(); S32 n = PopI(); SetIA(PopR(), n, v)),
-    /*50*/  UCODE("lastore",  S64 v = PopL(); S32 n = PopI(); SetLA(PopR(), n, v)),
-    /*51*/  UCODE("fastore",  F32 v = PopF(); S32 n = PopI(); SetFA(PopR(), n, v)),
-    /*52*/  UCODE("dastore",  F64 v = PopD(); S32 n = PopI(); SetDA(PopR(), n, v)),
-    /*53*/  UCODE("aastore",  R32 v = PopA(); S32 n = PopI(); SetAA(PopR(), n, v)),
-    /*54*/  UCODE("bastore",  U8  v = PopI(); S32 n = PopI(); SetBA(PopR(), n, v)),
-    /*55*/  UCODE("castore",  U16 v = PopI(); S32 n = PopI(); SetCA(PopR(), n, v)),
-    /*56*/  UCODE("sastore",  S16 v = PopI(); S32 n = PopI(); SetSA(PopR(), n, v)),
+    /*4F*/  UCODE("iastore",  S32 v = PopI(); S32 n = PopI(); SetI_A(PopR(), n, v)),
+    /*50*/  UCODE("lastore",  S64 v = PopL(); S32 n = PopI(); SetL_A(PopR(), n, v)),
+    /*51*/  UCODE("fastore",  F32 v = PopF(); S32 n = PopI(); SetF_A(PopR(), n, v)),
+    /*52*/  UCODE("dastore",  F64 v = PopD(); S32 n = PopI(); SetD_A(PopR(), n, v)),
+    /*53*/  UCODE("aastore",  P32 v = PopA(); S32 n = PopI(); SetA_A(PopR(), n, v)),
+    /*54*/  UCODE("bastore",  U8  v = PopI(); S32 n = PopI(); SetB_A(PopR(), n, v)),
+    /*55*/  UCODE("castore",  U16 v = PopI(); S32 n = PopI(); SetC_A(PopR(), n, v)),
+    /*56*/  UCODE("sastore",  S16 v = PopI(); S32 n = PopI(); SetS_A(PopR(), n, v)),
     /// @}
     /// @definegroup Stack ops
     /// @{
@@ -161,8 +201,8 @@ static Methods ucode[256] = {
     /*6F*/  UCODE("ddiv", F64 n = PopD(); PushD(PopD() / n)),
     /*70*/  UCODE("irem", S32 n = PopI(); PushI(PopI() % n)),
     /*71*/  UCODE("lrem", S64 n = PopL(); PushL(PopL() % n)),
-    /*72*/  UCODE("frem", F32 n = PopF(); PushF(PopF() % n)),
-    /*73*/  UCODE("drem", F64 n = PopD(); PushD(PopD() % n)),
+    /*72*/  UCODE("frem", {}),
+    /*73*/  UCODE("drem", {}),
     /*74*/  UCODE("ineg", S32 n = PopI(); PushI(-n)),
     /*75*/  UCODE("lneg", S64 n = PopL(); PushL(-n)),
     /*76*/  UCODE("fneg", F32 n = PopF(); PushF(-n)),
@@ -183,10 +223,10 @@ static Methods ucode[256] = {
     /*82*/  UCODE("ixor", S32 n = PopI(); PushI(PopI() ^ n)),
     /*83*/  UCODE("lxor", S64 n = PopL(); PushI(PopL() ^ n)),
     /*84*/  UCODE("iinc",
-                  S32 i = Off(wide);
+                  S32 i = OFF;
                   S32 n = LoadI(i);
-                  if (wide) { n += GetBE16(t->pc); t->pc += 2; }
-                  else n += FetchClassByte(t->pc++);
+                  if (t->wide) { n += GetBE16(t->pc); t->pc += 2; }
+                  else n += GetB_C(t->pc++);
                   StorI(i, n)),
     /// @}
     /// @definegroup ALU Conversion ops
@@ -212,7 +252,7 @@ static Methods ucode[256] = {
     /*94*/  UCODE("lcmp",
                   S64 n = PopL();
                   S64 d = PopL() - n;
-                  PushI(d < 0 ? 1 : ((d > 0) ? -1 : 0)))
+                  PushI(d < 0 ? 1 : ((d > 0) ? -1 : 0))),
     /*95*/  UCODE("fcmpl", {}),
     /*96*/  UCODE("fcmpg", {}),
     /*97*/  UCODE("dcmpl", {}),
@@ -239,7 +279,7 @@ static Methods ucode[256] = {
     /// @{
     /*A7*/  UCODE("goto",      Jump(true)),
     /*A8*/  UCODE("jsr",       PushI(t->pc + 2); Jump(true)),
-    /*A9*/  UCODE("ret",       t->pc = LoadI(Off(wide))),
+    /*A9*/  UCODE("ret",       t->pc = LoadI(OFF)),
     /*AA*/  UCODE("tableswitch",  {}),
     /*AB*/  UCODE("lookupswitch", {}),
     /// @}
@@ -249,15 +289,15 @@ static Methods ucode[256] = {
     /*AD*/  UCODE("lreturn",   S64 n = PopL(); Ret(); PushL(n)),
     /*AE*/  UCODE("freturn",   F32 n = PopF(); Ret(); PushF(n)),
     /*AF*/  UCODE("dreturn",   F64 n = PopD(); Ret(); PushD(n)),
-    /*B0*/  UCODE("areturn",   R32 n = PopA(); Ret(); PushA(n)),
+    /*B0*/  UCODE("areturn",   P32 n = PopA(); Ret(); PushA(n)),
     /*B1*/  UCODE("return",    Ret()),
     /// @}
     /// @definegroup Field Fetch ops
     /// @{
     /*B2*/  UCODE("getstatic", GetI_S(GetBE16(t->pc)); t->pc+=2),
-    /*B3*/  UCODE("putstatic", SetI_S(GetBE16(t->pc)); t->pc+=2),
+    /*B3*/  UCODE("putstatic", SetI_S(GetBE16(t->pc), 1); t->pc+=2),
     /*B4*/  UCODE("getfield",  GetI_F(GetBE16(t->pc)); t->pc+=2),
-    /*B5*/  UCODE("putfield",  SetI_F(GetBE16(t->pc)); t->pc+=2),
+    /*B5*/  UCODE("putfield",  SetI_F(GetBE16(t->pc), 3); t->pc+=2),
     /// @}
     /// @definegroup Method/Interface Invokation ops
     /// @{
@@ -286,5 +326,9 @@ static Methods ucode[256] = {
     /*C6*/  UCODE("ifnull",       Jump(PopA() == 0)),
     /*C7*/  UCODE("ifnonnull",    Jump(PopA() != 0)),
     /*C8*/  UCODE("goto_w",       t->pc += GetBE32(t->pc) - 1),
-    /*C9*/  UCODE("jsr_w",        PushI(t->pc + 4); t->pc += GetBE32(t->pc) - 1))
+    /*C9*/  UCODE("jsr_w",        PushI(t->pc + 4); t->pc += GetBE32(t->pc) - 1)
 };
+
+int main(int ac, char** av) {
+	return 0;
+}
