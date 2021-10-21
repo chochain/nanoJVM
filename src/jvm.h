@@ -6,6 +6,7 @@
 ///   * this is similar to vector class but much simplified
 ///   * v array is dynamically allocated due to ESP32 has a 96K hard limit
 ///
+#define RANGE_CHECK
 template<class T, int N>
 struct List {
     T   *v;             /// fixed-size array storage
@@ -15,7 +16,7 @@ struct List {
     List()  { v = new T[N]; }      /// dynamically allocate array memory
     ~List() { delete[] v;   }      /// free the memory
     T& operator[](int i)   { return i < 0 ? v[idx + i] : v[i]; }
-#if RANGE_CHECK
+#ifdef RANGE_CHECK
     T pop() {
         if (idx>0) return v[--idx];
         throw "ERR: List empty";
@@ -49,35 +50,48 @@ typedef uintptr_t   P32;
 ///
 /// class, thread, and method classes
 ///
-struct Thread {
-    U32             pc;
-    bool            wide;
+struct njThread {
+    U8    *ip;
+    U32   pc;
+    bool  compile;
+    bool  wide;
+    S32   top;
 
     List<S32, 256>  ss;
     List<S32, 256>  rs;
-    List<S64, 128>  local;
+    List<S32, 128>  local;  // CC:TODO
 
+    void push(S32 v)       { ss.push(top); top = v; }
+    S32  pop()             { S32 n=top; top=ss.pop(); return n; }
+    
     template<typename T>
-    T    load(U32 i, T n)  { return *(T*)local[i]; }
+    T    load(U32 i, T n)  { return *(T*)&local[i]; }
     template<typename T>
-    void store(U32 i, T n) { *(T*)local[i] = n; }
+    void store(U32 i, T n) { *(T*)&local[i] = n; }
 };
-struct Method {
-    const char *name;
+typedef void (*fop)(njThread*);
+struct njMethod {
+    const char *name = 0;
     union {
-        void (*xt)(Thread *t) = 0;
+        fop xt = 0;
         struct {
             U8  native: 1;
+            U8  immd:   1;
             U8  acc:    2;  // public, private, protected
-            U8  type:   3;  // static, final, synchronized
-            U8  rsv1:   2;  // reserved 1
-            U8  rsv2;       // reserved 2
+            U8  type:   4;  // static, final, synchronized
+            U8  rsv;        // reserved
             U16 ref;
         };
     };
+    njMethod(const char *n, fop f, bool im=false) : name(n), xt(f) {
+        immd = im ? 1 : 0;
+    }
+    njMethod() {}
 };
-struct Class {
+struct njClass {
     const char *name;
-    List<Method, 1024>  dict;
+    List<njMethod, 1024>  dict;
+
+    njClass(njMethod ucode[256]) { for (int i=0; i<256; i++) dict.push(ucode[i]); }
 };
 
