@@ -1,27 +1,33 @@
-#include "nanojvm.h"
+#include "jvm.h"
 ///
 /// macros for reduce verbosity
 ///
-#define PushI(n)    t->ss.push((S32)n)
-#define PushL(n)    t->ss.push((S64)n)
-#define PushF(n)    t->ss.push((F32)n)
-#define PushD(n)    t->ss.push((F64)n)
-#define PushA(n)    t->ss.push((P32)n)
-#define PopI()      ((S32)t->ss.pop())
-#define PopL()      ((S64)t->ss.pop())
-#define PopF()      ((F32)t->ss.pop())
-#define PopD()      ((F64)t->ss.pop())
-#define PopA()      ((P32)t->ss.pop())
-#define PopR()      ((P32)t->ss.pop())
+#define TopS32      (*(S32*)&t->top)
+#define TopS64      (*(S64*)&t->top)
+#define TopF32      (*(F32*)&t->top)
+#define TopF64      (*(F64*)&t->top)
+#define TopU32      (*(U32*)&t->top)
+#define TopU64      (*(U64*)&t->top)
+#define PushI(n)    t->push((S32)n)
+#define PushL(n)    t->push((S64)n)
+#define PushF(n)    (0)
+#define PushD(n)    (0)
+#define PushA(n)    t->push((P32)n)
+#define PopI()      ((S32)t->pop())
+#define PopL()      ((S64)t->pop())
+#define PopF()      (0)
+#define PopD()      (0)
+#define PopA()      ((P32)t->pop())
+#define PopR()      ((P32)t->pop())
 #define LoadI(i)    (S32)t->load((U32)i, (S32)i)
 #define LoadL(i)    (S64)t->load((U32)i, (S64)i)
-#define LoadF(i)    (F32)t->load((U32)i, (F32)i)
-#define LoadD(i)    (F64)t->load((U32)i, (F64)i)
+#define LoadF(i)    (0)
+#define LoadD(i)    (0)
 #define LoadA(i)    (P32)t->load((U32)i, (P32)i)
 #define StorI(i,n)  (t->store((U32)i, (S32)n))
 #define StorL(i,n)  (t->store((U32)i, (S64)n))
-#define StorF(i,n)  (t->store((U32)i, (F32)n))
-#define StorD(i,n)  (t->store((U32)i, (F64)n))
+#define StorF(i,n)  (0)
+#define StorD(i,n)  (0)
 #define StorR(i,n)  (t->store((U32)i, (P32)n))
 ///
 /// array access macros (CC: TODO)
@@ -67,13 +73,13 @@ void _Invoke(U32 n) {
 	U32 n1 = (n==3) ? 4 : 2;
 }
 
-#define UCODE(s, g)   { s, [](Thread *t){ g; } }
+#define UCODE(s, g)   { s, [](njThread *t){ g; } }
 ///
 /// micro-code (built-in methods)
 ///
-static Method ucode[256] = {
+static njMethod ucode[256] = {
     ///
-    /// @definegroup Constant ops
+    /// @definegroup Constant ops (CC:TODO)
     /// @{
     /*00*/  UCODE("nop",         {}),
     /*01*/  UCODE("aconst_null", {}),
@@ -92,7 +98,7 @@ static Method ucode[256] = {
     /*0E*/  UCODE("dconst_0",  PushD(0)),
     /*0F*/  UCODE("dconst_1",  PushD(1)),
     /// @}
-    /// @definegroup Load ops
+    /// @definegroup Load ops (CC: TODO)
     /// @{
     /*10*/  UCODE("bipush",   PushI(GetB_C(t->pc++))),
     /*11*/  UCODE("sipush",   PushI(GetBE16(t->pc)); t->pc += 2),
@@ -133,7 +139,7 @@ static Method ucode[256] = {
     /*34*/  UCODE("caload",   S32 n = PopI(); PushI(GetC_A(PopR(), n))),
     /*35*/  UCODE("saload",   S32 n = PopI(); PushI(GetS_A(PopR(), n))),
     /// @}
-    /// @definegroup Store ops
+    /// @definegroup Store ops (CC: TODO)
     /// @{
     /*36*/  UCODE("istore",   StorI(OFF, PopI())),
     /*37*/  UCODE("lstore",   StorL(OFF, PopL())),
@@ -171,63 +177,58 @@ static Method ucode[256] = {
     /// @}
     /// @definegroup Stack ops
     /// @{
-    /*57*/  UCODE("pop",      PopI()),
-    /*58*/  UCODE("pop2",     PopI(); PopI()),
-    /*59*/  UCODE("dup",      Dup(1, 0)),
-    /*5A*/  UCODE("dup_x1",   Dup(1, 1)),
-    /*5B*/  UCODE("dup_x2",   Dup(1, 2)),
-    /*5C*/  UCODE("dup2",     Dup(2, 0)),
-    /*5D*/  UCODE("dup2_x1",  Dup(2, 1)),
-    /*5E*/  UCODE("dup2_x2",  Dup(2, 2)),
-    /*5F*/  UCODE("swap",     Dup(1, 1); PopI()),
+    /*57*/  UCODE("pop",      TopS32 = PopI()),
+    /*58*/  UCODE("pop2",     PopI(); TopS32 = PopI()),
+    /*59*/  UCODE("dup",      PushI(TopS32)),
+    /*5A*/  UCODE("dup_x1",   {}),
+    /*5B*/  UCODE("dup_x2",   {}),
+    /*5C*/  UCODE("dup2",     PushI(t->ss[-1]); PushI(t->ss[-1])),
+    /*5D*/  UCODE("dup2_x1",  {}),
+    /*5E*/  UCODE("dup2_x2",  {}),
+    /*5F*/  UCODE("swap",     S64 n = t->ss.pop(); PushI(n)),
     /// @}
     /// @definegroup ALU Arithmetic ops
     /// @{
-    /*60*/  UCODE("iadd", S32 n = PopI(); PushI(PopI() + n)),
-    /*61*/  UCODE("ladd", S64 n = PopL(); PushL(PopL() + n)),
-    /*62*/  UCODE("fadd", F32 n = PopF(); PushF(PopF() + n)),
-    /*63*/  UCODE("dadd", F64 n = PopD(); PushD(PopD() + n)),
-    /*64*/  UCODE("isub", S32 n = PopI(); PushI(PopI() - n)),
-    /*65*/  UCODE("lsub", S64 n = PopL(); PushL(PopL() - n)),
-    /*66*/  UCODE("fsub", F32 n = PopF(); PushF(PopF() - n)),
-    /*67*/  UCODE("dsub", F64 n = PopD(); PushD(PopD() - n)),
-    /*68*/  UCODE("imul", S32 n = PopI(); PushI(PopI() * n)),
-    /*69*/  UCODE("lmul", S64 n = PopL(); PushL(PopL() * n)),
-    /*6A*/  UCODE("fmul", F32 n = PopF(); PushF(PopF() * n)),
-    /*6B*/  UCODE("dmul", F64 n = PopD(); PushD(PopD() * n)),
-    /*6C*/  UCODE("idiv", S32 n = PopI(); PushI(PopI() / n)),
-    /*6D*/  UCODE("ldiv", S64 n = PopL(); PushL(PopL() / n)),
-    /*6E*/  UCODE("fdiv", F32 n = PopF(); PushF(PopF() / n)),
-    /*6F*/  UCODE("ddiv", F64 n = PopD(); PushD(PopD() / n)),
-    /*70*/  UCODE("irem", S32 n = PopI(); PushI(PopI() % n)),
-    /*71*/  UCODE("lrem", S64 n = PopL(); PushL(PopL() % n)),
+    /*60*/  UCODE("iadd", TopS32 += PopI()),
+    /*61*/  UCODE("ladd", TopS64 += PopL()),
+    /*62*/  UCODE("fadd", TopF32 += PopF()),
+    /*63*/  UCODE("dadd", TopF64 += PopD()),
+    /*64*/  UCODE("isub", TopS32 = PopI() - TopS32),
+    /*65*/  UCODE("lsub", TopS64 = PopL() - TopS64),
+    /*66*/  UCODE("fsub", TopF32 = PopF() - TopF32),
+    /*67*/  UCODE("dsub", TopF64 = PopD() - TopF64),
+    /*68*/  UCODE("imul", TopS32 *= PopI()),
+    /*69*/  UCODE("lmul", TopS64 *= PopL()),
+    /*6A*/  UCODE("fmul", TopF32 *= PopF()),
+    /*6B*/  UCODE("dmul", TopF64 *= PopD()),
+    /*6C*/  UCODE("idiv", TopS32 = PopI() / TopS32),
+    /*6D*/  UCODE("ldiv", TopS64 = PopL() / TopS64),
+    /*6E*/  UCODE("fdiv", TopF32 = PopF() / TopF32),
+    /*6F*/  UCODE("ddiv", TopF64 = PopD() / TopF64),
+    /*70*/  UCODE("irem", TopS32 = PopI() % TopS32),
+    /*71*/  UCODE("lrem", TopS64 = PopL() % TopS64),
     /*72*/  UCODE("frem", {}),
     /*73*/  UCODE("drem", {}),
-    /*74*/  UCODE("ineg", S32 n = PopI(); PushI(-n)),
-    /*75*/  UCODE("lneg", S64 n = PopL(); PushL(-n)),
-    /*76*/  UCODE("fneg", F32 n = PopF(); PushF(-n)),
-    /*77*/  UCODE("dneg", F64 n = PopD(); PushD(-n)),
+    /*74*/  UCODE("ineg", TopS32 = -TopS32),
+    /*75*/  UCODE("lneg", TopS64 = -TopS64),
+    /*76*/  UCODE("fneg", TopF32 = -TopF32),
+    /*77*/  UCODE("dneg", TopF64 = -TopF64),
     /// @}
     /// @definegroup ALU Logical ops
     /// @{
-    /*78*/  UCODE("ishl", S32 n = PopI(); PushI(PopI() << n)),
-    /*79*/  UCODE("lshl", S64 n = PopL(); PushI(PopL() << n)),
-    /*7A*/  UCODE("ishr", S32 n = PopI(); PushI(PopI() >> n)),
-    /*7B*/  UCODE("lshr", S64 n = PopL(); PushI(PopL() >> n)),
-    /*7C*/  UCODE("iushr",S32 n = PopI(); PushI((U32)PopI() >> n)),
-    /*7D*/  UCODE("lushr",S64 n = PopL(); PushI((U64)PopL() >> n)),
-    /*7E*/  UCODE("iand", S32 n = PopI(); PushI(PopI() & n)),
-    /*7F*/  UCODE("land", S64 n = PopL(); PushI(PopL() & n)),
-    /*80*/  UCODE("ior",  S32 n = PopI(); PushI(PopI() | n)),
-    /*81*/  UCODE("lor",  S64 n = PopL(); PushI(PopL() | n)),
-    /*82*/  UCODE("ixor", S32 n = PopI(); PushI(PopI() ^ n)),
-    /*83*/  UCODE("lxor", S64 n = PopL(); PushI(PopL() ^ n)),
-    /*84*/  UCODE("iinc",
-                  S32 i = OFF;
-                  S32 n = LoadI(i);
-                  if (t->wide) { n += GetBE16(t->pc); t->pc += 2; }
-                  else n += GetB_C(t->pc++);
-                  StorI(i, n)),
+    /*78*/  UCODE("ishl", TopS32 <<= PopI()),
+    /*79*/  UCODE("lshl", TopS64 <<= PopL()),
+    /*7A*/  UCODE("ishr", TopS32 >>= PopI()),
+    /*7B*/  UCODE("lshr", TopS64 >>= PopL()),
+    /*7C*/  UCODE("iushr",TopU32 >>= PopI()),
+    /*7D*/  UCODE("lushr",TopU64 >>= PopL()),
+    /*7E*/  UCODE("iand", TopU32 = PopI() & TopU32),
+    /*7F*/  UCODE("land", TopU64 = PopL() & TopU64),
+    /*80*/  UCODE("ior",  TopU32 = PopI() | TopU32),
+    /*81*/  UCODE("lor",  TopU64 = PopL() | TopU64),
+    /*82*/  UCODE("ixor", TopU32 = PopI() ^ TopU32),
+    /*83*/  UCODE("lxor", TopU64 = PopL() ^ TopU64),
+    /*84*/  UCODE("iinc", {}),
     /// @}
     /// @definegroup ALU Conversion ops
     /// @{
@@ -260,20 +261,20 @@ static Method ucode[256] = {
     /// @}
     /// @definegroup ALU Logical Compare ops
     /// @{
-    /*99*/  UCODE("ifeq", Jump(PopI() == 0)),
-    /*9A*/  UCODE("ifne", Jump(PopI() != 0)),
-    /*9B*/  UCODE("iflt", Jump(PopI() <  0)),
-    /*9C*/  UCODE("ifge", Jump(PopI() >= 0)),
-    /*9D*/  UCODE("ifgt", Jump(PopI() >  0)),
-    /*9E*/  UCODE("ifle", Jump(PopI() <= 0)),
-    /*9F*/  UCODE("if_icmpeq", S32 n = PopI(); Jump(PopI() == n)),
-    /*A0*/  UCODE("if_icmpne", S32 n = PopI(); Jump(PopI() != n)),
-    /*A1*/  UCODE("if_icmplt", S32 n = PopI(); Jump(PopI() <  n)),
-    /*A2*/  UCODE("if_icmpge", S32 n = PopI(); Jump(PopI() >= n)),
-    /*A3*/  UCODE("if_icmpgt", S32 n = PopI(); Jump(PopI() >  n)),
-    /*A4*/  UCODE("if_icmple", S32 n = PopI(); Jump(PopI() <= n)),
-    /*A5*/  UCODE("if_acmpeq", S32 n = PopA(); Jump(PopA() == n)),
-    /*A6*/  UCODE("if_acmpne", S32 n = PopA(); Jump(PopA() != n)),
+    /*99*/  UCODE("ifeq", Jump(TopS32 == 0)),
+    /*9A*/  UCODE("ifne", Jump(TopS32 != 0)),
+    /*9B*/  UCODE("iflt", Jump(TopS32 <  0)),
+    /*9C*/  UCODE("ifge", Jump(TopS32 >= 0)),
+    /*9D*/  UCODE("ifgt", Jump(TopS32 >  0)),
+    /*9E*/  UCODE("ifle", Jump(TopS32 <= 0)),
+    /*9F*/  UCODE("if_icmpeq", Jump(t->ss.pop() == TopS32)),
+    /*A0*/  UCODE("if_icmpne", Jump(t->ss.pop() != TopS32)),
+    /*A1*/  UCODE("if_icmplt", Jump(t->ss.pop() <  TopS32)),
+    /*A2*/  UCODE("if_icmpge", Jump(t->ss.pop() >= TopS32)),
+    /*A3*/  UCODE("if_icmpgt", Jump(t->ss.pop() >  TopS32)),
+    /*A4*/  UCODE("if_icmple", Jump(t->ss.pop() <= TopS32)),
+    /*A5*/  UCODE("if_acmpeq", {}),
+    /*A6*/  UCODE("if_acmpne", {}),
     /// @}
     /// @definegroup Branching ops
     /// @{
@@ -285,18 +286,18 @@ static Method ucode[256] = {
     /// @}
     /// @definegroup Return ops
     /// @{
-    /*AC*/  UCODE("ireturn",   S32 n = PopI(); Ret(); PushI(n)),
-    /*AD*/  UCODE("lreturn",   S64 n = PopL(); Ret(); PushL(n)),
-    /*AE*/  UCODE("freturn",   F32 n = PopF(); Ret(); PushF(n)),
-    /*AF*/  UCODE("dreturn",   F64 n = PopD(); Ret(); PushD(n)),
-    /*B0*/  UCODE("areturn",   P32 n = PopA(); Ret(); PushA(n)),
+    /*AC*/  UCODE("ireturn",   S32 n = TopS32; Ret(); PushI(n)),
+    /*AD*/  UCODE("lreturn",   S64 n = TopS64; Ret(); PushL(n)),
+    /*AE*/  UCODE("freturn",   F32 n = TopF32; Ret(); PushF(n)),
+    /*AF*/  UCODE("dreturn",   F64 n = TopF64; Ret(); PushD(n)),
+    /*B0*/  UCODE("areturn",   P32 n = TopU32; Ret(); PushA(n)),
     /*B1*/  UCODE("return",    Ret()),
     /// @}
     /// @definegroup Field Fetch ops
     /// @{
-    /*B2*/  UCODE("getstatic", GetI_S(GetBE16(t->pc)); t->pc+=2),
+    /*B2*/  UCODE("getstatic", GetI_S(GetBE16(t->pc));    t->pc+=2),
     /*B3*/  UCODE("putstatic", SetI_S(GetBE16(t->pc), 1); t->pc+=2),
-    /*B4*/  UCODE("getfield",  GetI_F(GetBE16(t->pc)); t->pc+=2),
+    /*B4*/  UCODE("getfield",  GetI_F(GetBE16(t->pc));    t->pc+=2),
     /*B5*/  UCODE("putfield",  SetI_F(GetBE16(t->pc), 3); t->pc+=2),
     /// @}
     /// @definegroup Method/Interface Invokation ops
@@ -330,5 +331,6 @@ static Method ucode[256] = {
 };
 
 int main(int ac, char** av) {
+	njClass c(ucode);
 	return 0;
 }
