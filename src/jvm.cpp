@@ -1,16 +1,12 @@
 #include "jvm.h"
 using namespace std;
-
-extern Ucode             ucode;
-static List<U8, 1024*48> heap;
-
 ///
 /// debug helper
 ///
 void VM::words() {
     fout << setbase(16);
     for (int i=0; i<cls.dict.idx; i++) {
-        if ((i%10)==0) { fout << ENDL; yield(); }
+        if ((i%10)==0) { fout << ENDL; }
         fout << cls.dict[i].name << " ";
     }
     fout << setbase(10);
@@ -28,15 +24,14 @@ void VM::mem_dump(IU p0, DU sz) {
     for (IU i=ALIGN16(p0); i<=ALIGN16(p0+sz); i+=16) {
         fout << setw(4) << i << ": ";
         for (int j=0; j<16; j++) {
-            U8 c = heap[i+j];
+            U8 c = pmem[i+j];
             fout << setw(2) << (int)c << (j%4==3 ? "  " : " ");
         }
         for (int j=0; j<16; j++) {   // print and advance to next byte
-            U8 c = heap[i+j] & 0x7f;
+            U8 c = pmem[i+j] & 0x7f;
             fout << (char)((c==0x7f||c<0x20) ? '_' : c);
         }
         fout << ENDL;
-        yield();
     }
     fout << setbase(10);
 }
@@ -44,7 +39,9 @@ void VM::mem_dump(IU p0, DU sz) {
 /// outer interpreter
 ///
 void VM::nest(IU c) {
-	rs.push(t0.IP - (U8*)&t0); rs.push(t0.WP=c); t0.IP=&heap[cls.dict[c].pfa];
+	rs.push(t0.IP - (U8*)&t0);
+	rs.push(t0.WP=c);
+	t0.IP=&pmem[cls.dict[c].pfa];
 }
 void VM::inner()    {
 	for (IU c=*t0.IP; t0.IP; t0.IP+=sizeof(IU)) {
@@ -52,7 +49,7 @@ void VM::inner()    {
 	}
 }
 void VM::unnest() {
-	t0.WP = rs.pop();
+	t0.WP = (IU)rs.pop();
 	t0.IP = (U8*)&t0 + rs.pop();
 }
 ///
@@ -86,8 +83,12 @@ void VM::outer(const char *cmd, void(*callback)(int, const char*)) {
     }
     ss_dump();
 }
-
+///
+/// main program
+///
 #include <iostream>     // cin, cout
+extern Ucode             ucode;              /// microcode ROM
+static List<U8, HEAP_SZ> heap;				 /// heap space
 
 int main(int ac, char* av[]) {
     static auto send_to_con = [](int len, const char *rst) { cout << rst; };
@@ -95,7 +96,7 @@ int main(int ac, char* av[]) {
     cout << unitbuf << "nanoJVM v1" << endl;
     Klass  cls("Object", heap);
     Thread th;
-    VM     vm(ucode, cls, th);
+    VM     vm(ucode, cls, th, heap);
     string line;
     while (getline(cin, line)) {             /// fetch line from user console input
         vm.outer(line.c_str(), send_to_con);
