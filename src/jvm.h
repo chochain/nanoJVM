@@ -9,14 +9,16 @@ struct VM {
 	Ucode  &ucode;						/// microcode
 	Klass  &cls;						/// class pool
 	Thread &t0;							/// thread pool
-    List<IU, 256>   rs;					/// return stack
+    List<IU, RS_SZ>   rs;				/// return stack
+    List<U8, HEAP_SZ> &pmem;            /// heap pointer
 
 	istringstream   fin;    			/// forth_in
 	ostringstream   fout;   			/// forth_out
 	void (*fout_cb)(int, const char*);  /// forth output callback function
 	string strbuf;          // input string buffer
 
-	VM(Ucode &u, Klass &c, Thread &t) : ucode(u), cls(c), t0(t) {}
+	VM(Ucode &u, Klass &c, Thread &t, List<U8, HEAP_SZ>&heap)
+	: ucode(u), cls(c), t0(t), pmem(heap) {}
 
 	int find(const char *name) {		/// function searcher
 		int w = cls.find(name);			/// in class dictionary

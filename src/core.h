@@ -5,17 +5,21 @@
 #include <string.h>		// strcmp
 using namespace std;
 ///
+/// configuration
+///
+#define HEAP_SZ         1024*48
+#define VTBL_SZ         512
+#define RS_SZ           128
+#define SS_SZ           256
+#define RANGE_CHECK
+#define ENDL            endl; fout_cb(fout.str().length(), fout.str().c_str()); fout.str("")
+///
 /// array class template (so we don't have dependency on C++ STL)
 /// Note:
 ///   * using decorator pattern
 ///   * this is similar to vector class but much simplified
 ///   * v array is dynamically allocated due to ESP32 has a 96K hard limit
 ///
-#define RANGE_CHECK
-//#define ENDL            endl; fout_cb(fout.str().length(), fout.str().c_str()); fout.str("")
-#define ENDL            endl
-#define yield()
-
 template<class T, int N>
 struct List {
     T   *v;             /// fixed-size array storage
@@ -97,7 +101,7 @@ struct Thread {
     IU    WP;
     U8    *IP;              /// instruction pointer (program counter)
     
-    List<DU, 256>  ss;      /// data stack
+    List<DU, SS_SZ>  ss;    /// data stack
     int   local;            /// local stack index
     ///
     /// opcode fetcher
@@ -128,11 +132,11 @@ struct Thread {
 #define STRLEN(s) (ALIGN(strlen(s)+1))      /** calculate string size with alignment     */
 
 struct Klass {
-    const char 	       *name;               /// class name
-    List<Method, 1024> dict;                /// class methods
-    List<U8, 1024*48>  &pmem;               /// heap pointer
+    const char 	          *name;            /// class name
+    List<Method, VTBL_SZ> dict;             /// class methods
+    List<U8, HEAP_SZ>     &pmem;            /// heap pointer
 
-    Klass(const char *n, List<U8, 1024*48> &heap) : name(n), pmem(heap) {}
+    Klass(const char *n, List<U8, HEAP_SZ> &heap) : name(n), pmem(heap) {}
 
     int find(const char *s) {
         for (int i = dict.idx -1; i>=0; --i) {
