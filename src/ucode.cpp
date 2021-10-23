@@ -61,7 +61,7 @@
 ///
 /// micro-code (built-in methods)
 ///
-static Method prim[] = {
+static Method _java[] = {
     ///
     /// @definegroup Constant ops (CC:TODO)
     /// @{
@@ -316,4 +316,4 @@ static Method prim[] = {
 ///
 /// microcode ROM, use extern by main program
 ///
-Ucode gUcode(sizeof(prim)/sizeof(Method), prim);
+Ucode gUcode(sizeof(_java)/sizeof(Method), _java);
