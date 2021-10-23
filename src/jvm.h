@@ -5,15 +5,14 @@
 #define CELL(a)   (*(DU*)&pmem[a])     /** fetch a cell from parameter memory       */
 #define STR(a)    ((char*)&pmem[a])    /** fetch string pointer to parameter memory */
 #define HERE      (pmem.idx)           /** current parameter memory index           */
-#define IPOFF     (t.IP - PFA)
 ///
 /// Memory Pool Manager
 /// Note:
 ///    ucode is fused into vt for now, it can stay in ROM
 ///
 struct Pool {
-    List<Method, VT_SZ> dict;          /// dictionary i.e. member function pool
     List<U8, HEAP_SZ>   pmem;          /// parameter memory i.e. heap
+    List<Method, VT_SZ> dict;          /// dictionary i.e. member function pool
     List<DU, CONST_SZ>  cnst;          /// constant pool
     IU cls_root = 0;
 
@@ -42,8 +41,8 @@ struct Pool {
         }
         return -1;
     }
-    int get_class(IU c) { return 0; }  /// CC:TODO
-    U8  *get_pfa(IU c)  { return (U8*)&pmem[dict[c].pfa]; }
+    int get_class(IU w) { return 0; }  /// CC:TODO
+    U8  *get_pfa(IU w)  { return (U8*)&pmem[dict[w].pfa]; }
 
     template <typename T>
     int add_const(T *v) { return cnst.push(*(DU*)v); }
@@ -54,5 +53,7 @@ struct Pool {
     void add_du(DU v) { pmem.push((U8*)&v, sizeof(DU)); }
     void add_str(const char *s) { int sz = STRLEN(s); pmem.push((U8*)s,  sz); }
 };
+extern Pool gPool;
+
 #endif // NANOJVM_JVM_H
 

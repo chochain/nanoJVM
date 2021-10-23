@@ -6,9 +6,9 @@
 #include "jvm.h"
 using namespace std;    // default to C++ standard template library
 
-static Pool     gPool;              /// memory management unit
-static Thread   t0;                 /// one thread for now
-static List<DU, RS_SZ> rs;          /// return stack
+Pool     gPool;                     /// memory management unit
+Thread   t0(&gPool.pmem[0]);        /// one thread for now
+List<DU, RS_SZ> rs;                 /// return stack
 
 istringstream   fin;                /// forth_in
 ostringstream   fout;               /// forth_out
@@ -54,19 +54,27 @@ void mem_dump(IU p0, DU sz) {
 ///
 /// outer interpreter
 ///
-#define CALL(c) \
-    if (gPool.dict[c].def) inner(c); \
-    else gUcode.exec(t0, c)
+#define CALL(w) \
+    if (gPool.dict[w].def) inner(w); \
+    else gUcode.exec(t0, w)
 
-void inner(IU c)    {
-    rs.push(t0.IP - (U8*)&gPool);
-    rs.push(t0.WP=c);
-    t0.IP = gPool.get_pfa(c);
-    for (IU c1=*t0.IP; t0.IP; t0.IP += sizeof(IU)) {
-        CALL(c1);
+char *next_word()  {
+    fin >> strbuf;
+    return (char*)strbuf.c_str();
+}
+char *scan(char c) {
+    getline(fin, strbuf, c);
+    return (char*)strbuf.c_str();
+}
+void inner(IU w)    {
+    rs.push(t0.IP - &gPool.pmem[0]);
+    rs.push(t0.WP = w);
+    t0.IP = gPool.get_pfa(w);
+    for (IU w1=*t0.IP; t0.IP; t0.IP += sizeof(IU)) {
+        CALL(w1);
     }
     t0.WP = (IU)rs.pop();
-    t0.IP = (U8*)&gPool + rs.pop();
+    t0.IP = &gPool.pmem[0] + rs.pop();
 }
 int handle_number(const char *idiom) {
     char *p;
@@ -97,16 +105,16 @@ void outer(const char *cmd, void(*callback)(int, const char*)) {
         const char *idiom = strbuf.c_str();
         printf("%s=>",idiom);
         int w = gPool.get_method(idiom);
-        if (w < 0 && handle_number(idiom)) {
-            fout << idiom << "? " << ENDL;   ///> display error prompt
-        }
-        else {
+        if (w >= 0) {
             Method *m = &gPool.dict[w];
             printf("%s %d\n", m->name, w);
             if (t0.compile && !m->immd) {    /// * in compile mode?
                 gPool.add_iu(w);             /// * add found word to new colon word
             }
             else CALL(w);                    /// * execute word
+        }
+        else if (handle_number(idiom)) {
+            fout << idiom << "? " << ENDL;   ///> display error prompt
         }
     }
     ss_dump();
