@@ -2,10 +2,12 @@
 #include <iomanip>      // setbase
 #include <string>       // string class
 #include <stdlib.h>     // strtol
-#include "ucode.h"      // gUcode microcode unit
+#include "ucode.h"
 #include "jvm.h"
 using namespace std;    // default to C++ standard template library
 
+extern   Ucode gUcode;				/// JVM microcodes
+extern   Ucode gForth;				/// FVM microcodes
 Pool     gPool;                     /// memory management unit
 Thread   t0(&gPool.pmem[0]);        /// one thread for now
 List<DU, RS_SZ> rs;                 /// return stack
@@ -22,7 +24,7 @@ void (*fout_cb)(int, const char*);  /// forth output callback function
 void words() {
     fout << setbase(16);
     for (int i=0; i<gPool.dict.idx; i++) {
-        if ((i%10)==0) { fout << ENDL; }
+        if ((i%10)==0) { fout << ENDL; yield(); }
         fout << gPool.dict[i].name << " ";
     }
     fout << setbase(10);
@@ -31,6 +33,7 @@ void ss_dump() {
     if (t0.compile) return;
     fout << " <"; for (int i=0; i<t0.ss.idx; i++) { fout << t0.ss[i] << " "; }
     fout << t0.tos << "> ok" << ENDL;
+    yield();
 }
 ///
 /// dump pmem at p0 offset for sz bytes
@@ -48,6 +51,7 @@ void mem_dump(IU p0, DU sz) {
             fout << (char)((c==0x7f||c<0x20) ? '_' : c);
         }
         fout << ENDL;
+        yield();
     }
     fout << setbase(10);
 }
@@ -86,8 +90,7 @@ int handle_number(const char *idiom) {
     }
     // is a number
     if (t0.compile) {        /// * add literal when in compile mode
-        //add_iu(DOLIT);     ///> dovar (+parameter field)
-        gPool.add_iu(0);     ///> dovar (+parameter field)
+        gPool.add_iu(DOLIT); ///> dovar (+parameter field)
         gPool.add_du(n);     ///> data storage (32-bit integer now)
     }
     else t0.push(n);         ///> or, add value onto data stack
@@ -128,7 +131,8 @@ int main(int ac, char* av[]) {
 
     cout << unitbuf << "nanoJVM v1" << endl;
 
-    gPool.register_class("Object", gUcode.vtsz, gUcode.vt);
+    gPool.register_class("Ucode", gUcode.vtsz, gUcode.vt);
+    gPool.register_class("Forth", gForth.vtsz, gForth.vt);
     string line;
     while (getline(cin, line)) {             /// fetch line from user console input
         outer(line.c_str(), send_to_con);

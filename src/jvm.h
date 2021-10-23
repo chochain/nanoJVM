@@ -2,9 +2,20 @@
 #define NANOJVM_JVM_H
 #include "core.h"
 
-#define CELL(a)   (*(DU*)&pmem[a])     /** fetch a cell from parameter memory       */
-#define STR(a)    ((char*)&pmem[a])    /** fetch string pointer to parameter memory */
-#define HERE      (pmem.idx)           /** current parameter memory index           */
+enum { DOVAR = 0xCA, DOLIT, DOSTR }; 	/// Forth opcodes
+///
+/// VM namespace functions
+///
+char *next_word();
+char *scan(char c);
+void words();
+void ss_dump();
+void mem_dump(IU p0, DU sz);
+///
+/// macros for parameter memory access
+///
+#define STR(a) ((char*)&pmem[a])  /** fetch string pointer to parameter memory */
+#define HERE   (pmem.idx)         /** current parameter memory index           */
 ///
 /// Memory Pool Manager
 /// Note:
