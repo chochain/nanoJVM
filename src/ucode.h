@@ -18,4 +18,6 @@ struct Ucode {
 	    (*(fop)(((uintptr_t)vt[c].xt)&~0x3))(t);
 	}
 };
+extern Ucode gUcode;
+
 #endif // NANOJVM_UCODE_H

@@ -316,4 +316,4 @@ static Method prim[] = {
 ///
 /// microcode ROM, use extern by main program
 ///
-static Ucode gUcode(sizeof(prim)/sizeof(Method), prim);
+Ucode gUcode(sizeof(prim)/sizeof(Method), prim);
