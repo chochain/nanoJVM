@@ -311,7 +311,9 @@ static Method prim[] = {
     /*C6*/  UCODE("ifnull",       t.cjmp(PopA() == 0)),
     /*C7*/  UCODE("ifnonnull",    t.cjmp(PopA() != 0)),
     /*C8*/  UCODE("goto_w",       t.jmp()),
-    /*C9*/  UCODE("jsr_w",        PushI((P32)(t.IP + sizeof(U32))); t.jmp())
+    /*C9*/  UCODE("jsr_w",        PushI((P32)(t.IP + sizeof(U32))); t.jmp()),
 };
-
-Ucode ucode(sizeof(prim)/sizeof(Method), prim);
+///
+/// microcode ROM, use extern by main program
+///
+static Ucode gUcode(sizeof(prim)/sizeof(Method), prim);
