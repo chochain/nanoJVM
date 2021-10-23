@@ -5,14 +5,17 @@
 #include <string.h>		// strcmp
 using namespace std;
 ///
-/// configuration
+/// conditional compilation options
 ///
-#define HEAP_SZ         1024*48
-#define VTBL_SZ         512
-#define RS_SZ           128
-#define SS_SZ           256
 #define RANGE_CHECK
-#define ENDL            endl; fout_cb(fout.str().length(), fout.str().c_str()); fout.str("")
+///
+/// memory block size setting
+///
+#define HEAP_SZ         1024*48		/** global heap space size     */
+#define VT_SZ           512			/** virtual table pool size    */
+#define RS_SZ           128			/** return stack size per VM   */
+#define SS_SZ           256			/** data stack size per thread */
+#define CONST_SZ        128			/** constant pool size         */
 ///
 /// array class template (so we don't have dependency on C++ STL)
 /// Note:
@@ -34,13 +37,13 @@ struct List {
         if (idx>0) return v[--idx];
         throw "ERR: List empty";
     }
-    T push(T t) {
-        if (idx<N) return v[max=idx++] = t;
+    int push(T t) {
+        if (idx<N) { v[max=idx] = t; return idx++; }
         throw "ERR: List full";
     }
 #else
-    T pop()     { return v[--idx]; }
-    T push(T t) { return v[max=idx++] = t; }
+    T   pop()     { return v[--idx]; }
+    int push(T t) { v[max=idx] = t; return idx++; }
 #endif // RANGE_CHECK
     void push(T *a, int n)  { for (int i=0; i<n; i++) push(*(a+i)); }
     void merge(List& a)     { for (int i=0; i<a.idx; i++) push(a[i]);}
@@ -60,47 +63,55 @@ typedef uint64_t    U64;
 typedef float       F32;
 typedef double      F64;
 typedef uintptr_t   P32;
-
+///
+/// logical size: instruction, data, and pointer units
+///
 typedef U16         IU;
 typedef S32         DU;
+typedef U32         PU;
 ///
-/// alignment macros
+/// memory alignment macros
 ///
-#define ALIGN(sz)       ((sz) + (-(sz) & 0x1))
-#define ALIGN16(sz)     ((sz) + (-(sz) & 0xf))
+#define ALIGN(sz)   ((sz) + (-(sz) & 0x1))
+#define ALIGN16(sz) ((sz) + (-(sz) & 0xf))
+#define STRLEN(s)   (ALIGN(strlen(s)+1))    /** calculate string size with alignment */
 ///
-/// method class
+/// Method class
 ///
 struct Thread;
 typedef void (*fop)(Thread&);
+
 struct Method {
-    const char *name = 0;
+    const char *name = 0;	 // for debugging, TODO (in const_pool)
     union {
         fop xt = 0;
         struct {
-            U32  def:    1;  // 0:native, 1:composite
-            U32  immd:   1;
-            U32  acc:    2;  // public, private, protected
-            U32  type:   4;  // static, finall, virtual
-            U32  pfa:   24;
+            U8   def:    1;  // 0:native, 1:composite
+            U8   immd:   1;
+            U8   acc:    2;  // public, private, protected
+            U8   type:   4;  // static, finall, virtual
+            U8   cid;        // class index
+            U16  pfa;        // method offset to pmem
         };
     };
     Method(const char *n, fop f, bool im=false) : name(n), xt(f) {
         immd = im ? 1 : 0;
     }
     Method() {}
+
+    void exec(Thread &t) { (*(fop)(((uintptr_t)xt)&~0x3))(t); }
 };
 ///
-/// class, thread, and method classes
+/// Thread class
 ///
 struct Thread {
     DU    base = 10;
     bool  compile;          /// compile flag
     bool  wide;             /// wide flag
     DU    tos;              /// top of stack
-    IU    WP;
+    IU    WP;               /// method index
     U8    *IP;              /// instruction pointer (program counter)
-    
+
     List<DU, SS_SZ>  ss;    /// data stack
     int   local;            /// local stack index
     ///
@@ -127,31 +138,5 @@ struct Thread {
     T    load(U32 i, T n)  { return *(T*)&ss[i+local]; }
     template<typename T>
     void store(U32 i, T n) { *(T*)&ss[i+local] = n; }
-};
-
-#define STRLEN(s) (ALIGN(strlen(s)+1))      /** calculate string size with alignment     */
-
-struct Klass {
-    const char 	          *name;            /// class name
-    List<Method, VTBL_SZ> dict;             /// class methods
-    List<U8, HEAP_SZ>     &pmem;            /// heap pointer
-
-    Klass(const char *n, List<U8, HEAP_SZ> &heap) : name(n), pmem(heap) {}
-
-    int find(const char *s) {
-        for (int i = dict.idx -1; i>=0; --i) {
-            if (strcmp(s, dict[i].name)==0) return i | 0xf000;
-        }
-        return -1;
-    }
-	int  handle_number(Thread &t, const char *idiom);
-    ///
-    /// compiler methods
-    ///
-    void add_iu(IU i) { pmem.push((U8*)&i, sizeof(IU)); }
-    void add_du(DU v) { pmem.push((U8*)&v, sizeof(DU)); }
-    void add_str(const char *s) { int sz = STRLEN(s); pmem.push((U8*)s,  sz); }
-
-    void colon(const char *name);
 };
 #endif // NANOJVM_CORE_H

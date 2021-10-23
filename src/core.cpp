@@ -1,34 +1,37 @@
 #include <iomanip>
 #include "core.h"
 
-#define CELL(a)   (*(DU*)&pmem[a])          /** fetch a cell from parameter memory       */
-#define STR(a)    ((char*)&pmem[a])         /** fetch string pointer to parameter memory */
-#define HERE      (pmem.idx)                /** current parameter memory index           */
-
-int Klass::handle_number(Thread &t, const char *idiom) {
-    char *p;
-    int n = static_cast<int>(strtol(idiom, &p, t.base));
-    printf("%d\n", n);
-    if (*p != '\0') {                    /// * not number
-        t.compile = false;               ///> reset to interpreter mode
-        return -1;                       ///> skip the entire input buffer
-    }
-    // is a number
-    if (t.compile) {                     /// * add literal when in compile mode
-        //add_iu(DOLIT);                   ///> dovar (+parameter field)
-        add_iu(0);                   ///> dovar (+parameter field)
-        add_du(n);                       ///> data storage (32-bit integer now)
-    }
-    else t.ss.push(n);                   ///> or, add value onto data stack
-    return 0;
-}
-
-void Klass::colon(const char *name) {
-    char *nfa = STR(HERE);                  // current pmem pointer
-    int sz = STRLEN(name);                  // string length, aligned
-    pmem.push((U8*)name,  sz);              // setup raw name field
-    Method m(nfa, NULL);
-    m.def = 1;                              // specify a colon word
-    m.pfa = HERE;                           // capture code field index
-    dict.push(m);                           // deep copy Code struct into dictionary
+#include <sstream>      // iostream, stringstream
+#include <iomanip>      // setbase
+#include <cstdlib>      // strtol
+#define CODE(s, g)  { s, [](Thread &t){ g; }, false }
+#define IMMD(s, g)  { s, [](Thread &t){ g; }, true  }
+#if 0
+static Method word[] = {
+    ///
+    /// @definegroup Forth Core
+    /// @{
+    /*00*/  CODE("dovar",   PushI(IPOFF);    t.IP += sizeof(DU)),
+    /*01*/  CODE("dolit",   PushI(*(DU*)IP); t.IP += sizeof(DU)),
+    /*02*/  CODE("dostr",
+    			const char *s = (const char*)IP;
+    			PushI(IPOFF); IP += STRLEN(s)),
+    /*03*/  CODE("create",
+    			colon(next_word());
+    			add_iu(find("dovar"))),
+    /*04*/  CODE("variable",
+    			colon(next_word());
+    			DU n = 0;
+    			add_iu(find("dovar"));
+    			add_du(n)),
+    /*05*/  CODE("constant",
+    			colon(next_word());
+    			add_iu(find("dolit"));
+    			add_du(POP())),
+    /*06*/  CODE(":", t.colon(next_word()); t.compile=true),
+    /*07*/  IMMD(";", t.compile = false),
+    /*08*/  CODE("bye", exit(0))
+    /// @}
 };
+#endif
+
