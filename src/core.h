@@ -76,44 +76,21 @@ typedef U32         PU;
 #define ALIGN16(sz) ((sz) + (-(sz) & 0xf))
 #define STRLEN(s)   (ALIGN(strlen(s)+1))    /** calculate string size with alignment */
 ///
-/// Method class
-///
-struct Thread;
-typedef void (*fop)(Thread&);
-
-struct Method {
-    const char *name = 0;    // for debugging, TODO (in const_pool)
-    union {
-        fop xt = 0;
-        struct {
-            U8   def:    1;  // 0:native, 1:composite
-            U8   immd:   1;
-            U8   acc:    2;  // public, private, protected
-            U8   type:   4;  // static, finall, virtual
-            U8   cid;        // class index
-            U16  pfa;        // method offset to pmem
-        };
-    };
-    Method(const char *n, fop f, bool im=false) : name(n), xt(f) {
-        immd = im ? 1 : 0;
-    }
-    Method() {}
-
-    void exec(Thread &t) { (*(fop)(((uintptr_t)xt)&~0x3))(t); }
-};
-///
 /// Thread class
 ///
 struct Thread {
-    DU    base = 10;
-    bool  compile;          /// compile flag
-    bool  wide;             /// wide flag
-    DU    tos;              /// top of stack
-    IU    WP;               /// method index
-    U8    *IP;              /// instruction pointer (program counter)
-
     List<DU, SS_SZ>  ss;    /// data stack
     int   local;            /// local stack index
+
+    bool  compile = false;  /// compile flag
+    bool  wide    = false;  /// wide flag
+    DU    base    = 10;     /// radix
+    DU    tos     = -1;     /// top of stack
+    IU    WP      = 0;      /// method index
+    U8    *IP     = NULL;   /// instruction pointer (program counter)
+    U8    *M0     = NULL;	/// cached base address of memory pool
+
+    Thread(U8 *mem) : M0(mem) {}
     ///
     /// opcode fetcher
     ///
@@ -128,9 +105,9 @@ struct Thread {
     /// branching ops
     ///
     void invoke(U16 i)     { /* TODO */ }
-    void ret()             { IP = 0; }
-    void jmp()             { IP += *(IU*)IP - 1;   }
-    void cjmp(bool f)      { IP += f ? *(IU*)IP - 1 : sizeof(IU); }
+    void ret()             { IP = NULL; }
+    void jmp()             { IP += *(PU*)IP - 1;   }
+    void cjmp(bool f)      { IP += f ? *(PU*)IP - 1 : sizeof(PU); }
     ///
     /// local parameter access, CC:TODO
     ///
@@ -138,5 +115,29 @@ struct Thread {
     T    load(U32 i, T n)  { return *(T*)&ss[i+local]; }
     template<typename T>
     void store(U32 i, T n) { *(T*)&ss[i+local] = n; }
+};
+typedef void (*fop)(Thread&); /// opcode function pointer
+///
+/// Method class
+///
+struct Method {
+    const char *name = 0;     /// for debugging, TODO (in const_pool)
+    union {
+        fop xt = 0;
+        struct {
+            U8   def:    1;   /// 0:native, 1:composite
+            U8   immd:   1;
+            U8   acc:    2;   /// public, private, protected
+            U8   type:   4;   /// static, finall, virtual
+            U8   cid;         /// class index
+            IU   pfa;         /// method offset to pmem
+        };
+    };
+    Method(const char *n, fop f, bool im=false) : name(n), xt(f) {
+        immd = im ? 1 : 0;
+    }
+    Method() {}
+
+    void exec(Thread &t) { (*(fop)(((uintptr_t)xt)&~0x3))(t); }
 };
 #endif // NANOJVM_CORE_H
