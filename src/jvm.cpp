@@ -2,18 +2,18 @@
 #include <iomanip>      // setbase
 #include <string>       // string class
 #include <stdlib.h>     // strtol
-#include "ucode.h"		// gUcode microcode unit
+#include "ucode.h"      // gUcode microcode unit
 #include "jvm.h"
 using namespace std;    // default to C++ standard template library
 
-static Pool     gPool;  // memory management unit
-static Thread   t0;     // one thread for now
-List<DU, RS_SZ> rs;     // return stack
+static Pool     gPool;              /// memory management unit
+static Thread   t0;                 /// one thread for now
+static List<DU, RS_SZ> rs;          /// return stack
 
-istringstream   fin;    // forth_in
-ostringstream   fout;   // forth_out
-string strbuf;          // input string buffer
-void (*fout_cb)(int, const char*);  // forth output callback function
+istringstream   fin;                /// forth_in
+ostringstream   fout;               /// forth_out
+string strbuf;                      /// input string buffer
+void (*fout_cb)(int, const char*);  /// forth output callback function
 
 #define ENDL    endl; fout_cb(fout.str().length(), fout.str().c_str()); fout.str("")
 ///
@@ -55,34 +55,34 @@ void mem_dump(IU p0, DU sz) {
 /// outer interpreter
 ///
 #define CALL(c) \
-	if (gPool.dict[c].def) inner(c); \
-	else gUcode.call(t0, c)
+    if (gPool.dict[c].def) inner(c); \
+    else gUcode.exec(t0, c)
 
 void inner(IU c)    {
-	rs.push(t0.IP - (U8*)&t0);
-	rs.push(t0.WP=c);
-	t0.IP = &gPool.pmem[gPool.dict[c].pfa];
-	for (IU c1=*t0.IP; t0.IP; t0.IP += sizeof(IU)) {
-		CALL(c1);
-	}
-	t0.WP = (IU)rs.pop();
-	t0.IP = (U8*)&t0 + rs.pop();
+    rs.push(t0.IP - (U8*)&gPool);
+    rs.push(t0.WP=c);
+    t0.IP = gPool.get_pfa(c);
+    for (IU c1=*t0.IP; t0.IP; t0.IP += sizeof(IU)) {
+        CALL(c1);
+    }
+    t0.WP = (IU)rs.pop();
+    t0.IP = (U8*)&gPool + rs.pop();
 }
 int handle_number(const char *idiom) {
     char *p;
     int n = static_cast<int>(strtol(idiom, &p, t0.base));
     printf("%d\n", n);
-    if (*p != '\0') {                   /// * not number
-        t0.compile = false;             ///> reset to interpreter mode
-        return -1;                      ///> skip the entire input buffer
+    if (*p != '\0') {        /// * not number
+        t0.compile = false;  ///> reset to interpreter mode
+        return -1;           ///> skip the entire input buffer
     }
     // is a number
-    if (t0.compile) {                   /// * add literal when in compile mode
-        //add_iu(DOLIT);                ///> dovar (+parameter field)
-        gPool.add_iu(0);                ///> dovar (+parameter field)
-        gPool.add_du(n);                ///> data storage (32-bit integer now)
+    if (t0.compile) {        /// * add literal when in compile mode
+        //add_iu(DOLIT);     ///> dovar (+parameter field)
+        gPool.add_iu(0);     ///> dovar (+parameter field)
+        gPool.add_du(n);     ///> data storage (32-bit integer now)
     }
-    else t0.ss.push(n);                 ///> or, add value onto data stack
+    else t0.push(n);         ///> or, add value onto data stack
     return 0;
 }
 ///
@@ -98,15 +98,15 @@ void outer(const char *cmd, void(*callback)(int, const char*)) {
         printf("%s=>",idiom);
         int w = gPool.get_method(idiom);
         if (w < 0 && handle_number(idiom)) {
-    		fout << idiom << "? " << ENDL;   ///> display error prompt
+            fout << idiom << "? " << ENDL;   ///> display error prompt
         }
         else {
-        	Method *m = &gPool.dict[w];
+            Method *m = &gPool.dict[w];
             printf("%s %d\n", m->name, w);
-            if (t0.compile && !m->immd) { 	 /// * in compile mode?
-            	gPool.add_iu(w);           	 /// * add found word to new colon word
+            if (t0.compile && !m->immd) {    /// * in compile mode?
+                gPool.add_iu(w);             /// * add found word to new colon word
             }
-            else CALL(w);		 			 /// * execute word
+            else CALL(w);                    /// * execute word
         }
     }
     ss_dump();
@@ -114,7 +114,7 @@ void outer(const char *cmd, void(*callback)(int, const char*)) {
 ///
 /// main program
 ///
-#include <iostream>     	// cin, cout
+#include <iostream>         // cin, cout
 int main(int ac, char* av[]) {
     static auto send_to_con = [](int len, const char *rst) { cout << rst; };
 
