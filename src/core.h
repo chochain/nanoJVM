@@ -17,6 +17,23 @@ using namespace std;
 #define SS_SZ           256         /** data stack size per thread */
 #define CONST_SZ        128         /** constant pool size         */
 ///
+/// Arduino support macros
+///
+#if ARDUINO
+#include <Arduino.h>
+#if ESP32
+#define analogWrite(c,v,mx) ledcWrite((c),(8191/mx)*min((int)(v),mx))
+#endif // ESP32
+#else
+#include <chrono>
+#include <thread>
+#define millis()        chrono::duration_cast<chrono::milliseconds>( \
+                            chrono::steady_clock::now().time_since_epoch()).count()
+#define delay(ms)       this_thread::sleep_for(chrono::milliseconds(ms))
+#define yield()         this_thread::yield()
+#define PROGMEM
+#endif // ARDUINO
+///
 /// array class template (so we don't have dependency on C++ STL)
 /// Note:
 ///   * using decorator pattern
