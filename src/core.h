@@ -1,8 +1,8 @@
 #ifndef NANOJVM_CORE_H
 #define NANOJVM_CORE_H
-#include <stdint.h>		// int16_t, ...
+#include <stdint.h>     // int16_t, ...
 #include <stdlib.h>     // strtol
-#include <string.h>		// strcmp
+#include <string.h>     // strcmp
 using namespace std;
 ///
 /// conditional compilation options
@@ -11,11 +11,11 @@ using namespace std;
 ///
 /// memory block size setting
 ///
-#define HEAP_SZ         1024*48		/** global heap space size     */
-#define VT_SZ           512			/** virtual table pool size    */
-#define RS_SZ           128			/** return stack size per VM   */
-#define SS_SZ           256			/** data stack size per thread */
-#define CONST_SZ        128			/** constant pool size         */
+#define HEAP_SZ         1024*48     /** global heap space size     */
+#define VT_SZ           512         /** virtual table pool size    */
+#define RS_SZ           128         /** return stack size per VM   */
+#define SS_SZ           256         /** data stack size per thread */
+#define CONST_SZ        128         /** constant pool size         */
 ///
 /// array class template (so we don't have dependency on C++ STL)
 /// Note:
@@ -82,7 +82,7 @@ struct Thread;
 typedef void (*fop)(Thread&);
 
 struct Method {
-    const char *name = 0;	 // for debugging, TODO (in const_pool)
+    const char *name = 0;    // for debugging, TODO (in const_pool)
     union {
         fop xt = 0;
         struct {
@@ -118,10 +118,10 @@ struct Thread {
     /// opcode fetcher
     ///
     U8   getBE8()          { return *IP++; }
-	U16  getBE16(U16 i=0)  { U16 n = *(U16*)IP; IP += sizeof(U16); return n; }
-	///
-	/// stack ops
-	///
+    U16  getBE16(U16 i=0)  { U16 n = *(U16*)IP; IP += sizeof(U16); return n; }
+    ///
+    /// stack ops
+    ///
     void push(DU v)        { ss.push(tos); tos = v; }
     DU   pop()             { DU n = tos; tos = ss.pop(); return n; }
     ///

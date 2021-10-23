@@ -3,8 +3,8 @@
 #include "core.h"
 
 struct Ucode {
-	int 	vtsz;
-	Method  *vt;
+    int     vtsz;
+    Method  *vt;
 
     Ucode(U16 n, Method *uc) : vtsz(n), vt(uc) {}
 
@@ -14,9 +14,9 @@ struct Ucode {
         }
         return -1;
     }
-	void exec(Thread &t, U32 c) {
-	    (*(fop)(((uintptr_t)vt[c].xt)&~0x3))(t);
-	}
+    void exec(Thread &t, U32 c) {
+        (*(fop)(((uintptr_t)vt[c].xt)&~0x3))(t);
+    }
 };
 extern Ucode gUcode;
 

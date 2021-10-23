@@ -14,20 +14,20 @@ static Method word[] = {
     /*00*/  CODE("dovar",   PushI(IPOFF);    t.IP += sizeof(DU)),
     /*01*/  CODE("dolit",   PushI(*(DU*)IP); t.IP += sizeof(DU)),
     /*02*/  CODE("dostr",
-    			const char *s = (const char*)IP;
-    			PushI(IPOFF); IP += STRLEN(s)),
+                const char *s = (const char*)IP;
+                PushI(IPOFF); IP += STRLEN(s)),
     /*03*/  CODE("create",
-    			colon(next_word());
-    			add_iu(find("dovar"))),
+                colon(next_word());
+                add_iu(find("dovar"))),
     /*04*/  CODE("variable",
-    			colon(next_word());
-    			DU n = 0;
-    			add_iu(find("dovar"));
-    			add_du(n)),
+                colon(next_word());
+                DU n = 0;
+                add_iu(find("dovar"));
+                add_du(n)),
     /*05*/  CODE("constant",
-    			colon(next_word());
-    			add_iu(find("dolit"));
-    			add_du(POP())),
+                colon(next_word());
+                add_iu(find("dolit"));
+                add_du(POP())),
     /*06*/  CODE(":", t.colon(next_word()); t.compile=true),
     /*07*/  IMMD(";", t.compile = false),
     /*08*/  CODE("bye", exit(0))
