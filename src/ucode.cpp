@@ -8,17 +8,23 @@
 #define TopF64      (*(F64*)&t.tos)
 #define TopU32      (*(U32*)&t.tos)
 #define TopU64      (*(U64*)&t.tos)
-#define PushI(n)    (t.push((S32)n))
-#define PushL(n)    (t.push((S64)n))
+#define PushI(n)    (t.push((S32)n))        /** tos updated     */
+#define PushL(n)    (t.push((S64)n))        /** tos updated     */
 #define PushF(n)    (0)
 #define PushD(n)    (0)
 #define PushA(n)    (t.push((P32)n))
-#define PopI()      ((S32)t.pop())
-#define PopL()      ((S64)t.pop())
+#define PopI()      ((S32)t.ss.pop())		/** tos not changed */
+#define PopL()      ((S64)t.ss.pop())		/** tos not changed */
 #define PopF()      (0)
 #define PopD()      (0)
-#define PopA()      ((P32)t.pop())
-#define PopR()      ((P32)t.pop())
+#define PopA()      ((P32)t.ss.pop())
+#define PopR()      ((P32)t.ss.pop())
+#define PopI2T()    ((S32)t.pop())
+#define PopL2T()    ((S64)t.pop())
+#define PopF2T()    (0)
+#define PopD2T()    (0)
+#define PopA2T()    ((P32)t.pop())
+#define PopR2T()    ((P32)t.pop())
 #define LoadI(i)    (S32)t.load((U32)i, (S32)i)
 #define LoadL(i)    (S64)t.load((U32)i, (S64)i)
 #define LoadF(i)    (0)
@@ -61,6 +67,12 @@
 ///
 /// micro-code (built-in methods)
 ///
+auto _iadd = [](Thread &t){
+	DU n = t.ss.pop();
+	DU s = t.tos;
+	t.tos += n;
+	DU x = s - t.tos;
+};
 static Method _java[] = {
     ///
     /// @definegroup Constant ops (CC:TODO)
@@ -114,14 +126,14 @@ static Method _java[] = {
     /*2B*/  UCODE("aload_1",  PushA(LoadA(1))),
     /*2C*/  UCODE("aload_2",  PushA(LoadA(2))),
     /*2D*/  UCODE("aload_3",  PushA(LoadA(3))),
-    /*2E*/  UCODE("iaload",   S32 n = PopI(); PushI(GetI_A(PopR(), n))),
-    /*2F*/  UCODE("faload",   S32 n = PopI(); PushF(GetF_A(PopR(), n))),
-    /*30*/  UCODE("laload",   S32 n = PopI(); PushL(GetL_A(PopR(), n))),
-    /*31*/  UCODE("daload",   S32 n = PopI(); PushD(GetD_A(PopR(), n))),
-    /*32*/  UCODE("aaload",   S32 n = PopI(); PushA(GetA_A(PopR(), n))),
-    /*33*/  UCODE("baload",   S32 n = PopI(); PushI(GetB_A(PopR(), n))),
-    /*34*/  UCODE("caload",   S32 n = PopI(); PushI(GetC_A(PopR(), n))),
-    /*35*/  UCODE("saload",   S32 n = PopI(); PushI(GetS_A(PopR(), n))),
+    /*2E*/  UCODE("iaload",   S32 n = TopS32; PushI(GetI_A(PopR(), n))),
+    /*2F*/  UCODE("faload",   S32 n = TopS32; PushF(GetF_A(PopR(), n))),
+    /*30*/  UCODE("laload",   S32 n = TopS32; PushL(GetL_A(PopR(), n))),
+    /*31*/  UCODE("daload",   S32 n = TopS32; PushD(GetD_A(PopR(), n))),
+    /*32*/  UCODE("aaload",   S32 n = TopS32; PushA(GetA_A(PopR(), n))),
+    /*33*/  UCODE("baload",   S32 n = TopS32; PushI(GetB_A(PopR(), n))),
+    /*34*/  UCODE("caload",   S32 n = TopS32; PushI(GetC_A(PopR(), n))),
+    /*35*/  UCODE("saload",   S32 n = TopS32; PushI(GetS_A(PopR(), n))),
     /// @}
     /// @definegroup Store ops (CC: TODO)
     /// @{
