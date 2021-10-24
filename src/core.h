@@ -85,7 +85,7 @@ typedef uintptr_t   P32;
 ///
 typedef U16         IU;
 typedef S32         DU;
-typedef U32         PU;
+typedef P32         PU;
 ///
 /// memory alignment macros
 ///
@@ -141,30 +141,36 @@ struct Method {
     const char *name = 0;     /// for debugging, TODO (in const_pool)
 #if METHOD_PACKED
     union {
-        fop xt = 0;
+        fop   xt = 0;         /// function pointer (or decayed lambda)
         struct {
-            U8   def:    1;   /// 0:native, 1:composite
-            U8   immd:   1;
-            U8   acc:    2;   /// public, private, protected
-            U8   type:   4;   /// static, finall, virtual
-            U8   cid;         /// class index
-            IU   pfa;         /// method offset to pmem
+            U32 def:  1;
+            U32 immd: 1;
+            U32 rsv:  30;
         };
     };
 #else
-    fop xt = 0;
-    U8   def:    1;   /// 0:native, 1:composite
-    U8   immd:   1;
-    U8   acc:    2;   /// public, private, protected
-    U8   type:   4;   /// static, finall, virtual
-    U8   cid;         /// class index
-    IU   pfa;         /// method offset to pmem
+    fop   xt = 0;            /// function pointer (or decayed lambda)
+    U16   immd;
 #endif
     Method(const char *n, fop f, bool im=false) : name(n), xt(f) {
-        immd = im ? 1 : 0;
+    	if (im) immd = 1;
     }
-    Method() {}
+};
+///
+/// Word - shared struct for Class and Method
+///   class list - linked list of words, dict[cls_root], pfa => next_class
+///   vtable     - linked list of words, dict[class.pfa], pfa => next_method
+///
+struct Word {
+    IU  lfa;                 /// link field to previous word
+    U8  len;                 /// name of method
+    U8  def:    1;           /// 0:native, 1:composite
+    U8  immd:   1;           /// Forth immediate word
+    U8  access: 2;           /// public, private, protected
+    U8  ftype:  4;       	 /// static, finall, virtual, synchronized
+    U8  data[];              /// name field + parameter field
 
-    void exec(Thread &t) { (*(fop)(((uintptr_t)xt)&~0x3))(t); }
+    const char *nfa() { return (const char*)data; }
+    U8 *pfa()         { return &data[len]; }
 };
 #endif // NANOJVM_CORE_H
