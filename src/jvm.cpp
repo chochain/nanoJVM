@@ -6,10 +6,64 @@
 #include "jvm.h"
 using namespace std;    // default to C++ standard template library
 
+IU Pool::find(const char *s, IU root) {
+    Word *w = (Word*)&dict[root];
+    while (w) {
+        if (strcmp(w->nfa(), s)==0) return root;
+        w = (Word*)&dict[root = w->lfa];
+    }
+    return 0;
+}
+///
+/// return jvm_root if cls_name is NULL
+///
+IU Pool::get_class(const char *cls_name) {
+    return cls_name ? jvm_root : find(cls_name, cls_root);
+}
+///
+/// return m_root if m_name is NULL
+///
+IU Pool::get_method(const char *m_name, const char *cls_name) {
+    Word *cls   = (Word*)&dict[get_class(cls_name)];
+    IU   m_root = *(IU*)cls->pfa();
+    return m_name ? m_root : find(m_name, m_root);
+}
+IU Pool::add_method(Method &vt, IU m_root) {
+    add_iu(m_root);            		/// link to previous method
+    add_u8(STRLEN(vt.name));		/// len of method name
+    add_u8(0);                 		/// method access control
+    add_str(vt.name);       		/// method name
+    add_pu((PU)vt.xt);
+    return dict.idx;		   		/// new m_root
+};
+IU Pool::register_class(const char *name, int sz, Method *vt, const char *supr) {
+    /// encode vtable
+    IU m_root = supr ? get_method(NULL, supr) : 0;
+    for (int i=0; i<sz; i++) {
+    	m_root = add_method(vt[i], m_root);
+    }
+    /// encode class
+    add_iu(cls_root);
+    add_u8(STRLEN(name));          	/// add class name
+    add_u8(0);                     	/// class access control
+    add_str(name);
+    add_iu(m_root);                	/// set root of method linked list
+    
+    if (jvm_root==0) jvm_root = m_root;
+    return cls_root = m_root;      	/// new class root
+}
+void Pool::colon(const char *name) {
+	add_iu(jvm_root);
+	add_u8(STRLEN(name));
+	add_u8(0);
+	add_str(name);
+	jvm_root = dict.idx;
+}
+
 extern   Ucode gUcode;				/// JVM microcodes
 extern   Ucode gForth;				/// FVM microcodes
 Pool     gPool;                     /// memory management unit
-Thread   t0(&gPool.pmem[0]);        /// one thread for now
+Thread   t0(&gPool.dict[0]);        /// one thread for now
 List<DU, RS_SZ> rs;                 /// return stack
 
 istringstream   fin;                /// forth_in
@@ -23,9 +77,19 @@ void (*fout_cb)(int, const char*);  /// forth output callback function
 ///
 void words() {
     fout << setbase(16);
-    for (int i=0; i<gPool.dict.idx; i++) {
-        if ((i%10)==0) { fout << ENDL; yield(); }
-        fout << gPool.dict[i].name << " ";
+    Word *cls = (Word*)&gPool.dict[gPool.cls_root];
+    while (cls) {
+    	IU m_root = *(IU*)cls->pfa();
+    	fout << cls->nfa() << "::[" << ENDL;
+    	Word *m = (Word*)&gPool.dict[m_root];
+    	int i = 0;
+    	while (m_root) {
+            if ((i++%10)==0) { fout << ENDL; yield(); }
+            fout << m->nfa() << " ";
+            m = (Word*)&gPool.dict[m_root = m->lfa];
+    	};
+    	fout << "]" << ENDL;
+    	cls = (Word*)&gPool.dict[cls->lfa];
     }
     fout << setbase(10);
 }
@@ -43,11 +107,11 @@ void mem_dump(IU p0, DU sz) {
     for (IU i=ALIGN16(p0); i<=ALIGN16(p0+sz); i+=16) {
         fout << setw(4) << i << ": ";
         for (int j=0; j<16; j++) {
-            U8 c = gPool.pmem[i+j];
+            U8 c = gPool.dict[i+j];
             fout << setw(2) << (int)c << (j%4==3 ? "  " : " ");
         }
         for (int j=0; j<16; j++) {   // print and advance to next byte
-            U8 c = gPool.pmem[i+j] & 0x7f;
+            U8 c = gPool.dict[i+j] & 0x7f;
             fout << (char)((c==0x7f||c<0x20) ? '_' : c);
         }
         fout << ENDL;
@@ -58,10 +122,15 @@ void mem_dump(IU p0, DU sz) {
 ///
 /// outer interpreter
 ///
-#define CALL(w) \
-    if (gPool.dict[w].def) inner(w); \
-    else gUcode.exec(t0, w)
-
+void inner(IU w);
+void CALL(IU w) {
+	Word *m = (Word*)&gPool.dict[w];
+	if (m->def) inner(w);
+	else {
+		fop xt = *(fop*)m->pfa();
+		xt(t0);
+	}
+}
 char *next_word()  {
     fin >> strbuf;
     return (char*)strbuf.c_str();
@@ -71,14 +140,15 @@ char *scan(char c) {
     return (char*)strbuf.c_str();
 }
 void inner(IU w)    {
-    rs.push(t0.IP - &gPool.pmem[0]);
+    rs.push(t0.IP - &gPool.dict[0]);
     rs.push(t0.WP = w);
-    t0.IP = gPool.get_pfa(w);
+    Word *m = (Word*)&gPool.dict[w];
+    t0.IP = m->pfa();
     for (IU w1=*t0.IP; t0.IP; t0.IP += sizeof(IU)) {
         CALL(w1);
     }
     t0.WP = (IU)rs.pop();
-    t0.IP = &gPool.pmem[0] + rs.pop();
+    t0.IP = &gPool.dict[0] + rs.pop();
 }
 int handle_number(const char *idiom) {
     char *p;
@@ -108,9 +178,9 @@ void outer(const char *cmd, void(*callback)(int, const char*)) {
         const char *idiom = strbuf.c_str();
         printf("%s=>",idiom);
         int w = gPool.get_method(idiom);
-        if (w >= 0) {
-            Method *m = &gPool.dict[w];
-            printf("%s %d\n", m->name, w);
+        if (w > 0) {
+            Word *m = (Word*)&gPool.dict[w];
+            printf("%s 0x%x\n", m->nfa(), w);
             if (t0.compile && !m->immd) {    /// * in compile mode?
                 gPool.add_iu(w);             /// * add found word to new colon word
             }
