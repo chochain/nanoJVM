@@ -139,6 +139,7 @@ typedef void (*fop)(Thread&); /// opcode function pointer
 ///
 struct Method {
     const char *name = 0;     /// for debugging, TODO (in const_pool)
+#if METHOD_PACKED
     union {
         fop xt = 0;
         struct {
@@ -150,6 +151,15 @@ struct Method {
             IU   pfa;         /// method offset to pmem
         };
     };
+#else
+    fop xt = 0;
+    U8   def:    1;   /// 0:native, 1:composite
+    U8   immd:   1;
+    U8   acc:    2;   /// public, private, protected
+    U8   type:   4;   /// static, finall, virtual
+    U8   cid;         /// class index
+    IU   pfa;         /// method offset to pmem
+#endif
     Method(const char *n, fop f, bool im=false) : name(n), xt(f) {
         immd = im ? 1 : 0;
     }
