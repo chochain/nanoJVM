@@ -27,7 +27,7 @@ struct Pool {
     IU jvm_root = 0;              /// JVM builtin opcodes
     IU cls_root = 0;              /// Forth::context
 
-    IU   add_method(Method &vt, IU root);
+    IU   add_method(Method &vt, IU &root);
     IU   find(const char *m_name, IU root=0);
     IU   get_class(const char *cls_name);
     IU   get_method(const char *m_name, const char *cls_name=0);
