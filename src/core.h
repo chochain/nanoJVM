@@ -89,8 +89,8 @@ typedef P32         PU;
 ///
 /// memory alignment macros
 ///
-#define ALIGN(sz)   ((sz) + (-(sz) & 0x1))
-#define ALIGN16(sz) ((sz) + (-(sz) & 0xf))
+#define ALIGN(sz)   ((sz) + (-(sz) & 0x1))  /** 2-byte alignment  */
+#define ALIGN16(sz) ((sz) + (-(sz) & 0xf))  /** 16-byte alignment */
 #define STRLEN(s)   (ALIGN(strlen(s)+1))    /** calculate string size with alignment */
 ///
 /// Thread class
@@ -170,7 +170,7 @@ struct Word {
     U8  ftype:  4;       	 /// static, finall, virtual, synchronized
     U8  data[];              /// name field + parameter field
 
-    const char *nfa() { return (const char*)data; }
+    const char *nfa() { return (const char*)&data[0]; }
     U8 *pfa()         { return &data[len]; }
 };
 #endif // NANOJVM_CORE_H

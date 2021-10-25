@@ -165,15 +165,6 @@ U8 load_class(U32 readD, klass** clsP) {
         supr =(void*)1;
     }
     U16 p_fld = p_intf + (((U24)ni) << 1) + 2;
-#if 0    
-	UjPrvStrEqualParam p;
-    //p.data.adr.addr has addr of superclass name
-    if (supr) p.data.adr.addr = findConst(readD, ci);
-	
-	p.type = STR_EQ_PAR_TYPE_ADR;
-	p.data.adr.readD = readD;
-	p.data.adr.addr++;
-#endif	
 	if (supr) {	                           // Object has a superclass?
 		supr = findClass(p.readD);
 		if (!supr) return UJ_ERR_DEPENDENCY_MISSING;
