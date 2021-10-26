@@ -1,3 +1,6 @@
+#include <stdio.h>
+#include <memory.h>
+#include "core.h"
 ///
 /// class/method ACL flags
 ///
@@ -51,17 +54,13 @@ struct NativeClass {
 struct Klass {
 	struct Klass* next;
 	struct Klass* supr;
-	U32 native	: 1;
-	U32 ujc	    : 1;
-	U32 mark	: 2;
-	U32 rsv   	: 4;
 	union{
 		NativeClass* native = 0;
 		struct{
-			U32 readD;
-			U24 interfaces;
-			U24 fields;
-			U24 methods;
+			U8 h;
+			U8 interfaces;
+			U8 fields;
+			U8 methods;
 		};
 	};
 	U16 instDataSize;
@@ -69,27 +68,30 @@ struct Klass {
 	U16 clsDataSize;
 	U16 clsDataOfst;
 	U8  data[];
-} Klass;
+};
+struct Klass *g_cls_root;
 
-S8 getBE8(U32 readD, U32 addr) {
+S8 getBE8(U32 h, IU addr) {
     return 0;
 }
-S32 getBE32(U32 readD, U24 addr) {
+S32 getBE32(U32 h, IU addr) {
 	S32 i32 = 0;
-	for(U8 t8 = 0; t8 < 4; t8++) i32 = (i32 << 8) | getBE8(readD, addr++);
+	for(U8 t8 = 0; t8 < 4; t8++) i32 = (i32 << 8) | getBE8(h, addr++);
 	return i32;
 }
-U24 getBE24(U32 readD, U24 addr) {
-	U24 i24 = 0;
-	for(U8 t8 = 0; t8 < 3; t8++) i24 = (i24 << 8) | getBE8(readD, addr++);
+/*
+U24 getBE24(U32 h, IU addr) {
+	U16 i24 = 0;
+	for(U8 t8 = 0; t8 < 3; t8++) i24 = (i24 << 8) | getBE8(h, addr++);
 	return i24;
 }
-S16 getBE16(U32 readD, U24 addr) {
-	S16 i16 = getBE8(readD, addr++) <<= 8;
-	return i16 | getBE8(readD, addr);
+*/
+S16 getBE16(U32 h, IU addr) {
+	S16 i16 = (S16)getBE8(h, addr++) << 8;
+	return i16 | getBE8(h, addr);
 }
-U24 skipAttr(U32 readD, U24 addr){
-    return addr + 6 + getBE32(readD, addr + 2);
+IU skipAttr(U32 h, IU addr){
+    return addr + 6 + getBE32(h, addr + 2);
 }
 U8 typeSize(char type){
 	switch(type){
@@ -99,12 +101,12 @@ U8 typeSize(char type){
     default: return 4;
 	}
 }
-U24 findClass(U32 readD, U16 idx){
-    U24 addr = 10;
+U16 findClass(U32 h, U16 idx){
+    IU addr = 10;
     while (--idx) {
-        U8 type = getBE8(readD, addr++);
+        U8 type = getBE8(h, addr++);
         switch(type){
-        case CONST_STRING:  addr += 2 + getBE16(readD, addr); break;
+        case CONST_STRING:  addr += 2 + getBE16(h, addr); break;
         case CONST_STR_REF: addr += 2; break;
         case CONST_LONG:
         case CONST_DOUBLE:  addr += 8; idx--;  break;
@@ -114,71 +116,69 @@ U24 findClass(U32 readD, U16 idx){
     }
     return addr;
 }
-U8 load_class(U32 readD, klass** clsP) {
-	U24  addr;
-	
-	if ((U32)getBE32(readD, 0) != 0xCAFEBABE) return UJ_ERR_INTERNAL;
+#define MAGIC      0xcafebabe
+#define ERR_MAGIC  1
+#define ERR_SUPER  2
+#define ERR_MEMORY 3
+U8 load_class(U32 h, struct Klass** clsP) {
+	if ((U32)getBE32(h, 0) != MAGIC) return ERR_MAGIC;
 
-    U24 addr = 10;                      // starting address
-    U16 nc   = getBE16(readD, 8) - 1;	// # of constant pool entries
-    U8  type;
-    while (nc--) {				        // skip the constants
-        type = getBE8(readD, addr++);
+    IU addr = 10;                       // class file starting address
+    U16 n_cls   = getBE16(h, 8) - 1;	// # of constant pool entries
+    while (n_cls--) {				    // skip the constants
+        U8 type = getBE8(h, addr++);
         switch(type) {
-        case CONST_STRING:  addr += 2 + getBE16(readD, addr); break;
+        case CONST_STRING:  addr += 2 + getBE16(h, addr); break;
         case CONST_CLASS:
         case CONST_STR_REF: addr += 2; break;
         case CONST_LONG:
-        case CONST_DOUBLE:  addr += 8; nc--; break;
+        case CONST_DOUBLE:  addr += 8; n_cls--; break;
         default:            addr += 4; break;
         }
     }
-    U16 ni = getBE16(readD, addr + 6);                 // number of interfaces
+    U16 n_intf = getBE16(h, addr + 6);             // number of interfaces
     addr += 8;
     U16 p_intf = addr;
-    addr += ((U24)ni) << 1;	                           // skip interfaces
-    U16 nf = getBE16(readD, addr);                     // fetch number of fields
+    addr += n_intf << 1;	                       // skip interfaces
+    U16 n_fld  = getBE16(h, addr);                 // fetch number of fields
     addr += 2;
     
     U16 clsDatSz = 0, instDatSz = 0;
-    while (nf--) {                                     // skip fields
-        U16 f = getBE16(readD, addr);		           // get flags
+    while (n_fld--) {                              // skip fields
+        U16 f = getBE16(h, addr);		           // get flags
         bool isClassVar = !!(f & ACC_STATIC);
 			
-        f = getBE16(readD, addr + 4);	               // read type destriptor index
-        type = getBE8(readD, findClass(readD, f) + 3); // get type descriptor first character
-	
+        U16 idx = getBE16(h, addr + 4);	           // read type destriptor index
+        U8 type = getBE8(h, findClass(h, idx) + 3);// get type descriptor first character
         U8 sz = typeSize(type);
         if (isClassVar) clsDatSz  += sz;
         else            instDatSz += sz;		
 			
-        U16 asz = getBE16(readD, addr + 6);            // get number of attributes
+        U16 asz = getBE16(h, addr + 6);            // get number of attributes
         addr += 8;
-        while (asz--) addr = skipAttr(readD, addr);
+        while (asz--) addr = skipAttr(h, addr);
     }
     addr += 2;	//now points to methods
 
-    Klass *supr = NULL;
-    U16 ci = getBE16(readD, interfaces - 4);			// super class index
-    if (ci) {
-        ci = getBE16(readD, findClass(readD, n) + 1);	// super class name index
-        supr =(void*)1;
+    struct Klass *supr = 0;
+    U16 cidx = getBE16(h, n_intf - 4);			    // super class index
+    if (cidx) {
+        cidx = getBE16(h, findClass(h, cidx) + 1);	// super class name index
+        supr =(struct Klass*)1;
     }
-    U16 p_fld = p_intf + (((U24)ni) << 1) + 2;
-	if (supr) {	                           // Object has a superclass?
-		supr = findClass(p.readD);
-		if (!supr) return UJ_ERR_DEPENDENCY_MISSING;
+    U16 p_fld = p_intf + (n_intf << 1) + 2;
+	if (supr) {	                                    // Object has a superclass?
+//		supr = findClass(h, cidx);
+		if (!supr) return ERR_SUPER;
 	}
     
 	//now we have enough data to know this class's size -> alloc it
     U16   csz  = sizeof(Klass) + clsDatSz + (supr ? supr->clsDataOfst + supr->clsDataSize : 0);
-	Klass *cls = (Klass*)malloc(csz);
-	if (!cls) return UJ_ERR_OUT_OF_MEMORY;
+	struct Klass *cls = (Klass*)malloc(csz);
+	if (!cls) return ERR_MEMORY;
 	
-	cls->native = 0;
-	cls->ujc    = 0;
-	cls->readD  = readD;
-	cls->supr   = supr;
+	cls->h    = h;
+	cls->supr = supr;
 	if (supr) {
 		cls->instDataOfst = supr->instDataOfst + supr->instDataSize;
 		cls->clsDataOfst  = supr->clsDataOfst  + supr->clsDataSize;
@@ -192,10 +192,13 @@ U8 load_class(U32 readD, klass** clsP) {
 	cls->methods      = addr;
 	cls->clsDataSize  = clsDatSz;
 	cls->instDataSize = instDatSz;
-	cls->nextClass    = gFirstClass;
+	cls->next         = g_cls_root;
     
-	gFirstClass       = cls;
+	g_cls_root = cls;
 	if (clsP) *clsP = cls;
 
-	return UJ_ERR_NONE;
+	return 0;
+}
+
+int main(int ac, char* av[]) {
 }

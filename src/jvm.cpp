@@ -202,7 +202,7 @@ void outer(const char *cmd, void(*callback)(int, const char*)) {
 /// main program
 ///
 #include <iostream>         // cin, cout
-int main(int ac, char* av[]) {
+int main0(int ac, char* av[]) {
     static auto send_to_con = [](int len, const char *rst) { cout << rst; };
 
     cout << unitbuf << "nanoJVM v1" << endl;
