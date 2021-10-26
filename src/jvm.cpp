@@ -82,27 +82,22 @@ void (*fout_cb)(int, const char*);  /// forth output callback function
 /// debug helper
 ///
 void words() {
+	fout << setbase(16);
     IU cid = gPool.cls_root;
     do {
     	Word *cls = (Word*)&gPool.dict[cid];
-    	const char *name = cls->nfa();
-    	printf("\n%s %x::", name, cid);
-    	//fout << "\n" << cls->nfa() << "::" << ENDL;
+    	fout << "\n" << cls->nfa() << " " << cid << "::";
     	IU mid = *(IU*)cls->pfa();
     	int i = 0;
     	do {
         	Word *m = (Word*)&gPool.dict[mid];
-            //if ((i++%10)==0) { fout << ENDL; fout << "\t"; yield(); }
-        	if ((i++%10)==0) printf("\n\t");
-            name = m->nfa();
-            printf("%s %x ", name, mid);
-            fout << m->nfa() << " ";
+            if ((i++%10)==0) { fout << ENDL; fout << "\t"; yield(); }
+            fout << m->nfa() << " " << mid << " ";
             mid = m->lfa;
     	} while (mid);
-    	//fout << ENDL;
-    	//printf("\n");
     	cid = cls->lfa;
     } while (cid);
+	fout << setbase(10) << ENDL;
 }
 void ss_dump() {
     if (t0.compile) return;
