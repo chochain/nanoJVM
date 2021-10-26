@@ -5,13 +5,16 @@
 #include "ucode.h"
 #include "jvm.h"
 using namespace std;    // default to C++ standard template library
-
-IU Pool::find(const char *s, IU root) {
-	Word *w;
+///
+/// search for word following given linked list
+///
+IU Pool::find(const char *s, IU idx) {
+	U8 len = STRLEN(s); // check length first, speed up matching
 	do {
-		w = (Word*)&dict[root];
-        if (strcmp(w->nfa(), s)==0) return root;
-    } while (w->lfa);
+		Word *w = (Word*)&dict[idx];
+        if (w->len==len && strcmp(w->nfa(), s)==0) return idx;
+        idx = w->lfa;
+    } while (idx);
     return 0;
 }
 ///
@@ -29,13 +32,13 @@ IU Pool::get_method(const char *m_name, const char *cls_name) {
     return m_name ? find(m_name, m_root) : m_root;
 }
 IU Pool::add_method(Method &vt, IU &m_root) {
-	int m_link = dict.idx;
+	IU mid = dict.idx;				/// store current method idx
     add_iu(m_root);            		/// link to previous method
     add_u8(STRLEN(vt.name));		/// method name length
     add_u8(0);                 		/// method access control
     add_str(vt.name);       		/// enscribe method name
     add_pu((PU)vt.xt);				/// encode function pointer
-    m_root = m_link;		   		/// adjust method root
+    m_root = mid;	   				/// adjust method root
 };
 IU Pool::register_class(const char *name, int sz, Method *vt, const char *supr) {
     /// encode vtable
@@ -44,7 +47,7 @@ IU Pool::register_class(const char *name, int sz, Method *vt, const char *supr) 
     	add_method(vt[i], m_root);
     }
     /// encode class
-    int c_link = dict.idx;			/// preserve class link
+    IU cid = dict.idx;				/// preserve class link
     add_iu(cls_root);
     add_u8(STRLEN(name));          	/// class name length
     add_u8(0);                     	/// class access control
@@ -52,15 +55,15 @@ IU Pool::register_class(const char *name, int sz, Method *vt, const char *supr) 
     add_iu(m_root);                	/// set root of method linked list
     
     if (jvm_root==0) jvm_root = m_root;
-    return cls_root = c_link;      	/// new class root
+    return cls_root = cid;      	/// new class root
 }
 void Pool::colon(const char *name) {
-	int m_link = dict.idx;
+	int mid = dict.idx;
 	add_iu(jvm_root);
 	add_u8(STRLEN(name));
 	add_u8(0);
 	add_str(name);
-	jvm_root = m_link;
+	jvm_root = mid;
 }
 
 extern   Ucode gUcode;				/// JVM microcodes
@@ -79,27 +82,27 @@ void (*fout_cb)(int, const char*);  /// forth output callback function
 /// debug helper
 ///
 void words() {
-    Word *cls;
-    IU c_link = gPool.cls_root;
+    IU cid = gPool.cls_root;
     do {
-    	cls = (Word*)&gPool.dict[c_link];
-    	//const char *name = cls->nfa();
-    	//printf("\n%s::", name);
-    	fout << "\n" << cls->nfa() << "::" << ENDL;
-    	IU m_link = *(IU*)cls->pfa();
+    	Word *cls = (Word*)&gPool.dict[cid];
+    	const char *name = cls->nfa();
+    	printf("\n%s %x::", name, cid);
+    	//fout << "\n" << cls->nfa() << "::" << ENDL;
+    	IU mid = *(IU*)cls->pfa();
     	int i = 0;
-    	Word *m;
     	do {
-        	m = (Word*)&gPool.dict[m_link];
-            if ((i++%10)==0) { fout << ENDL; fout << "\t"; yield(); }
-        	//if ((i++%10)==0) printf("\n\t");
-            //name = m->nfa();
-            //printf("%s ", name);
+        	Word *m = (Word*)&gPool.dict[mid];
+            //if ((i++%10)==0) { fout << ENDL; fout << "\t"; yield(); }
+        	if ((i++%10)==0) printf("\n\t");
+            name = m->nfa();
+            printf("%s %x ", name, mid);
             fout << m->nfa() << " ";
-    	} while (m_link=m->lfa);
-    	fout << ENDL;
+            mid = m->lfa;
+    	} while (mid);
+    	//fout << ENDL;
     	//printf("\n");
-    } while (c_link=cls->lfa);
+    	cid = cls->lfa;
+    } while (cid);
 }
 void ss_dump() {
     if (t0.compile) return;
@@ -185,7 +188,7 @@ void outer(const char *cmd, void(*callback)(int, const char*)) {
     while (fin >> strbuf) {
         const char *idiom = strbuf.c_str();
         printf("%s=>",idiom);
-        int w = gPool.get_method(idiom, "Forth");
+        int w = gPool.get_method(idiom, "nanojvm/Forth");
         if (w > 0) {
             Word *m = (Word*)&gPool.dict[w];
             printf("%s 0x%x\n", m->nfa(), w);
@@ -210,7 +213,7 @@ int main(int ac, char* av[]) {
     cout << unitbuf << "nanoJVM v1" << endl;
 
     gPool.register_class("Ucode", gUcode.vtsz, gUcode.vt);
-    gPool.register_class("Forth", gForth.vtsz, gForth.vt, "Ucode");
+    gPool.register_class("nanojvm/Forth", gForth.vtsz, gForth.vt, "Ucode");
 
     string line;
     while (getline(cin, line)) {             /// fetch line from user console input
