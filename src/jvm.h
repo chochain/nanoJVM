@@ -2,7 +2,7 @@
 #define NANOJVM_JVM_H
 #include "core.h"
 
-enum { DOVAR = 0xCA, DOLIT, DOSTR }; 	/// Forth opcodes
+enum { DOVAR = 0xCA, DOLIT, DOSTR, UNNEST }; 	/// Forth opcodes
 ///
 /// VM namespace functions
 ///
