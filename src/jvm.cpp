@@ -33,12 +33,13 @@ IU Pool::get_method(const char *m_name, const char *cls_name) {
 }
 IU Pool::add_method(Method &vt, IU &m_root) {
 	IU mid = dict.idx;				/// store current method idx
+	U8 f   = vt.immd ? 0x2 : 0;
     add_iu(m_root);            		/// link to previous method
     add_u8(STRLEN(vt.name));		/// method name length
-    add_u8(0);                 		/// method access control
+    add_u8(f);                      /// method access control
     add_str(vt.name);       		/// enscribe method name
     add_pu((PU)vt.xt);				/// encode function pointer
-    m_root = mid;	   				/// adjust method root
+    return m_root = mid;	   		/// adjust method root
 };
 IU Pool::register_class(const char *name, int sz, Method *vt, const char *supr) {
     /// encode vtable
@@ -70,7 +71,7 @@ extern   Ucode gUcode;				/// JVM microcodes
 extern   Ucode gForth;				/// FVM microcodes
 Pool     gPool;                     /// memory management unit
 Thread   t0(&gPool.dict[0]);        /// one thread for now
-List<DU, RS_SZ> rs;                 /// return stack
+List<DU, RS_SZ> rs;           		/// return stack
 
 istringstream   fin;                /// forth_in
 ostringstream   fout;               /// forth_out
@@ -146,15 +147,15 @@ char *scan(char c) {
     return (char*)strbuf.c_str();
 }
 void inner(IU w)    {
-    rs.push(t0.IP - &gPool.dict[0]);
-    rs.push(t0.WP = w);
+	rs.push(t0.IP - &gPool.dict[0]);
+	rs.push(t0.WP = w);
     Word *m = (Word*)&gPool.dict[w];
     t0.IP = m->pfa();
     for (IU w1=*(IU*)t0.IP; t0.IP; t0.IP += sizeof(IU)) {
         CALL(w1);
     }
-    t0.WP = (IU)rs.pop();
-    t0.IP = &gPool.dict[0] + rs.pop();
+	t0.WP = (IU)rs.pop();
+	t0.IP = &gPool.dict[0] + rs.pop();
 }
 int handle_number(const char *idiom) {
     char *p;
@@ -183,7 +184,7 @@ void outer(const char *cmd, void(*callback)(int, const char*)) {
     while (fin >> strbuf) {
         const char *idiom = strbuf.c_str();
         printf("%s=>",idiom);
-        int w = gPool.get_method(idiom, "nanojvm/Forth");
+        int w = gPool.get_method(idiom);	 /// search forth words
         if (w > 0) {
             Word *m = (Word*)&gPool.dict[w];
             printf("%s 0x%x\n", m->nfa(), w);
@@ -202,7 +203,7 @@ void outer(const char *cmd, void(*callback)(int, const char*)) {
 /// main program
 ///
 #include <iostream>         // cin, cout
-int main0(int ac, char* av[]) {
+int main(int ac, char* av[]) {
     static auto send_to_con = [](int len, const char *rst) { cout << rst; };
 
     cout << unitbuf << "nanoJVM v1" << endl;
