@@ -52,15 +52,16 @@ struct NativeClass {
 };
 
 struct Klass {
-	struct Klass* next;
-	struct Klass* supr;
+	struct Klass *next;
+	struct Klass *supr;
+	FILE         *src;
 	union{
-		NativeClass* native = 0;
+		NativeClass *native = 0;
 		struct{
-			U8 h;
 			U8 interfaces;
 			U8 fields;
 			U8 methods;
+			U8 rsv;
 		};
 	};
 	U16 instDataSize;
@@ -71,12 +72,25 @@ struct Klass {
 };
 struct Klass *g_cls_root;
 
-S8 getBE8(U32 h, IU addr) {
-    return 0;
+U8 getBE8(FILE *f, IU addr) {
+    U32   offset = (U32)addr;         // file offset
+	if ((U32)ftell(f) != offset) {
+		if (fseek(f, offset, SEEK_SET)==-1) {
+			fprintf(stderr, "ERR %d: fseek(f, %x)\n", errno, offset);
+			exit(-1);	
+		}
+	}
+	S8 v;
+	if (fread(&v, 1, 1, f)==-1) {
+		fprintf(stderr, "ERR: fread()\n");
+		exit(-2);	
+	}
+	printf(" %02x%c", (U8)v, v < 0x20 ? '_' : (char)v);
+	return v;
 }
-S32 getBE32(U32 h, IU addr) {
+S32 getBE32(FILE *f, IU addr) {
 	S32 i32 = 0;
-	for(U8 t8 = 0; t8 < 4; t8++) i32 = (i32 << 8) | getBE8(h, addr++);
+	for(U8 i = 0; i < 4; i++) i32 = (i32 << 8) | getBE8(f, addr++);
 	return i32;
 }
 /*
@@ -86,12 +100,12 @@ U24 getBE24(U32 h, IU addr) {
 	return i24;
 }
 */
-S16 getBE16(U32 h, IU addr) {
-	S16 i16 = (S16)getBE8(h, addr++) << 8;
-	return i16 | getBE8(h, addr);
+S16 getBE16(FILE *f, IU addr) {
+	S16 i16 = (S16)getBE8(f, addr++) << 8;
+	return i16 | getBE8(f, addr);
 }
-IU skipAttr(U32 h, IU addr){
-    return addr + 6 + getBE32(h, addr + 2);
+IU skipAttr(FILE *f, IU addr){
+    return addr + 6 + getBE32(f, addr + 2);
 }
 U8 typeSize(char type){
 	switch(type){
@@ -101,16 +115,17 @@ U8 typeSize(char type){
     default: return 4;
 	}
 }
-U16 findClass(U32 h, U16 idx){
+U16 poolOffset(FILE *f, U16 idx){
     IU addr = 10;
-    while (--idx) {
-        U8 type = getBE8(h, addr++);
-        switch(type){
-        case CONST_STRING:  addr += 2 + getBE16(h, addr); break;
-        case CONST_STR_REF: addr += 2; break;
+    while (idx--) {
+        U8 t = getBE8(f, addr++);
+        printf("\n%d:%x", t, addr);
+        switch(t){
+        case CONST_STRING:  addr += 2 + getBE16(f, addr); break;
+        case CONST_STR_REF:
+        case CONST_CLASS:   addr += 2; break;
         case CONST_LONG:
         case CONST_DOUBLE:  addr += 8; idx--;  break;
-        case CONST_CLASS:
         default:            addr += 4; break;
         }
     }
@@ -120,64 +135,46 @@ U16 findClass(U32 h, U16 idx){
 #define ERR_MAGIC  1
 #define ERR_SUPER  2
 #define ERR_MEMORY 3
-U8 load_class(U32 h, struct Klass** clsP) {
-	if ((U32)getBE32(h, 0) != MAGIC) return ERR_MAGIC;
+int load_class(FILE *f, struct Klass **pcls) {
+	if ((U32)getBE32(f, 0) != MAGIC) return ERR_MAGIC;
 
-    IU addr = 10;                       // class file starting address
-    U16 n_cls   = getBE16(h, 8) - 1;	// # of constant pool entries
-    while (n_cls--) {				    // skip the constants
-        U8 type = getBE8(h, addr++);
-        switch(type) {
-        case CONST_STRING:  addr += 2 + getBE16(h, addr); break;
-        case CONST_CLASS:
-        case CONST_STR_REF: addr += 2; break;
-        case CONST_LONG:
-        case CONST_DOUBLE:  addr += 8; n_cls--; break;
-        default:            addr += 4; break;
-        }
-    }
-    U16 n_intf = getBE16(h, addr + 6);             // number of interfaces
-    addr += 8;
-    U16 p_intf = addr;
-    addr += n_intf << 1;	                       // skip interfaces
-    U16 n_fld  = getBE16(h, addr);                 // fetch number of fields
-    addr += 2;
+    U16 n_cnst = getBE16(f, 8) - 1;			       // number of constant pool entries
+    IU addr = poolOffset(f, n_cnst);               // skip constant descriptors
+    U16 n_intf = getBE16(f, addr + 6);             // number of interfaces
+    U16 p_intf = (addr += 8);                      // pointer to interface section
+    U16 p_attr = (addr += (n_intf << 1));	       // pointer to attribute section
+    U16 n_attr = getBE16(f, addr); addr += 2;      // fetch number of attributes
     
     U16 clsDatSz = 0, instDatSz = 0;
-    while (n_fld--) {                              // skip fields
-        U16 f = getBE16(h, addr);		           // get flags
-        bool isClassVar = !!(f & ACC_STATIC);
+    while (n_attr--) {                             // scan attributes
+        U16 flag = getBE16(f, addr);		       // get flags
+        bool isClassVar = !!(flag & ACC_STATIC);
 			
-        U16 idx = getBE16(h, addr + 4);	           // read type destriptor index
-        U8 type = getBE8(h, findClass(h, idx) + 3);// get type descriptor first character
-        U8 sz = typeSize(type);
+        U16 idx  = getBE16(f, addr + 4);	        // read type destriptor index
+        U8  type = getBE8(f, poolOffset(f, idx) + 3); // get type descriptor first character
+        U8  sz   = typeSize(type);
         if (isClassVar) clsDatSz  += sz;
         else            instDatSz += sz;		
 			
-        U16 asz = getBE16(h, addr + 6);            // get number of attributes
+        U16 asz = getBE16(f, addr + 6);            // get number of attributes
         addr += 8;
-        while (asz--) addr = skipAttr(h, addr);
+        while (asz--) addr = skipAttr(f, addr);
     }
+    U16 p_fld = p_intf + (n_intf << 1) + 2;
     addr += 2;	//now points to methods
 
     struct Klass *supr = 0;
-    U16 cidx = getBE16(h, n_intf - 4);			    // super class index
+    U16 cidx = getBE16(f, p_intf - 4);			    // super class index
     if (cidx) {
-        cidx = getBE16(h, findClass(h, cidx) + 1);	// super class name index
-        supr =(struct Klass*)1;
+        cidx = getBE16(f, poolOffset(f, cidx) + 1);	// super class name index
+        supr = (struct Klass*)poolOffset(f, cidx);  // offset to super class
     }
-    U16 p_fld = p_intf + (n_intf << 1) + 2;
-	if (supr) {	                                    // Object has a superclass?
-//		supr = findClass(h, cidx);
-		if (!supr) return ERR_SUPER;
-	}
-    
 	//now we have enough data to know this class's size -> alloc it
     U16   csz  = sizeof(Klass) + clsDatSz + (supr ? supr->clsDataOfst + supr->clsDataSize : 0);
 	struct Klass *cls = (Klass*)malloc(csz);
 	if (!cls) return ERR_MEMORY;
 	
-	cls->h    = h;
+	cls->src  = f;
 	cls->supr = supr;
 	if (supr) {
 		cls->instDataOfst = supr->instDataOfst + supr->instDataSize;
@@ -194,11 +191,43 @@ U8 load_class(U32 h, struct Klass** clsP) {
 	cls->instDataSize = instDatSz;
 	cls->next         = g_cls_root;
     
-	g_cls_root = cls;
-	if (clsP) *clsP = cls;
-
+	*pcls = g_cls_root = cls;
 	return 0;
 }
 
 int main(int ac, char* av[]) {
+	if(ac < 1){
+		fprintf(stderr, "Usage:> %s f.class\n", av[0]);
+		return -1;
+	}
+    FILE* f = fopen(av[1], "rb");
+    if (!f) {
+        fprintf(stderr," Failed to open file\n");
+        return -1;
+    }
+    struct Klass *cls;
+    if (load_class(f, &cls)) return 1;
+#if 0    
+	ret = ujInitAllClasses();
+	if(ret != UJ_ERR_NONE){
+		fprintf(stderr, "ujInitAllClasses() fail\n");
+		return -1;	
+	}
+	//now classes are loaded, time to call the entry point
+	
+	threadH = ujThreadCreate(0);
+	if(!threadH){
+		fprintf(stderr, "ujThreadCreate() fail\n");
+		return -1;	
+	}
+	i = ujThreadGoto(threadH, mainClass, "main", "()V");
+	while (ujCanRun()) {
+		i = ujInstr();
+		if(i != UJ_ERR_NONE){
+			fprintf(stderr, "Ret %d @ instr right before 0x%08lX\n", i, ujThreadDbgGetPc(threadH));
+			exit(-10);
+		}
+	}
+#endif
+    return 0;
 }
