@@ -97,9 +97,6 @@ U32 getU32(FILE *f, IU addr) {
 	for(U8 i = 0; i < 4; i++) v = (v << 8) | getU8(f, addr++);
 	return v;
 }
-IU skipAttr(FILE *f, IU addr){
-    return addr + 6 + getU32(f, addr + 2);
-}
 U8 typeSize(char type){
 	switch(type){
     case TYPE_BYTE:   case TYPE_BOOL:  return 1;
@@ -155,16 +152,18 @@ void getConstName(FILE *f, U16 cidx) {
         printStr(f, cidx+1);
     }
 }
+IU skipAttr(FILE *f, IU addr){
+    return addr + 6 + getU32(f, addr + 2);
+}
 U8 getInfo(FILE *f, IU &addr) {
     U16 ifld = getU16(f, addr + 2);                 // field name index
     U16 itype= getU16(f, addr + 4);	                // read type destriptor index
     U16 xsz  = getU16(f, addr + 6);                 // get number of filed attributes
+    U8  type = getU8(f, poolOffset(f, itype-1) + 3);  // get type descriptor first character
     addr += 8;                                      // pointer to field attributes
     while (xsz--) addr = skipAttr(f, addr);         //
 
-    U8  type = getU8(f, poolOffset(f, itype-1) + 3);  // get type descriptor first character
-    U8  sz   = typeSize(type);
-    return sz;
+    return typeSize(type);
 }
 #if 0
 ClassFile {        // Java class file format
@@ -219,11 +218,15 @@ int load_class(FILE *f, struct Klass **pcls) {
 
     U16 n_cnst = getU16(f, 8) - 1;			        // number of constant pool entries
     IU addr = poolOffset(f, n_cnst);                // skip constant descriptors
-    U16 acc    = getU16(f, addr);					// class access flag
-    U16 i_cls  = getU16(f, addr + 2);				// this class
-    U16 i_supr = getU16(f, addr + 4);				// super class
-    U16 n_intf = getU16(f, addr + 6);               // number of interfaces
-    IU  p_intf = (addr += 8);                       // pointer to interface section
+    U16 acc    = getU16(f, addr);	addr += 2;		// class access flag
+    U16 i_cls  = getU16(f, addr);	addr += 2;		// this class
+    U16 i_supr = getU16(f, addr);	addr += 2;		// super class
+
+    getConstName(f, i_cls);
+    getConstName(f, i_supr);
+
+    U16 n_intf = getU16(f, addr);	addr += 2;      // number of interfaces
+    IU  p_intf = addr;                       		// pointer to interface section
     U16 n_fld  = getU16(f, (addr += n_intf*2));     // number of fields
     IU  p_fld  = (addr += 2);
     printf("\np_intf=%x, np_attr=%x", p_intf, p_fld);
@@ -246,9 +249,6 @@ int load_class(FILE *f, struct Klass **pcls) {
         bool is_cls = flag & ACC_STATIC;
     	U8 sz = getInfo(f, addr);
     }
-
-    getConstName(f, i_cls);
-    getConstName(f, i_supr);
 
     struct Klass *supr = 0;
     return 0;
