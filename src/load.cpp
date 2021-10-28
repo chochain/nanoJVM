@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <memory.h>
 #include "core.h"
+
 ///
 /// class/method ACL flags
 ///
@@ -43,6 +44,7 @@
 #define TYPE_OBJ		'L'
 #define TYPE_OBJ_END	';'
 
+
 struct NativeClass {
 	const  char* name;
 	U16    clsDatSz;
@@ -58,21 +60,20 @@ struct Klass {
 	union{
 		NativeClass *native = 0;
 		struct{
-			U8 interfaces;
-			U8 fields;
-			U8 methods;
-			U8 rsv;
+			IU p_intf;
+			IU p_fld;
+			IU p_method;
 		};
 	};
-	U16 instDataSize;
-	U16 instDataOfst;
-	U16 clsDataSize;
-	U16 clsDataOfst;
+	U16 sz_cls;
+	U16 off_cls;
+	U16 sz_inst;
+	U16 off_inst;
 	U8  data[];
 };
 struct Klass *g_cls_root;
 
-U8 getBE8(FILE *f, IU addr) {
+U8 getU8(FILE *f, IU addr) {
     U32   offset = (U32)addr;         // file offset
 	if ((U32)ftell(f) != offset) {
 		if (fseek(f, offset, SEEK_SET)==-1) {
@@ -85,27 +86,19 @@ U8 getBE8(FILE *f, IU addr) {
 		fprintf(stderr, "ERR: fread()\n");
 		exit(-2);	
 	}
-	printf(" %02x%c", (U8)v, v < 0x20 ? '_' : (char)v);
 	return v;
 }
-S32 getBE32(FILE *f, IU addr) {
-	S32 i32 = 0;
-	for(U8 i = 0; i < 4; i++) i32 = (i32 << 8) | getBE8(f, addr++);
-	return i32;
+U16 getU16(FILE *f, IU addr) {
+	U16 v = (U16)getU8(f, addr++) << 8;
+	return v | getU8(f, addr);
 }
-/*
-U24 getBE24(U32 h, IU addr) {
-	U16 i24 = 0;
-	for(U8 t8 = 0; t8 < 3; t8++) i24 = (i24 << 8) | getBE8(h, addr++);
-	return i24;
-}
-*/
-S16 getBE16(FILE *f, IU addr) {
-	S16 i16 = (S16)getBE8(f, addr++) << 8;
-	return i16 | getBE8(f, addr);
+U32 getU32(FILE *f, IU addr) {
+	U32 v = 0;
+	for(U8 i = 0; i < 4; i++) v = (v << 8) | getU8(f, addr++);
+	return v;
 }
 IU skipAttr(FILE *f, IU addr){
-    return addr + 6 + getBE32(f, addr + 2);
+    return addr + 6 + getU32(f, addr + 2);
 }
 U8 typeSize(char type){
 	switch(type){
@@ -115,13 +108,25 @@ U8 typeSize(char type){
     default: return 4;
 	}
 }
+void dump(FILE *f, IU a0, IU sz) {
+    for (IU i=a0; i<=(a0+sz); i+=16) {
+        printf("\n%04x: ", i);
+        for (int j=0; j<16; j++) {
+            U8 c = getU8(f, i+j);
+            printf("%02x%s", (U16)c, (j%4==3) ? "  " : " ");
+        }
+        for (int j=0; j<16; j++) {   // print and advance to next byte
+            U8 c = getU8(f, i+j);
+            printf("%c", (char)((c==0x7f||c<0x20) ? '_' : c));
+        }
+    }
+}
 U16 poolOffset(FILE *f, U16 idx){
     IU addr = 10;
     while (idx--) {
-        U8 t = getBE8(f, addr++);
-        printf("\n%d:%x", t, addr);
+        U8 t = getU8(f, addr++);
         switch(t){
-        case CONST_STRING:  addr += 2 + getBE16(f, addr); break;
+        case CONST_STRING: 	addr += 2 + getU16(f, addr); break;
         case CONST_STR_REF:
         case CONST_CLASS:   addr += 2; break;
         case CONST_LONG:
@@ -131,65 +136,143 @@ U16 poolOffset(FILE *f, U16 idx){
     }
     return addr;
 }
+void printStr(FILE *f, IU addr) {
+	U16 len = getU16(f, addr);
+	printf("[%x]=>", addr);
+	for (U16 i=0; i<len; i++) {
+		printf("%c", (char)getU8(f, addr+2+i));
+	}
+}
+void getConstName(FILE *f, U16 cidx) {
+    printf("\nidx=%x", cidx);
+    if (cidx) {
+    	cidx = poolOffset(f, cidx-1);				// offset to index (1-based)
+        printf("\noff=%x", cidx);                   // bytecode:1
+        cidx = getU16(f, cidx+1);				    // str const index (bytecode:1)
+        printf("\nstridx=%x", cidx);
+        cidx = poolOffset(f, cidx-1);				// offset to name str (1-based)
+        printf("\nname");
+        printStr(f, cidx+1);
+    }
+}
+U8 getInfo(FILE *f, IU &addr) {
+    U16 ifld = getU16(f, addr + 2);                 // field name index
+    U16 itype= getU16(f, addr + 4);	                // read type destriptor index
+    U16 xsz  = getU16(f, addr + 6);                 // get number of filed attributes
+    addr += 8;                                      // pointer to field attributes
+    while (xsz--) addr = skipAttr(f, addr);         //
+
+    U8  type = getU8(f, poolOffset(f, itype-1) + 3);  // get type descriptor first character
+    U8  sz   = typeSize(type);
+    return sz;
+}
+#if 0
+ClassFile {        // Java class file format
+    u4             magic;
+    u2             minor_version;
+    u2             major_version;
+    u2             constant_pool_count;
+    cp_info        constant_pool[constant_pool_count-1];
+    u2             access_flags;
+    u2             this_class;
+    u2             super_class;
+    u2             interfaces_count;
+    u2             interfaces[interfaces_count];
+    u2             fields_count;
+    field_info     fields[fields_count];
+    u2             methods_count;
+    method_info    methods[methods_count];
+    u2             attributes_count;
+    attribute_info attributes[attributes_count];
+}
+cp_info {
+    u1 tag;
+    u1 info[];
+}
+field_info {
+    u2             access_flags;
+    u2             name_index;
+    u2             descriptor_index;
+    u2             attributes_count;
+    attribute_info attributes[attributes_count];
+}
+method_info {
+    u2             access_flags;
+    u2             name_index;
+    u2             descriptor_index;
+    u2             attributes_count;
+    attribute_info attributes[attributes_count];
+}
+attribute_info {
+    u2 attribute_name_index;
+    u4 attribute_length;
+    u1 info[attribute_length];
+}
+#endif
 #define MAGIC      0xcafebabe
 #define ERR_MAGIC  1
 #define ERR_SUPER  2
 #define ERR_MEMORY 3
 int load_class(FILE *f, struct Klass **pcls) {
-	if ((U32)getBE32(f, 0) != MAGIC) return ERR_MAGIC;
+	dump(f, 0,400);
+	if ((U32)getU32(f, 0) != MAGIC) return ERR_MAGIC;
 
-    U16 n_cnst = getBE16(f, 8) - 1;			       // number of constant pool entries
-    IU addr = poolOffset(f, n_cnst);               // skip constant descriptors
-    U16 n_intf = getBE16(f, addr + 6);             // number of interfaces
-    U16 p_intf = (addr += 8);                      // pointer to interface section
-    U16 p_attr = (addr += (n_intf << 1));	       // pointer to attribute section
-    U16 n_attr = getBE16(f, addr); addr += 2;      // fetch number of attributes
+    U16 n_cnst = getU16(f, 8) - 1;			        // number of constant pool entries
+    IU addr = poolOffset(f, n_cnst);                // skip constant descriptors
+    U16 acc    = getU16(f, addr);					// class access flag
+    U16 i_cls  = getU16(f, addr + 2);				// this class
+    U16 i_supr = getU16(f, addr + 4);				// super class
+    U16 n_intf = getU16(f, addr + 6);               // number of interfaces
+    IU  p_intf = (addr += 8);                       // pointer to interface section
+    U16 n_fld  = getU16(f, (addr += n_intf*2));     // number of fields
+    IU  p_fld  = (addr += 2);
+    printf("\np_intf=%x, np_attr=%x", p_intf, p_fld);
     
-    U16 clsDatSz = 0, instDatSz = 0;
-    while (n_attr--) {                             // scan attributes
-        U16 flag = getBE16(f, addr);		       // get flags
-        bool isClassVar = !!(flag & ACC_STATIC);
-			
-        U16 idx  = getBE16(f, addr + 4);	        // read type destriptor index
-        U8  type = getBE8(f, poolOffset(f, idx) + 3); // get type descriptor first character
-        U8  sz   = typeSize(type);
-        if (isClassVar) clsDatSz  += sz;
-        else            instDatSz += sz;		
-			
-        U16 asz = getBE16(f, addr + 6);            // get number of attributes
-        addr += 8;
-        while (asz--) addr = skipAttr(f, addr);
+    U16 sz_cls = 0, sz_inst = 0;
+    while (n_fld--) {                               // scan fields
+        U16 flag = getU16(f, addr);		            // get access flags
+        bool is_cls = flag & ACC_STATIC;
+    	U8 sz = getInfo(f, addr);                   // process one field_info
+        if (is_cls) sz_cls  += sz;
+        else        sz_inst += sz;
     }
-    U16 p_fld = p_intf + (n_intf << 1) + 2;
-    addr += 2;	//now points to methods
+    printf("\nsz_cls=%x, sz_inst=%x", sz_cls, sz_inst);
+
+    U16 n_method = getU16(f, addr);                 // number of methods
+    IU  p_method = (addr += 2);						// pointer to methods
+    printf("\nn_method=%x, p_method=%x", n_method, p_method);
+    while (n_method--) {
+        U16 flag = getU16(f, addr);		            // get access flags
+        bool is_cls = flag & ACC_STATIC;
+    	U8 sz = getInfo(f, addr);
+    }
+
+    getConstName(f, i_cls);
+    getConstName(f, i_supr);
 
     struct Klass *supr = 0;
-    U16 cidx = getBE16(f, p_intf - 4);			    // super class index
-    if (cidx) {
-        cidx = getBE16(f, poolOffset(f, cidx) + 1);	// super class name index
-        supr = (struct Klass*)poolOffset(f, cidx);  // offset to super class
-    }
+    return 0;
 	//now we have enough data to know this class's size -> alloc it
-    U16   csz  = sizeof(Klass) + clsDatSz + (supr ? supr->clsDataOfst + supr->clsDataSize : 0);
+    U16   csz  = sizeof(Klass) + sz_cls + (supr ? supr->off_cls + supr->sz_cls : 0);
 	struct Klass *cls = (Klass*)malloc(csz);
 	if (!cls) return ERR_MEMORY;
 	
 	cls->src  = f;
 	cls->supr = supr;
 	if (supr) {
-		cls->instDataOfst = supr->instDataOfst + supr->instDataSize;
-		cls->clsDataOfst  = supr->clsDataOfst  + supr->clsDataSize;
+		cls->off_cls  = supr->off_cls  + supr->sz_cls;
+		cls->off_inst = supr->off_inst + supr->sz_inst;
 	}
 	else{
-		cls->instDataOfst = 0;
-		cls->clsDataOfst  = 0;
+		cls->off_cls  = 0;
+		cls->off_inst = 0;
 	}
-	cls->interfaces   = p_intf;
-	cls->fields       = p_fld;
-	cls->methods      = addr;
-	cls->clsDataSize  = clsDatSz;
-	cls->instDataSize = instDatSz;
-	cls->next         = g_cls_root;
+	cls->p_intf    = p_intf;
+	cls->p_fld     = p_fld;
+	cls->p_method  = p_method;
+	cls->sz_cls    = sz_cls;
+	cls->sz_inst   = sz_inst;
+	cls->next      = g_cls_root;
     
 	*pcls = g_cls_root = cls;
 	return 0;
