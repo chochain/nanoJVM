@@ -43,7 +43,7 @@ IU Pool::add_method(Method &vt, IU &m_root) {
 };
 IU Pool::register_class(const char *name, int sz, Method *vt, const char *supr) {
     /// encode vtable
-    IU m_root = supr ? get_method(NULL, supr) : 0;
+    IU m_root = 0;
     for (int i=0; i<sz; i++) {
     	add_method(vt[i], m_root);
     }
@@ -184,7 +184,7 @@ void outer(const char *cmd, void(*callback)(int, const char*)) {
     while (fin >> strbuf) {
         const char *idiom = strbuf.c_str();
         printf("%s=>",idiom);
-        int w = gPool.get_method(idiom);	 /// search forth words
+        int w = gPool.get_method(idiom, "nanojvm/Forth");	 /// search forth words
         if (w > 0) {
             Word *m = (Word*)&gPool.dict[w];
             printf("%s 0x%x\n", m->nfa(), w);
