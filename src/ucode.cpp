@@ -67,11 +67,8 @@
 ///
 /// micro-code (built-in methods)
 ///
-auto _iadd = [](Thread &t){
-	DU n = t.ss.pop();
-	DU s = t.tos;
-	t.tos += n;
-	DU x = s - t.tos;
+auto _invoke2 = [](Thread &t){
+	t.invoke(2);
 };
 static Method _java[] = {
     ///
@@ -300,7 +297,8 @@ static Method _java[] = {
     /// @{
     /*B6*/  UCODE("invokevirtual",   t.invoke(0)),
     /*B7*/  UCODE("invokespecial",   t.invoke(1)),
-    /*B8*/  UCODE("invokestatic",    t.invoke(2)),
+//    /*B8*/  UCODE("invokestatic",    t.invoke(2)),
+    /*B8*/  { "invokestatic", _invoke2, false },
     /*B9*/  UCODE("invokeinterface", t.invoke(3)),
     /*BA*/  UCODE("invokedynamic",   t.invoke(4)),
     /// @}

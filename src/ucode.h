@@ -15,7 +15,11 @@ struct Ucode {
         return -1;
     }
     void exec(Thread &t, U32 c) {
+#ifdef METHOD_PACKED
         (*(fop)(((uintptr_t)vt[c].xt)&~0x3))(t);
+#else
+    	(*(vt[c].xt))(t);
+#endif // METHOD_PACKED
     }
 };
 #endif // NANOJVM_UCODE_H
