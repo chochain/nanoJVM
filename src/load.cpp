@@ -288,11 +288,11 @@ IU getMethod(FILE *f, Klass *cls, const char *fname, const char *param) {
 		addr += 8;
 		getConstName(f, i_name);
 		getConstName(f, i_parm);
-		bool m_match = false; /* method signature matched */
+		bool m_match = true; 		/* fname:parm signature matched */
 		while (n_attr--) {
 			if (m_match) {
 				U16 i_code = getU16(f, addr);
-				printStr(f, i_code);
+				getConstName(f,  i_code);
 				bool t_match = false;  /* attr is a Code */
 				if (t_match) return addr;
 			}
