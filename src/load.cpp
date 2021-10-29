@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <memory.h>
 #include "core.h"
-
 ///
 /// class/method ACL flags
 ///
@@ -67,9 +66,10 @@ struct Klass {
 	U16 len;        /// class name string length
 	U8  data[];		/// raw data (string name)
 };
-IU g_cls_root = 0;
+IU   g_cls_root = 0;
+FILE *f;
 
-U8 getU8(FILE *f, IU addr) {
+U8 getU8(IU addr) {
     U32   offset = (U32)addr;         // file offset
 	if ((U32)ftell(f) != offset) {
 		if (fseek(f, offset, SEEK_SET)==-1) {
@@ -84,13 +84,13 @@ U8 getU8(FILE *f, IU addr) {
 	}
 	return v;
 }
-U16 getU16(FILE *f, IU addr) {
-	U16 v = (U16)getU8(f, addr++) << 8;
-	return v | getU8(f, addr);
+U16 getU16(IU addr) {
+	U16 v = (U16)getU8(addr++) << 8;
+	return v | getU8(addr);
 }
-U32 getU32(FILE *f, IU addr) {
+U32 getU32(IU addr) {
 	U32 v = 0;
-	for(U8 i = 0; i < 4; i++) v = (v << 8) | getU8(f, addr++);
+	for(U8 i = 0; i < 4; i++) v = (v << 8) | getU8(addr++);
 	return v;
 }
 U8 typeSize(char type){
@@ -101,75 +101,75 @@ U8 typeSize(char type){
     default: return 4;
 	}
 }
-void dump(FILE *f, IU a0, IU sz) {
+void dump(IU a0, IU sz) {
     for (IU i=a0; i<=(a0+sz); i+=16) {
         printf("\n%04x: ", i);
         for (int j=0; j<16; j++) {
-            U8 c = getU8(f, i+j);
+            U8 c = getU8(i+j);
             printf("%02x%s", (U16)c, (j%4==3) ? "  " : " ");
         }
         for (int j=0; j<16; j++) {   // print and advance to next byte
-            U8 c = getU8(f, i+j);
+            U8 c = getU8(i+j);
             printf("%c", (char)((c==0x7f||c<0x20) ? '_' : c));
         }
     }
 }
-void printStr(FILE *f, IU addr) {
-	U16 len = getU16(f, addr);
-	printf("=>");
+void printStr(IU addr, const char *hdr=0) {
+	U16 len = getU16(addr);
+	printf("%s", hdr ? hdr : "=>");
 	for (U16 i=0; i<len; i++) {
-		printf("%c", (char)getU8(f, addr+2+i));
+		printf("%c", (char)getU8(addr+2+i));
 	}
 }
-U16 poolOffset(FILE *f, U16 idx, bool debug=false) {
+U16 poolOffset(U16 idx, bool debug=false) {
     IU addr = 10;
     for (int i=0; i<idx; i++) {
-        U8 t = getU8(f, addr);
+        U8 t = getU8(addr);
         if (debug) printf("\n[%02x]%04x:%x", i+1, addr, t);		// Constant Pool is 1-based
         addr++;
         switch(t){
         case CONST_UTF8:
-        	if (debug) printStr(f, addr);
-        	addr += 2 + getU16(f, addr); break;
+        	if (debug) printStr(addr);
+        	addr += 2 + getU16(addr); break;
         case CONST_STRING:
         case CONST_CLASS:
-        	if (debug) printf("=>%x", getU16(f, addr));
+        	if (debug) printf("=>%x", getU16(addr));
         	addr += 2; break;
         case CONST_LONG:
         case CONST_DOUBLE:
         	addr += 8; i++;  break;
         case CONST_METHOD:
         case CONST_NAME_TYPE:
-        	if (debug) printf("=>[%x,%x]", getU16(f, addr), getU16(f, addr+2));
+        	if (debug) printf("=>[%x,%x]", getU16(addr), getU16(addr+2));
         	addr += 4; break;
         default: addr += 4; break;
         }
     }
     return addr;
 }
-void getConstName(FILE *f, U16 cidx, bool ref=false) {
+void getConstName(U16 cidx, bool ref=false) {
     printf("\nname[%02x]", cidx);
     if (cidx) {
-    	cidx = poolOffset(f, cidx-1);				// offset to index (1-based)
-        printf("%04x:", cidx);                   	// bytecode:1
+    	cidx = poolOffset(cidx-1);				// offset to index (1-based)
+        printf("%04x:", cidx);                 	// bytecode:1
         if (ref) {
-            cidx = getU16(f, cidx+1);				// str const index (bytecode:1)
+            cidx = getU16(cidx+1);				// str const index (bytecode:1)
         	printf("[%x]", cidx);
-        	cidx = poolOffset(f, cidx-1);			// offset to name str (1-based)
+        	cidx = poolOffset(cidx-1);			// offset to name str (1-based)
         }
-        printStr(f, cidx+1);
+        printStr(cidx+1);
     }
 }
-IU skipAttr(FILE *f, IU addr){
-    return addr + 6 + getU32(f, addr + 2);
+IU skipAttr(IU addr){
+    return addr + 6 + getU32(addr + 2);
 }
-U8 getInfo(FILE *f, IU &addr) {
-    U16 ifld = getU16(f, addr + 2);                 // field name index
-    U16 itype= getU16(f, addr + 4);	                // read type destriptor index
-    U16 xsz  = getU16(f, addr + 6);                 // get number of filed attributes
-    U8  type = getU8(f, poolOffset(f, itype-1) + 3);  // get type descriptor first character
-    addr += 8;                                      // pointer to field attributes
-    while (xsz--) addr = skipAttr(f, addr);         //
+U8 getInfo(IU &addr) {
+    U16 ifld = getU16(addr + 2);                 // field name index
+    U16 itype= getU16(addr + 4);	             // read type destriptor index
+    U16 xsz  = getU16(addr + 6);                 // get number of filed attributes
+    U8  type = getU8(poolOffset(itype-1) + 3);   // get type descriptor first character
+    addr += 8;                                   // pointer to field attributes
+    while (xsz--) addr = skipAttr(addr);         //
 
     return typeSize(type);
 }
@@ -220,43 +220,43 @@ attribute_info {
 #define ERR_MAGIC  1
 #define ERR_SUPER  2
 #define ERR_MEMORY 3
-int load_class(FILE *f, struct Klass **pcls) {
-	dump(f, 0,400);
-	if ((U32)getU32(f, 0) != MAGIC) return ERR_MAGIC;
+int load_class(struct Klass **pcls) {
+	dump(0, 400);
+	if ((U32)getU32(0) != MAGIC) return ERR_MAGIC;
 
-    U16 n_cnst = getU16(f, 8) - 1;			        // number of constant pool entries
-    IU addr = poolOffset(f, n_cnst, true);          // skip constant descriptors
-    U16 acc    = getU16(f, addr);	addr += 2;		// class access flag
-    U16 i_cls  = getU16(f, addr);	addr += 2;		// this class
-    U16 i_supr = getU16(f, addr);	addr += 2;		// super class
+    U16 n_cnst = getU16(8) - 1;			        // number of constant pool entries
+    IU addr = poolOffset(n_cnst, true);         // skip constant descriptors
+    U16 acc    = getU16(addr);	addr += 2;		// class access flag
+    U16 i_cls  = getU16(addr);	addr += 2;		// this class
+    U16 i_supr = getU16(addr);	addr += 2;		// super class
 
-    getConstName(f, i_cls, true);
-    getConstName(f, i_supr, true);
+    getConstName(i_cls, true);
+    getConstName(i_supr, true);
     Klass *supr = 0;	/* search super class */
 
-    U16 n_intf = getU16(f, addr);	addr += 2;      // number of interfaces
+    U16 n_intf = getU16(addr);	addr += 2;      // number of interfaces
     IU  p_intf = addr;                       		// pointer to interface section
-    U16 n_fld  = getU16(f, (addr += n_intf*2));     // number of fields
+    U16 n_fld  = getU16((addr += n_intf*2));     // number of fields
     IU  p_fld  = (addr += 2);
     printf("\np_intf=%x, np_attr=%x", p_intf, p_fld);
     
     U16 sz_cv = 0, sz_iv = 0;
     while (n_fld--) {                               // scan fields
-        U16 flag = getU16(f, addr);		            // get access flags
+        U16 flag = getU16(addr);		            // get access flags
         bool is_cls = flag & ACC_STATIC;
-    	U8 sz = getInfo(f, addr);                   // process one field_info
+    	U8 sz = getInfo(addr);                      // process one field_info
         if (is_cls) sz_cv += sz;
         else        sz_iv += sz;
     }
     printf("\nsz_cls=%x, sz_inst=%x", sz_cv, sz_iv);
 
-    U16 n_method = getU16(f, addr);                 // number of methods
+    U16 n_method = getU16(addr);                    // number of methods
     IU  p_method = (addr += 2);						// pointer to methods
     printf("\nn_method=%x, p_method=%x", n_method, p_method);
     while (n_method--) {
-        U16 flag = getU16(f, addr);		            // get access flags
+        U16 flag = getU16(addr);		            // get access flags
         bool is_cls = flag & ACC_STATIC;
-    	U8 sz = getInfo(f, addr);
+    	U8 sz = getInfo(addr);
     }
 
 	//now we have enough data to know this class's size -> alloc it
@@ -277,39 +277,54 @@ int load_class(FILE *f, struct Klass **pcls) {
 	return 0;
 }
 
-IU getMethod(FILE *f, Klass *cls, const char *fname, const char *param) {
+IU getMethod(Klass *cls, const char *fname, const char *param) {
 	IU  addr = cls->vt;
-	U16 n_method = getU16(f, addr - 2);
+	U16 n_method = getU16(addr - 2);
+	U16 m_match  = 0;
 	while (n_method--) {
-		U16 acc     = getU16(f, addr);
-		U16 i_name  = getU16(f, addr + 2);
-		U16 i_parm  = getU16(f, addr + 4);
-		U16 n_attr  = getU16(f, addr + 6);
+		U16 acc     = getU16(addr);
+		U16 i_name  = getU16(addr + 2);
+		U16 i_parm  = getU16(addr + 4);
+		U16 n_attr  = getU16(addr + 6);
 		addr += 8;
-		getConstName(f, i_name);
-		getConstName(f, i_parm);
-		bool m_match = true; 		/* fname:parm signature matched */
+		getConstName(i_name);
+		getConstName(i_parm);
 		while (n_attr--) {
-			if (m_match) {
-				U16 i_code = getU16(f, addr);
-				getConstName(f,  i_code);
-				bool t_match = false;  /* attr is a Code */
+			if (m_match++) {
+				U16 i_code = getU16(addr);
+				getConstName(i_code);
+				bool t_match = true;  			/* attr is a Code */
 				if (t_match) return addr;
 			}
-			addr = skipAttr(f, addr);
+			addr = skipAttr(addr);
 		}
 	}
 	return 0;
 }
 
-void run(FILE *f, Klass *cls, IU addr) {
-	IU  pc = addr + 14;
-	U16 n_local = getU16(f, addr + 8);
+#include "ucode.h"
+#include "jvm.h"
+#include <iostream>
+extern Ucode  gUcode;
+extern Ucode  gForth;
+extern Pool   gPool;
+extern Thread t0;
+extern void (*fout_cb)(int, const char*);  /// forth output callback function
+extern void ss_dump();
+
+void run(Klass *cls, IU addr) {
+    static auto send_to_con = [](int len, const char *rst) { cout << rst; };
+    gPool.register_class("Ucode", gUcode.vtsz, gUcode.vt);
+    gPool.register_class("nanojvm/Forth", gForth.vtsz, gForth.vt, "Ucode");
+    fout_cb = send_to_con;                 /// setup callback function
+
+    t0.PC = addr + 14;                     /// pointer to class file
+	U16 n_local = getU16(addr + 8);
 	/* allocate local stack */
-	while (pc!=0xffff) {
-		U8 op = getU8(f, pc);
-		/* execute op on VM */
-		pc = 0xffff;
+	while (t0.PC!=0xffff) {
+		U8 op = getU8(t0.PC++);
+		printf("\ngUcode.exec(%02x)", op);
+		gUcode.exec(t0, op);	           /* execute JVM opcode */
 	}
 }
 
@@ -340,16 +355,17 @@ int main(int ac, char* av[]) {
 		}
 	}
 #endif
-    FILE* f = fopen(av[1], "rb");
+    f = fopen(av[1], "rb");
     if (!f) {
         fprintf(stderr," Failed to open file\n");
         return -1;
     }
     struct Klass *cls;
-    if (load_class(f, &cls)) return 1;
+    if (load_class(&cls)) return 1;
 
-    IU addr = getMethod(f, cls, "main", "()V");
-    if (addr) run(f, cls, addr);
+    IU addr = getMethod(cls, "main", "()V");
+    if (addr) run(cls, addr);
+    ss_dump();
 
     return 0;
 }
