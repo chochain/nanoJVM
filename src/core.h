@@ -106,8 +106,9 @@ struct Thread {
     IU    WP      = 0;      /// method index
     U8    *IP     = NULL;   /// instruction pointer (program counter)
     U8    *M0     = NULL;	/// cached base address of memory pool
+    IU    PC;
 
-    Thread(U8 *mem) : M0(mem) {}
+    Thread(U8 *heap) : M0(heap) {}
     ///
     /// opcode fetcher
     ///
@@ -121,8 +122,8 @@ struct Thread {
     ///
     /// branching ops
     ///
-    void invoke(U16 i)     { /* TODO */ }
-    void ret()             { IP = NULL; }
+    void invoke(U16 itype);
+    void ret()             { IP = NULL; PC = 0xffff; }
     void jmp()             { IP += *(PU*)IP - 1;   }
     void cjmp(bool f)      { IP += f ? *(PU*)IP - 1 : sizeof(PU); }
     ///

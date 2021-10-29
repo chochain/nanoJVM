@@ -79,6 +79,7 @@ string strbuf;                      /// input string buffer
 void (*fout_cb)(int, const char*);  /// forth output callback function
 
 #define ENDL    endl; fout_cb(fout.str().length(), fout.str().c_str()); fout.str("")
+
 ///
 /// debug helper
 ///
@@ -199,6 +200,44 @@ void outer(const char *cmd, void(*callback)(int, const char*)) {
     }
     ss_dump();
 }
+extern U8  getU8(IU addr);
+extern U16 getU16(IU addr);
+extern U16 poolOffset(U16 addr, bool debug=0);
+extern void printStr(IU addr, const char *hdr=0);
+
+void Thread::invoke(U16 itype) {	/// invoke type: 0:virtual, 1:special, 2:static, 3:interface, 4:dynamic
+	IU idx   = getU16(PC);          /// 2
+	PC += (itype==4) ? 4 : 2;		/// advance program counter
+	IU addr  = poolOffset(idx - 1);	/// [02]000f:a=>[12,13]
+	IU cidx  = getU16(addr + 1);    /// 12
+	IU midx  = getU16(addr + 3);    /// 13
+	IU p_cls = poolOffset(cidx - 1);/// [12]008e:7=>17
+	IU p_xt  = poolOffset(midx - 1);/// [13]0091:c=>[18,b]
+	IU s_cls = getU16(p_cls + 1);   /// 17
+	IU s_xt  = getU16(p_xt  + 1);   /// 18
+	IU s_t   = getU16(p_xt  + 3);   /// b
+
+	U16 i_cls= poolOffset(s_cls - 1); ///[17]:00b6:1=>nanojvm/Forth
+	U16 i_xt = poolOffset(s_xt - 1);  ///[18]:00c6:1=>words
+	U16 i_t  = poolOffset(s_t - 1);   ///[0b]:0049:1=>()V
+
+	char cls[256];
+	char xt[256];
+	U16 i;
+	for (i=0; i<getU16(i_cls + 1); i++)	{
+		cls[i] = getU8(i_cls + 3 + i);
+	}
+	cls[i] = '\0';
+	for (i=0; i<getU16(i_xt + 1); i++) {
+		xt[i] = getU8(i_xt + 3 + i);
+	}
+	xt[i] = '\0';
+	printf("\ninvoke %s::%s", cls, xt);
+
+	int w = gPool.get_method(xt, cls);
+	if (w >= 0) CALL(w);
+	else        printf(" NOT FOUND");
+}
 ///
 /// main program
 ///
@@ -211,6 +250,8 @@ int main0(int ac, char* av[]) {
 
     gPool.register_class("Ucode", gUcode.vtsz, gUcode.vt);
     gPool.register_class("nanojvm/Forth", gForth.vtsz, gForth.vt, "Ucode");
+
+    return 0;
 
     string line;
     while (getline(cin, line)) {             /// fetch line from user console input
