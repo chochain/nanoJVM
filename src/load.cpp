@@ -18,17 +18,20 @@
 ///
 /// types of constants
 ///
-#define CONST_STRING	1
+#define CONST_UTF8		1
 #define CONST_INT		3
 #define CONST_FLOAT		4
 #define CONST_LONG		5
 #define CONST_DOUBLE	6
 #define CONST_CLASS		7
-#define CONST_STR_REF	8
+#define CONST_STRING	8
 #define CONST_FIELD		9
 #define CONST_METHOD	10
 #define CONST_INTERFACE	11
-#define CONST_NAMETYPE	12
+#define CONST_NAME_TYPE	12
+#define CONST_MHNDL     15
+#define CONST_MTYPE     16
+#define CONST_INVOKE    18
 ///
 /// types for string-based descriptors
 ///
@@ -54,24 +57,17 @@ struct NativeClass {
 };
 
 struct Klass {
-	struct Klass *next;
-	struct Klass *supr;
-	FILE         *src;
-	union{
-		NativeClass *native = 0;
-		struct{
-			IU p_intf;
-			IU p_fld;
-			IU p_method;
-		};
-	};
-	U16 sz_cls;
-	U16 off_cls;
-	U16 sz_inst;
-	U16 off_inst;
-	U8  data[];
+	IU  lfa;		/// index to previous class
+	IU  supr;		/// index to super class
+	IU  intf;       /// index to interface
+	IU  pfa;		/// index to parameter fields
+	IU  vt;			/// index to method table
+	U16 cvsz;		/// size of class variables
+	U16 ivsz;		/// size of instance variables
+	U16 len;        /// class name string length
+	U8  data[];		/// raw data (string name)
 };
-struct Klass *g_cls_root;
+IU g_cls_root = 0;
 
 U8 getU8(FILE *f, IU addr) {
     U32   offset = (U32)addr;         // file offset
@@ -118,37 +114,49 @@ void dump(FILE *f, IU a0, IU sz) {
         }
     }
 }
-U16 poolOffset(FILE *f, U16 idx){
-    IU addr = 10;
-    while (idx--) {
-        U8 t = getU8(f, addr++);
-        switch(t){
-        case CONST_STRING: 	addr += 2 + getU16(f, addr); break;
-        case CONST_STR_REF:
-        case CONST_CLASS:   addr += 2; break;
-        case CONST_LONG:
-        case CONST_DOUBLE:  addr += 8; idx--;  break;
-        default:            addr += 4; break;
-        }
-    }
-    return addr;
-}
 void printStr(FILE *f, IU addr) {
 	U16 len = getU16(f, addr);
-	printf("[%x]=>", addr);
+	printf("=>");
 	for (U16 i=0; i<len; i++) {
 		printf("%c", (char)getU8(f, addr+2+i));
 	}
 }
-void getConstName(FILE *f, U16 cidx) {
-    printf("\nidx=%x", cidx);
+U16 poolOffset(FILE *f, U16 idx, bool debug=false) {
+    IU addr = 10;
+    for (int i=0; i<idx; i++) {
+        U8 t = getU8(f, addr);
+        if (debug) printf("\n[%02x]%04x:%x", i+1, addr, t);		// Constant Pool is 1-based
+        addr++;
+        switch(t){
+        case CONST_UTF8:
+        	if (debug) printStr(f, addr);
+        	addr += 2 + getU16(f, addr); break;
+        case CONST_STRING:
+        case CONST_CLASS:
+        	if (debug) printf("=>%x", getU16(f, addr));
+        	addr += 2; break;
+        case CONST_LONG:
+        case CONST_DOUBLE:
+        	addr += 8; i++;  break;
+        case CONST_METHOD:
+        case CONST_NAME_TYPE:
+        	if (debug) printf("=>[%x,%x]", getU16(f, addr), getU16(f, addr+2));
+        	addr += 4; break;
+        default: addr += 4; break;
+        }
+    }
+    return addr;
+}
+void getConstName(FILE *f, U16 cidx, bool ref=false) {
+    printf("\nname[%02x]", cidx);
     if (cidx) {
     	cidx = poolOffset(f, cidx-1);				// offset to index (1-based)
-        printf("\noff=%x", cidx);                   // bytecode:1
-        cidx = getU16(f, cidx+1);				    // str const index (bytecode:1)
-        printf("\nstridx=%x", cidx);
-        cidx = poolOffset(f, cidx-1);				// offset to name str (1-based)
-        printf("\nname");
+        printf("%04x:", cidx);                   	// bytecode:1
+        if (ref) {
+            cidx = getU16(f, cidx+1);				// str const index (bytecode:1)
+        	printf("[%x]", cidx);
+        	cidx = poolOffset(f, cidx-1);			// offset to name str (1-based)
+        }
         printStr(f, cidx+1);
     }
 }
@@ -217,13 +225,14 @@ int load_class(FILE *f, struct Klass **pcls) {
 	if ((U32)getU32(f, 0) != MAGIC) return ERR_MAGIC;
 
     U16 n_cnst = getU16(f, 8) - 1;			        // number of constant pool entries
-    IU addr = poolOffset(f, n_cnst);                // skip constant descriptors
+    IU addr = poolOffset(f, n_cnst, true);          // skip constant descriptors
     U16 acc    = getU16(f, addr);	addr += 2;		// class access flag
     U16 i_cls  = getU16(f, addr);	addr += 2;		// this class
     U16 i_supr = getU16(f, addr);	addr += 2;		// super class
 
-    getConstName(f, i_cls);
-    getConstName(f, i_supr);
+    getConstName(f, i_cls, true);
+    getConstName(f, i_supr, true);
+    Klass *supr = 0;	/* search super class */
 
     U16 n_intf = getU16(f, addr);	addr += 2;      // number of interfaces
     IU  p_intf = addr;                       		// pointer to interface section
@@ -231,15 +240,15 @@ int load_class(FILE *f, struct Klass **pcls) {
     IU  p_fld  = (addr += 2);
     printf("\np_intf=%x, np_attr=%x", p_intf, p_fld);
     
-    U16 sz_cls = 0, sz_inst = 0;
+    U16 sz_cv = 0, sz_iv = 0;
     while (n_fld--) {                               // scan fields
         U16 flag = getU16(f, addr);		            // get access flags
         bool is_cls = flag & ACC_STATIC;
     	U8 sz = getInfo(f, addr);                   // process one field_info
-        if (is_cls) sz_cls  += sz;
-        else        sz_inst += sz;
+        if (is_cls) sz_cv += sz;
+        else        sz_iv += sz;
     }
-    printf("\nsz_cls=%x, sz_inst=%x", sz_cls, sz_inst);
+    printf("\nsz_cls=%x, sz_inst=%x", sz_cv, sz_iv);
 
     U16 n_method = getU16(f, addr);                 // number of methods
     IU  p_method = (addr += 2);						// pointer to methods
@@ -250,32 +259,58 @@ int load_class(FILE *f, struct Klass **pcls) {
     	U8 sz = getInfo(f, addr);
     }
 
-    struct Klass *supr = 0;
-    return 0;
 	//now we have enough data to know this class's size -> alloc it
-    U16   csz  = sizeof(Klass) + sz_cls + (supr ? supr->off_cls + supr->sz_cls : 0);
-	struct Klass *cls = (Klass*)malloc(csz);
+    U16 sz = sizeof(Klass) + sz_cv + (supr ? supr->cvsz : 0);
+	struct Klass *cls = (Klass*)malloc(sz);
 	if (!cls) return ERR_MEMORY;
-	
-	cls->src  = f;
-	cls->supr = supr;
-	if (supr) {
-		cls->off_cls  = supr->off_cls  + supr->sz_cls;
-		cls->off_inst = supr->off_inst + supr->sz_inst;
-	}
-	else{
-		cls->off_cls  = 0;
-		cls->off_inst = 0;
-	}
-	cls->p_intf    = p_intf;
-	cls->p_fld     = p_fld;
-	cls->p_method  = p_method;
-	cls->sz_cls    = sz_cls;
-	cls->sz_inst   = sz_inst;
-	cls->next      = g_cls_root;
+
+	cls->lfa   = g_cls_root;
+	cls->supr  = i_supr;
+	cls->intf  = p_intf;
+	cls->pfa   = p_fld;
+	cls->vt    = p_method;
+	cls->cvsz  = sz_cv;
+	cls->ivsz  = sz_iv;
     
-	*pcls = g_cls_root = cls;
+	*pcls = cls;
+	g_cls_root = i_cls;		/* reset class root */
 	return 0;
+}
+
+IU getMethod(FILE *f, Klass *cls, const char *fname, const char *param) {
+	IU  addr = cls->vt;
+	U16 n_method = getU16(f, addr - 2);
+	while (n_method--) {
+		U16 acc     = getU16(f, addr);
+		U16 i_name  = getU16(f, addr + 2);
+		U16 i_parm  = getU16(f, addr + 4);
+		U16 n_attr  = getU16(f, addr + 6);
+		addr += 8;
+		getConstName(f, i_name);
+		getConstName(f, i_parm);
+		bool m_match = false; /* method signature matched */
+		while (n_attr--) {
+			if (m_match) {
+				U16 i_code = getU16(f, addr);
+				printStr(f, i_code);
+				bool t_match = false;  /* attr is a Code */
+				if (t_match) return addr;
+			}
+			addr = skipAttr(f, addr);
+		}
+	}
+	return 0;
+}
+
+void run(FILE *f, Klass *cls, IU addr) {
+	IU  pc = addr + 14;
+	U16 n_local = getU16(f, addr + 8);
+	/* allocate local stack */
+	while (pc!=0xffff) {
+		U8 op = getU8(f, pc);
+		/* execute op on VM */
+		pc = 0xffff;
+	}
 }
 
 int main(int ac, char* av[]) {
@@ -283,13 +318,6 @@ int main(int ac, char* av[]) {
 		fprintf(stderr, "Usage:> %s f.class\n", av[0]);
 		return -1;
 	}
-    FILE* f = fopen(av[1], "rb");
-    if (!f) {
-        fprintf(stderr," Failed to open file\n");
-        return -1;
-    }
-    struct Klass *cls;
-    if (load_class(f, &cls)) return 1;
 #if 0    
 	ret = ujInitAllClasses();
 	if(ret != UJ_ERR_NONE){
@@ -312,5 +340,16 @@ int main(int ac, char* av[]) {
 		}
 	}
 #endif
+    FILE* f = fopen(av[1], "rb");
+    if (!f) {
+        fprintf(stderr," Failed to open file\n");
+        return -1;
+    }
+    struct Klass *cls;
+    if (load_class(f, &cls)) return 1;
+
+    IU addr = getMethod(f, cls, "main", "()V");
+    if (addr) run(f, cls, addr);
+
     return 0;
 }
