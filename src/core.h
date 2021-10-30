@@ -129,7 +129,7 @@ struct Thread {
 //    void jmp()             { IP += *(PU*)IP - 1;   }
 //    void cjmp(bool f)      { IP += f ? *(PU*)IP - 1 : sizeof(PU); }
     void jmp()             { PC += getBE16() - 1;   }
-    void cjmp(bool f)      { PC += f ? getBE16() - 1 : sizeof(PU); }
+    void cjmp(bool f)      { PC += f ? getBE16() - 1 : sizeof(U16); }
     ///
     /// local parameter access, CC:TODO
     ///
