@@ -202,11 +202,15 @@ void outer(const char *cmd, void(*callback)(int, const char*)) {
 }
 extern U8  getU8(IU addr);
 extern U16 getU16(IU addr);
+extern U32 getU32(IU addr);
 extern U16 poolOffset(U16 addr, bool debug=0);
 extern void printStr(IU addr, const char *hdr=0);
 
-U8  Thread::getBE8()  { return getU8(PC++); }
-U16 Thread::getBE16() { U16 n = getU16(PC); PC+=2; return n; }
+U8  Thread::getBE8()      { return getU8(PC++); }
+U16 Thread::getBE16()     {	U16 n = getU16(PC);	PC+=2; return n; }
+U32 Thread::getBE32()     { U32 n = getU32(PC); PC+=4; return n; }
+void Thread::jmp()        {	PC += getBE16() - 3; }
+void Thread::cjmp(bool f) {	PC += f ? getBE16() - 3 : sizeof(U16); }
 void Thread::invoke(U16 itype) {	/// invoke type: 0:virtual, 1:special, 2:static, 3:interface, 4:dynamic
 	IU idx   = getU16(PC);          /// 2
 	PC += (itype==4) ? 4 : 2;		/// advance program counter
