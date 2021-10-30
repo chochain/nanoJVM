@@ -204,42 +204,43 @@ void outer(const char *cmd, void(*callback)(int, const char*)) {
     }
     ss_dump();
 }
-extern U8  getU8(IU addr);
-extern U16 getU16(IU addr);
-extern U32 getU32(IU addr);
-extern U16 poolOffset(U16 addr, bool debug=0);
-extern void printStr(IU addr, const char *hdr=0);
+#include "loader.h"
+extern Loader   gLoader;
+#define cU8(a)  gLoader.getU8(a)
+#define cU16(a) gLoader.getU16(a)
+#define cU32(a) gLoader.getU32(a)
+#define cOff(i) gLoader.poolOffset(i - 1)
 
-U8  Thread::getBE8()      { return getU8(PC++); }
-U16 Thread::getBE16()     {	U16 n = getU16(PC);	PC+=2; return n; }
-U32 Thread::getBE32()     { U32 n = getU32(PC); PC+=4; return n; }
+U8  Thread::getBE8()      { return cU8(PC++); }
+U16 Thread::getBE16()     {	U16 n = cU16(PC); PC+=2; return n; }
+U32 Thread::getBE32()     { U32 n = cU32(PC); PC+=4; return n; }
 void Thread::jmp()        {	PC += getBE16() - 3; }
 void Thread::cjmp(bool f) {	PC += f ? getBE16() - 3 : sizeof(U16); }
 void Thread::invoke(U16 itype) {	/// invoke type: 0:virtual, 1:special, 2:static, 3:interface, 4:dynamic
-	IU idx   = getU16(PC);          /// 2
+	IU idx   = cU16(PC);            /// 2
 	PC += (itype==4) ? 4 : 2;		/// advance program counter
-	IU addr  = poolOffset(idx - 1);	/// [02]000f:a=>[12,13]
-	IU cidx  = getU16(addr + 1);    /// 12
-	IU midx  = getU16(addr + 3);    /// 13
-	IU p_cls = poolOffset(cidx - 1);/// [12]008e:7=>17
-	IU p_xt  = poolOffset(midx - 1);/// [13]0091:c=>[18,b]
-	IU s_cls = getU16(p_cls + 1);   /// 17
-	IU s_xt  = getU16(p_xt  + 1);   /// 18
-	IU s_t   = getU16(p_xt  + 3);   /// b
+	IU addr  = cOff(idx);	        /// [02]000f:a=>[12,13]
+	IU cidx  = cU16(addr + 1);      /// 12
+	IU midx  = cU16(addr + 3);      /// 13
+	IU p_cls = cOff(cidx);          /// [12]008e:7=>17
+	IU p_xt  = cOff(midx);          /// [13]0091:c=>[18,b]
+	IU s_cls = cU16(p_cls + 1);     /// 17
+	IU s_xt  = cU16(p_xt  + 1);     /// 18
+	IU s_t   = cU16(p_xt  + 3);     /// b
 
-	U16 i_cls= poolOffset(s_cls - 1); ///[17]:00b6:1=>nanojvm/Forth
-	U16 i_xt = poolOffset(s_xt - 1);  ///[18]:00c6:1=>words
-	U16 i_t  = poolOffset(s_t - 1);   ///[0b]:0049:1=>()V
+	U16 i_cls= cOff(s_cls);         ///[17]:00b6:1=>nanojvm/Forth
+	U16 i_xt = cOff(s_xt);          ///[18]:00c6:1=>words
+	U16 i_t  = cOff(s_t);           ///[0b]:0049:1=>()V
 
 	char cls[256];
 	char xt[256];
 	U16 i;
-	for (i=0; i<getU16(i_cls + 1); i++)	{
-		cls[i] = getU8(i_cls + 3 + i);
+	for (i=0; i<cU16(i_cls + 1); i++)	{
+		cls[i] = cU8(i_cls + 3 + i);
 	}
 	cls[i] = '\0';
-	for (i=0; i<getU16(i_xt + 1); i++) {
-		xt[i] = getU8(i_xt + 3 + i);
+	for (i=0; i<cU16(i_xt + 1); i++) {
+		xt[i] = cU8(i_xt + 3 + i);
 	}
 	xt[i] = '\0';
 	printf(" invoke %s::%s", cls, xt);
@@ -252,7 +253,7 @@ void Thread::invoke(U16 itype) {	/// invoke type: 0:virtual, 1:special, 2:static
 /// main program
 ///
 #include <iostream>         // cin, cout
-int main(int ac, char* av[]) {
+int main0(int ac, char* av[]) {
 	setvbuf(stdout, NULL, _IONBF, 0);
     static auto send_to_con = [](int len, const char *rst) { cout << rst; };
 
