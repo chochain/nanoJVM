@@ -205,6 +205,8 @@ extern U16 getU16(IU addr);
 extern U16 poolOffset(U16 addr, bool debug=0);
 extern void printStr(IU addr, const char *hdr=0);
 
+U8  Thread::getBE8()  { return getU8(PC++); }
+U16 Thread::getBE16() { U16 n = getU16(PC); PC+=2; return n; }
 void Thread::invoke(U16 itype) {	/// invoke type: 0:virtual, 1:special, 2:static, 3:interface, 4:dynamic
 	IU idx   = getU16(PC);          /// 2
 	PC += (itype==4) ? 4 : 2;		/// advance program counter
@@ -232,7 +234,7 @@ void Thread::invoke(U16 itype) {	/// invoke type: 0:virtual, 1:special, 2:static
 		xt[i] = getU8(i_xt + 3 + i);
 	}
 	xt[i] = '\0';
-	printf("\ninvoke %s::%s", cls, xt);
+	printf(" invoke %s::%s", cls, xt);
 
 	int w = gPool.get_method(xt, cls);
 	if (w >= 0) CALL(w);
