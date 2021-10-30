@@ -57,10 +57,12 @@
 ///
 /// Class method, field access macros
 ///
-#define GetI_S(n)   (0)
-#define SetI_S(n,v) (0)
-#define GetI_F(n)   (0)
-#define SetI_F(n,v) (0)
+DU global[16];		// for static variable for debugging
+
+#define GetI_S(n)   (global[n])
+#define SetI_S(n,v) (global[n]=(v))
+#define GetI_F(n)   (global[n])
+#define SetI_F(n,v) (global[n]=(v))
 #define OFF         (t.wide)
 
 #define UCODE(s, g) { s, [](Thread &t){ g; } }
@@ -93,10 +95,10 @@ static Method _java[] = {
     /// @}
     /// @definegroup Load ops (CC: TODO)
     /// @{
-    /*10*/  UCODE("bipush",   PushI(t.getBE8())),
-    /*11*/  UCODE("sipush",   PushI(t.getBE16())),
-    /*12*/  UCODE("ldc",      {}),
-    /*13*/  UCODE("ldcw",     {}),
+    /*10*/  UCODE("bipush",   S8  n = t.getBE8();  PushI(n)),
+    /*11*/  UCODE("sipush",   S16 n = t.getBE16(); PushI(n)),
+    /*12*/  UCODE("ldc",      U8  c = t.getBE8()),	// load constant (cannot reach class file from here:TODO)
+    /*13*/  UCODE("ldcw",     U16 c = t.getBE16()),
     /*14*/  UCODE("ldc2_w",   {}),
     /*15*/  UCODE("iload",    PushI(LoadI(OFF))),
     /*16*/  UCODE("lload",    PushL(LoadL(OFF))),
@@ -139,10 +141,10 @@ static Method _java[] = {
     /*38*/  UCODE("fstore",   StorF(OFF, PopF())),
     /*39*/  UCODE("dstore",   StorD(OFF, PopD())),
     /*3A*/  UCODE("astore",   StorR(OFF, PopA())),
-    /*3B*/  UCODE("istore_0", StorI(0, PopI())),
-    /*3C*/  UCODE("istore_1", StorI(1, PopI())),
-    /*3D*/  UCODE("istore_2", StorI(2, PopI())),
-    /*3E*/  UCODE("istore_3", StorI(3, PopI())),
+    /*3B*/  UCODE("istore_0", S32 n = t.pop(); StorI(0, n)),
+    /*3C*/  UCODE("istore_1", S32 n = t.pop(); StorI(1, n)),
+    /*3D*/  UCODE("istore_2", S32 n = t.pop(); StorI(2, n)),
+    /*3E*/  UCODE("istore_3", S32 n = t.pop(); StorI(3, n)),
     /*3F*/  UCODE("lstore_0", StorL(0, PopL())),
     /*40*/  UCODE("lstore_1", StorL(1, PopL())),
     /*41*/  UCODE("lstore_2", StorL(2, PopL())),
@@ -159,12 +161,12 @@ static Method _java[] = {
     /*4C*/  UCODE("astore_1", StorR(1, PopA())),
     /*4D*/  UCODE("astore_2", StorR(2, PopA())),
     /*4E*/  UCODE("astore_3", StorR(3, PopA())),
-    /*4F*/  UCODE("iastore",  S32 v = PopI(); S32 n = PopI(); SetI_A(PopR(), n, v)),
+    /*4F*/  UCODE("iastore",  S32 v = t.pop(); S32 n = t.pop(); SetI_A(PopR(), n, v)),
     /*50*/  UCODE("lastore",  S64 v = PopL(); S32 n = PopI(); SetL_A(PopR(), n, v)),
     /*51*/  UCODE("fastore",  F32 v = PopF(); S32 n = PopI(); SetF_A(PopR(), n, v)),
     /*52*/  UCODE("dastore",  F64 v = PopD(); S32 n = PopI(); SetD_A(PopR(), n, v)),
     /*53*/  UCODE("aastore",  P32 v = PopA(); S32 n = PopI(); SetA_A(PopR(), n, v)),
-    /*54*/  UCODE("bastore",  U8  v = PopI(); S32 n = PopI(); SetB_A(PopR(), n, v)),
+    /*54*/  UCODE("bastore",  U8  v = t.pop(); S32 n = t.pop(); SetB_A(PopR(), n, v)),
     /*55*/  UCODE("castore",  U16 v = PopI(); S32 n = PopI(); SetC_A(PopR(), n, v)),
     /*56*/  UCODE("sastore",  S16 v = PopI(); S32 n = PopI(); SetS_A(PopR(), n, v)),
     /// @}
@@ -221,7 +223,7 @@ static Method _java[] = {
     /*81*/  UCODE("lor",  TopU64 = PopL() | TopU64),
     /*82*/  UCODE("ixor", TopU32 = PopI() ^ TopU32),
     /*83*/  UCODE("lxor", TopU64 = PopL() ^ TopU64),
-    /*84*/  UCODE("iinc", {}),
+    /*84*/  UCODE("iinc", TopS32 += t.getBE16()),
     /// @}
     /// @definegroup ALU Conversion ops
     /// @{
@@ -288,10 +290,10 @@ static Method _java[] = {
     /// @}
     /// @definegroup Field Fetch ops
     /// @{
-    /*B2*/  UCODE("getstatic", GetI_S(t.getBE16(0))),
-    /*B3*/  UCODE("putstatic", SetI_S(t.getBE16(1), 0)),
-    /*B4*/  UCODE("getfield",  GetI_F(t.getBE16(2))),
-    /*B5*/  UCODE("putfield",  SetI_F(t.getBE16(3), 0)),
+    /*B2*/  UCODE("getstatic", IU n = t.getBE16(); DU v = GetI_S(n); PushI(v)),	 // fetch from class variable
+    /*B3*/  UCODE("putstatic", IU n = t.getBE16(); DU v = t.pop(); SetI_S(n, v)),// store into class variable
+    /*B4*/  UCODE("getfield",  IU n = t.getBE16(); DU v = GetI_F(n); PushI(v)),
+    /*B5*/  UCODE("putfield",  IU n = t.getBE16(); DU v = t.pop(); SetI_F(n, v)),
     /// @}
     /// @definegroup Method/Interface Invokation ops
     /// @{
