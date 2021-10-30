@@ -336,7 +336,7 @@ void run(Klass *cls, IU addr) {
     printf("\nnanoJVM done.\n");
 }
 
-int main(int ac, char* av[]) {
+int main0(int ac, char* av[]) {
 	if(ac < 1){
 		fprintf(stderr, "Usage:> %s f.class\n", av[0]);
 		return -1;

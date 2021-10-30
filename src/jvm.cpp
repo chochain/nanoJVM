@@ -27,9 +27,13 @@ IU Pool::get_class(const char *cls_name) {
 /// return m_root if m_name is NULL
 ///
 IU Pool::get_method(const char *m_name, const char *cls_name) {
-    Word *cls   = (Word*)&dict[get_class(cls_name)];
-    IU   m_root = *(IU*)cls->pfa();
-    return m_name ? find(m_name, m_root) : m_root;
+    Word *cls = (Word*)&dict[get_class(cls_name)];
+    while (cls) {
+    	IU m_root = *(IU*)cls->pfa();
+    	IU m_idx  = find(m_name, m_root);
+    	if (m_idx) return m_idx;
+    	cls = cls->lfa ? (Word*)&dict[cls->lfa] : 0;
+    }
 }
 IU Pool::add_method(Method &vt, IU &m_root) {
 	IU mid = dict.idx;				/// store current method idx
@@ -248,7 +252,7 @@ void Thread::invoke(U16 itype) {	/// invoke type: 0:virtual, 1:special, 2:static
 /// main program
 ///
 #include <iostream>         // cin, cout
-int main0(int ac, char* av[]) {
+int main(int ac, char* av[]) {
 	setvbuf(stdout, NULL, _IONBF, 0);
     static auto send_to_con = [](int len, const char *rst) { cout << rst; };
 
@@ -256,8 +260,6 @@ int main0(int ac, char* av[]) {
 
     gPool.register_class("Ucode", gUcode.vtsz, gUcode.vt);
     gPool.register_class("nanojvm/Forth", gForth.vtsz, gForth.vt, "Ucode");
-
-    return 0;
 
     string line;
     while (getline(cin, line)) {             /// fetch line from user console input
