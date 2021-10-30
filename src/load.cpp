@@ -128,6 +128,9 @@ U16 poolOffset(U16 idx, bool debug=false) {
         if (debug) printf("\n[%02x]%04x:%x", i+1, addr, t);		// Constant Pool is 1-based
         addr++;
         switch(t){
+        case CONST_INT:
+        	if (debug) printf("=>0x%x", getU32(addr));
+        	addr += 4; break;
         case CONST_UTF8:
         	if (debug) printStr(addr);
         	addr += 2 + getU16(addr); break;
@@ -325,7 +328,7 @@ void run(Klass *cls, IU addr) {
 	/* allocate local stack */
 	while (t0.PC!=0xffff) {
 		U8 op = getU8(t0.PC++);
-		printf("%04x:%02x exec", t0.PC-1, op);
+		printf("%04x:%02x %s", t0.PC-1, op, gUcode.vt[op].name);
 		gUcode.exec(t0, op);	           /* execute JVM opcode */
 		ss_dump();
 	}
