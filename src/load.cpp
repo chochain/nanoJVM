@@ -222,7 +222,6 @@ attribute_info {
 #define ERR_SUPER  2
 #define ERR_MEMORY 3
 int load_class(struct Klass **pcls) {
-	dump(0, 0x200);
 	if ((U32)getU32(0) != MAGIC) return ERR_MAGIC;
 
     U16 n_cnst = getU16(8) - 1;			        // number of constant pool entries
@@ -366,9 +365,20 @@ int main(int ac, char* av[]) {
         fprintf(stderr," Failed to open file\n");
         return -1;
     }
+    ///
+    /// dump class file
+    ///
+	fseek(f, 0L, SEEK_END);
+	U32 fsz = ftell(f);
+	dump(0, fsz);
+	///
+	/// load class file
+	///
     struct Klass *cls;
     if (load_class(&cls)) return 1;
-
+	///
+	/// execution Java main program
+	///
     IU addr = getMethod(cls, "main", "()V");
     if (addr) run(cls, addr);
 
