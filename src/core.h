@@ -97,7 +97,7 @@ typedef P32         PU;
 ///
 struct Thread {
     List<DU, SS_SZ>  ss;    /// data stack
-    int   local;            /// local stack index
+    int   local   = 0;      /// local stack index
 
     bool  compile = false;  /// compile flag
     bool  wide    = false;  /// wide flag
@@ -112,8 +112,10 @@ struct Thread {
     ///
     /// opcode fetcher
     ///
-    U8   getBE8()          { return *IP++; }
-    U16  getBE16(U16 i=0)  { U16 n = *(U16*)IP; IP += sizeof(U16); return n; }
+//    U8   getBE8()          { return *IP++; PC++; }
+//    U16  getBE16()         { U16 n = *(U16*)IP; IP += sizeof(U16); PC+=sizeof(U16); return n; }
+    U8   getBE8();
+    U16  getBE16();
     ///
     /// stack ops
     ///
@@ -124,8 +126,10 @@ struct Thread {
     ///
     void invoke(U16 itype);
     void ret()             { IP = NULL; PC = 0xffff; }
-    void jmp()             { IP += *(PU*)IP - 1;   }
-    void cjmp(bool f)      { IP += f ? *(PU*)IP - 1 : sizeof(PU); }
+//    void jmp()             { IP += *(PU*)IP - 1;   }
+//    void cjmp(bool f)      { IP += f ? *(PU*)IP - 1 : sizeof(PU); }
+    void jmp()             { PC += getBE16() - 1;   }
+    void cjmp(bool f)      { PC += f ? getBE16() - 1 : sizeof(PU); }
     ///
     /// local parameter access, CC:TODO
     ///
