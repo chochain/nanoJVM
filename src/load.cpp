@@ -138,6 +138,7 @@ U16 poolOffset(U16 idx, bool debug=false) {
         case CONST_LONG:
         case CONST_DOUBLE:
         	addr += 8; i++;  break;
+        case CONST_FIELD:
         case CONST_METHOD:
         case CONST_NAME_TYPE:
         	if (debug) printf("=>[%x,%x]", getU16(addr), getU16(addr+2));
@@ -221,7 +222,7 @@ attribute_info {
 #define ERR_SUPER  2
 #define ERR_MEMORY 3
 int load_class(struct Klass **pcls) {
-	dump(0, 400);
+	dump(0, 0x200);
 	if ((U32)getU32(0) != MAGIC) return ERR_MAGIC;
 
     U16 n_cnst = getU16(8) - 1;			        // number of constant pool entries
@@ -318,14 +319,19 @@ void run(Klass *cls, IU addr) {
     gPool.register_class("nanojvm/Forth", gForth.vtsz, gForth.vt, "Ucode");
     fout_cb = send_to_con;                 /// setup callback function
 
+    printf("\n\nnanoJVM starting...\n\n");
+
     t0.PC = addr + 14;                     /// pointer to class file
 	U16 n_local = getU16(addr + 8);
 	/* allocate local stack */
 	while (t0.PC!=0xffff) {
 		U8 op = getU8(t0.PC++);
-		printf("\ngUcode.exec(%02x)", op);
+		printf("%04x:%02x exec", t0.PC-1, op);
 		gUcode.exec(t0, op);	           /* execute JVM opcode */
+		ss_dump();
 	}
+
+    printf("\nnanoJVM done.\n");
 }
 
 int main(int ac, char* av[]) {
@@ -365,7 +371,6 @@ int main(int ac, char* av[]) {
 
     IU addr = getMethod(cls, "main", "()V");
     if (addr) run(cls, addr);
-    ss_dump();
 
     return 0;
 }
