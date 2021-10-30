@@ -40,9 +40,9 @@ static Method _word[] = {
     /*D7*/  CODE("+!",    IU w = t.pop(); CELL(w) += t.pop()),       // n w --
     /*D8*/  CODE("here",  t.push(gPool.dict.idx)),
     /*D9*/  CODE("words", words()),
-    /*DA*/  CODE(".s",    ss_dump()),
+    /*DA*/  CODE("ss",    ss_dump()),
     /*DB*/  CODE("dump",  DU n = t.pop(); IU a = t.pop(); mem_dump(a, n)),
-    /*DC*/  CODE("'",     IU w = gPool.get_method(next_word()); t.push(w)),
+    /*DC*/  CODE("tick",  IU w = gPool.get_method(next_word()); t.push(w)),
     /*DD*/  CODE("clock", t.push(millis())),
     /*DE*/  CODE("delay", delay(t.pop())),
     /*DF*/  CODE("bye",   exit(0))
