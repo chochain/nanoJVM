@@ -97,7 +97,7 @@ typedef P32         PU;
 ///
 struct Thread {
     List<DU, SS_SZ>  ss;    /// data stack
-    DU    gl[16];			/// DEBUG: class variable (static)
+    DU    gl[16];           /// DEBUG: class variable (static)
     DU    xs[SS_SZ];        /// DEBUG: execution local stack, REFACTOR: combine with ss
     int   local   = 0;      /// local stack index
 
@@ -107,7 +107,7 @@ struct Thread {
     DU    tos     = -1;     /// top of stack
     IU    WP      = 0;      /// method index
     U8    *IP     = NULL;   /// instruction pointer (program counter)
-    U8    *M0     = NULL;	/// cached base address of memory pool
+    U8    *M0     = NULL;   /// cached base address of memory pool
     IU    PC;               /// DEBUG: for loader
 
     Thread(U8 *heap) : M0(heap) {}
@@ -157,7 +157,7 @@ struct Method {
     U16   immd;
 #endif
     Method(const char *n, fop f, bool im=false) : name(n), xt(f) {
-    	if (im) immd = 1;
+        if (im) immd = 1;
     }
 };
 ///
@@ -171,10 +171,31 @@ struct Word {
     U8  def:    1;           /// 0:native, 1:composite
     U8  immd:   1;           /// Forth immediate word
     U8  access: 2;           /// public, private, protected
-    U8  ftype:  4;       	 /// static, finall, virtual, synchronized
+    U8  ftype:  4;           /// static, finall, virtual, synchronized
     U8  data[];              /// name field + parameter field
 
     const char *nfa() { return (const char*)&data[0]; }
     U8 *pfa()         { return &data[len]; }
+};
+///
+/// Klass class (same as Ruby, to avoid compiler confusion)
+///
+struct NativeKlass {
+	const  char* name;
+	U16    cvsz;
+	U16    ivsz;
+	U16    vtsz;
+	Method vt[];
+};
+struct Klass {
+    IU  lfa;                 /// index to previous class
+    IU  supr;                /// index to super class
+    IU  intf;                /// index to interface
+    IU  pfa;                 /// index to parameter fields
+    IU  vt;                  /// index to method table
+    U16 cvsz;                /// size of class variables
+    U16 ivsz;                /// size of instance variables
+    U16 len;                 /// class name string length
+    U8  data[];              /// raw data (string name)
 };
 #endif // NANOJVM_CORE_H
