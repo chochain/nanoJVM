@@ -13,8 +13,8 @@
 #define PushF(n)    (0)
 #define PushD(n)    (0)
 #define PushA(n)    (t.push((P32)n))
-#define PopI()      ((S32)t.pop())			/** tos updated */
-#define PopL()      ((S64)t.pop())			/** tos updated */
+#define PopI()      ((S32)t.pop())          /** tos updated */
+#define PopL()      ((S64)t.pop())          /** tos updated */
 #define PopF()      (0)
 #define PopD()      (0)
 #define PopA()      ((P32)t.pop())
@@ -69,7 +69,7 @@
 /// micro-code (built-in methods)
 ///
 auto _invoke2 = [](Thread &t){
-	t.invoke(2);
+    t.invoke(2);
 };
 static Method _java[] = {
     ///
@@ -96,8 +96,8 @@ static Method _java[] = {
     /// @{
     /*10*/  UCODE("bipush",   PushI(OFF8)),
     /*11*/  UCODE("sipush",   PushI(OFF)),
-    /*12*/  UCODE("ldc",      U8  c = OFF8),	// load pool[U8] constant (cannot reach class file from here:TODO)
-    /*13*/  UCODE("ldcw",     U16 c = OFF),		// load pool[U16] constant
+    /*12*/  UCODE("ldc",      U8  c = OFF8),    // load pool[U8] constant (cannot reach class file from here:TODO)
+    /*13*/  UCODE("ldcw",     U16 c = OFF),     // load pool[U16] constant
     /*14*/  UCODE("ldc2_w",   {}),
     /*15*/  UCODE("iload",    LoadI(OFF8)),
     /*16*/  UCODE("lload",    LoadL(OFF8)),
@@ -160,7 +160,7 @@ static Method _java[] = {
     /*4C*/  UCODE("astore_1", StorR(1)),
     /*4D*/  UCODE("astore_2", StorR(2)),
     /*4E*/  UCODE("astore_3", StorR(3)),
-    /*4F*/  UCODE("iastore",  SetI_A()),		// n = PopI(); v = PopI(); a = PopR(); SetI_A(a, n, v)
+    /*4F*/  UCODE("iastore",  SetI_A()),        // n = PopI(); v = PopI(); a = PopR(); SetI_A(a, n, v)
     /*50*/  UCODE("lastore",  SetL_A()),
     /*51*/  UCODE("fastore",  SetF_A()),
     /*52*/  UCODE("dastore",  SetD_A()),
@@ -289,7 +289,7 @@ static Method _java[] = {
     /// @}
     /// @definegroup Field Fetch ops
     /// @{
-    /*B2*/  UCODE("getstatic", GetI_S()),	 // fetch from class variable
+    /*B2*/  UCODE("getstatic", GetI_S()),    // fetch from class variable
     /*B3*/  UCODE("putstatic", SetI_S()),    // store into class variable
     /*B4*/  UCODE("getfield",  GetI_F()),
     /*B5*/  UCODE("putfield",  SetI_F()),
