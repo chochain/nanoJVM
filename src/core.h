@@ -97,6 +97,8 @@ typedef P32         PU;
 ///
 struct Thread {
     List<DU, SS_SZ>  ss;    /// data stack
+    DU    gl[16];			/// DEBUG: class variable (static)
+    DU    xs[SS_SZ];        /// DEBUG: execution local stack, REFACTOR: combine with ss
     int   local   = 0;      /// local stack index
 
     bool  compile = false;  /// compile flag
@@ -106,16 +108,15 @@ struct Thread {
     IU    WP      = 0;      /// method index
     U8    *IP     = NULL;   /// instruction pointer (program counter)
     U8    *M0     = NULL;	/// cached base address of memory pool
-    IU    PC;
+    IU    PC;               /// DEBUG: for loader
 
     Thread(U8 *heap) : M0(heap) {}
     ///
     /// opcode fetcher
     ///
-//    U8   getBE8()          { return *IP++; PC++; }
-//    U16  getBE16()         { U16 n = *(U16*)IP; IP += sizeof(U16); PC+=sizeof(U16); return n; }
-    U8   getBE8();
-    U16  getBE16();
+    U8   getBE8();  //         { return *IP++; PC++; }
+    U16  getBE16(); //         { U16 n = *(U16*)IP; IP += sizeof(U16); PC+=sizeof(U16); return n; }
+    U32  getBE32(); //         { U16 n = *(U16*)IP; IP += sizeof(U16); PC+=sizeof(U16); return n; }
     ///
     /// stack ops
     ///
@@ -126,17 +127,15 @@ struct Thread {
     ///
     void invoke(U16 itype);
     void ret()             { IP = NULL; PC = 0xffff; }
-//    void jmp()             { IP += *(PU*)IP - 1;   }
-//    void cjmp(bool f)      { IP += f ? *(PU*)IP - 1 : sizeof(PU); }
-    void jmp()             { PC += getBE16() - 1;   }
-    void cjmp(bool f)      { PC += f ? getBE16() - 1 : sizeof(U16); }
+    void jmp();        //      { IP += *(PU*)IP - 1;   }
+    void cjmp(bool f); //      { IP += f ? *(PU*)IP - 1 : sizeof(PU); }
     ///
     /// local parameter access, CC:TODO
     ///
     template<typename T>
-    T    load(U32 i, T n)  { return *(T*)&ss[i+local]; }
+    T    load(U32 i, T n)  { return *(T*)&xs[local+i]; }
     template<typename T>
-    void store(U32 i, T n) { *(T*)&ss[i+local] = n; }
+    void store(U32 i, T n) { *(T*)&xs[local+i] = n; }
 };
 typedef void (*fop)(Thread&); /// opcode function pointer
 ///
