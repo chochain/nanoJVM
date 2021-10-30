@@ -181,11 +181,11 @@ struct Word {
 /// Klass class (same as Ruby, to avoid compiler confusion)
 ///
 struct NativeKlass {
-	const  char* name;
-	U16    cvsz;
-	U16    ivsz;
-	U16    vtsz;
-	Method vt[];
+    const  char* name;
+    U16    cvsz;
+    U16    ivsz;
+    U16    vtsz;
+    Method vt[];
 };
 struct Klass {
     IU  lfa;                 /// index to previous class

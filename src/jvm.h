@@ -2,7 +2,7 @@
 #define NANOJVM_JVM_H
 #include "core.h"
 
-enum { DOVAR = 0xCA, DOLIT, DOSTR, UNNEST }; 	/// Forth opcodes
+enum { DOVAR = 0xCA, DOLIT, DOSTR, UNNEST };    /// Forth opcodes
 ///
 /// VM namespace functions
 ///
@@ -15,15 +15,15 @@ void mem_dump(IU p0, DU sz);
 /// macros for parameter memory access
 ///
 #define STR(a) ((char*)&dict[a])  /** fetch string pointer to parameter memory */
-#define HERE   (dict.idx)         /** current parameter memory index           */
+#define HERE   (heap.idx)         /** current parameter memory index           */
 ///
 /// Memory Pool Manager
 /// Note:
 ///    ucode is fused into vt for now, it can stay in ROM
 ///
 struct Pool {
-    List<U8, HEAP_SZ>  dict;      /// heap
-    List<DU, CONST_SZ> cnst;	  /// constant pool
+    List<U8, HEAP_SZ>  heap;      /// heap
+    List<DU, CONST_SZ> cnst;      /// constant pool
     IU jvm_root = 0;              /// JVM builtin opcodes
     IU cls_root = 0;              /// Forth::context
 
@@ -40,11 +40,11 @@ struct Pool {
     /// compiler methods
     ///
     void colon(const char *name);
-    void add_u8(U8 b) { dict.push(b); }
-    void add_iu(IU i) { dict.push((U8*)&i, sizeof(IU)); }
-    void add_du(DU v) { dict.push((U8*)&v, sizeof(DU)); }
-    void add_pu(PU p) { dict.push((U8*)&p, sizeof(PU)); }
-    void add_str(const char *s) { int sz = STRLEN(s); dict.push((U8*)s,  sz); }
+    void add_u8(U8 b) { heap.push(b); }
+    void add_iu(IU i) { heap.push((U8*)&i, sizeof(IU)); }
+    void add_du(DU v) { heap.push((U8*)&v, sizeof(DU)); }
+    void add_pu(PU p) { heap.push((U8*)&p, sizeof(PU)); }
+    void add_str(const char *s) { int sz = STRLEN(s); heap.push((U8*)s,  sz); }
 };
 extern Pool gPool;
 

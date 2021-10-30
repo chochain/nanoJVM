@@ -13,12 +13,12 @@ static Method _word[] = {
     ///
     /// @definegroup Forth Core
     /// @{
-	/*CA*/  CODE("dovar", t.push(IPOFF); t.IP += sizeof(DU)),
+    /*CA*/  CODE("dovar", t.push(IPOFF); t.IP += sizeof(DU)),
     /*CB*/  CODE("dolit", t.push(*(DU*)t.IP); t.IP += sizeof(DU)),
     /*CC*/  CODE("dostr",
                 const char *s = (const char*)t.IP;
                 t.push(IPOFF); t.IP += STRLEN(s)),
-	/*CD*/  CODE("unnest", t.IP = 0),
+    /*CD*/  CODE("unnest", t.IP = 0),
     /*CE*/  CODE("create",
                 gPool.colon(next_word());
                 gPool.add_iu(DOVAR)),
@@ -38,7 +38,7 @@ static Method _word[] = {
     /*D5*/  CODE(",",     DU n = t.pop(); gPool.add_du(n)),
     /*D6*/  CODE("allot", DU v = 0; for (IU n = t.pop(), i = 0; i < n; i++) gPool.add_du(v)), // n --
     /*D7*/  CODE("+!",    IU w = t.pop(); CELL(w) += t.pop()),       // n w --
-    /*D8*/  CODE("here",  t.push(gPool.dict.idx)),
+    /*D8*/  CODE("here",  t.push(gPool.heap.idx)),
     /*D9*/  CODE("words", words()),
     /*DA*/  CODE("ss",    ss_dump()),
     /*DB*/  CODE("dump",  DU n = t.pop(); IU a = t.pop(); mem_dump(a, n)),
