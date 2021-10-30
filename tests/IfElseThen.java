@@ -4,13 +4,17 @@ class IfElseThen
 {
     public static void main()
     {
-        int main_v0 = 1;                // ss[0]
+        int v0;                   // xs[0]
+        int v1 = 0;
+        int v2;
+        int v3;
+        int v4 = 0x7fff;
         
-        if (main_v0 > 0) {
-            main_v0 -= 1;
+        if (v4 > v1) {
+            Forth.clock();
         }
         else {
-            main_v0 += 1;
+            Forth.ss();
         }
     }                                   // b1
 }
