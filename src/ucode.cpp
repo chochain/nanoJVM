@@ -29,12 +29,12 @@
 #define LoadL(i)    PushL((S64)t.load((U32)i, (S64)0))
 #define LoadF(i)    (0)
 #define LoadD(i)    (0)
-#define LoadA(i)    (P32)t.load((U32)i, (P32)0)
+#define LoadA(i)    PushI((P32)t.load((U32)i, (P32)0))
 #define StorI(i)    (t.store((U32)i, PopI()))
 #define StorL(i)    (t.store((U32)i, PopL()))
 #define StorF(i)    (0)
 #define StorD(i)    (0)
-#define StorR(i)    (t.store((U32)i, PopR()))
+#define StorA(i)    (t.store((U32)i, PopA()))
 ///
 /// array access macros (CC: TODO)
 ///
@@ -46,23 +46,23 @@
 #define GetB_A(i)   PushI((U8)0)
 #define GetC_A(i)   PushI((U16)0)
 #define GetS_A(i)   PushI((S16)0)
-#define SetI_A(i)   (0)
-#define SetL_A(i)   (0)
-#define SetF_A(i)   (0)
-#define SetD_A(i)   (0)
-#define SetA_A(i)   (0)
-#define SetB_A(i)   (0)
-#define SetC_A(i)   (0)
-#define SetS_A(i)   (0)
+#define PutI_A(i)   (0)
+#define PutL_A(i)   (0)
+#define PutF_A(i)   (0)
+#define PutD_A(i)   (0)
+#define PutA_A(i)   (0)
+#define PutB_A(i)   (0)
+#define PutC_A(i)   (0)
+#define PutS_A(i)   (0)
 ///
 /// Class method, field access macros
 ///
-#define OFF          (t.wide ? t.getBE32() : t.getBE16())
-#define OFF8         (t.getBE8())
-#define GetI_S(n)    PushI(t.gl[(n)])
-#define SetI_S(n, v) (t.gl[(n)]=(v))
-#define GetI_F(n)    PushI(t.gl[(n)])
-#define SetI_F(n, v) (t.gl[(n)]=(v))
+#define OFF           (t.wide ? t.getBE32() : t.getBE16())
+#define OFF8          (t.getBE8())
+#define GetI_S(n)     PushI(t.gl[(n)])
+#define PutI_S(n,v)   (t.gl[(n)]=(v))
+#define GetI_F(o,n)   PushI(t.gl[(n)])
+#define PutI_F(o,n,v) (t.gl[(n)]=(v))
 
 #define UCODE(s, g) { s, [](Thread &t){ g; } }
 ///
@@ -104,7 +104,7 @@ static Method _java[] = {
     /*17*/  UCODE("fload",    LoadF(OFF8)),
     /*18*/  UCODE("dload",    LoadD(OFF8)),
     /*19*/  UCODE("aload",    LoadA(OFF8)),
-    /*1A*/  UCODE("iload_0",  LoadI(0)),
+    /*1A*/  UCODE("iload_0",  LoadI(0)),		// load from local (auto)
     /*1B*/  UCODE("iload_1",  LoadI(1)),
     /*1C*/  UCODE("iload_2",  LoadI(2)),
     /*1D*/  UCODE("iload_3",  LoadI(3)),
@@ -121,10 +121,10 @@ static Method _java[] = {
     /*28*/  UCODE("dload_2",  LoadD(2)),
     /*29*/  UCODE("dload_3",  LoadD(3)),
     /*2A*/  UCODE("aload_0",  LoadA(0)),
-    /*2B*/  UCODE("aload_1",  LoadA(1)),
+    /*2B*/  UCODE("aload_1",  LoadA(1)),	/// load ref from local (auto)
     /*2C*/  UCODE("aload_2",  LoadA(2)),
     /*2D*/  UCODE("aload_3",  LoadA(3)),
-    /*2E*/  UCODE("iaload",   GetI_A()),     // n = PopI(); a = PopR(); GetI_A(a, n)
+    /*2E*/  UCODE("iaload",   GetI_A()),    /// n = PopI(); a = PopR(); GetI_A(a, n)
     /*2F*/  UCODE("faload",   GetF_A()),
     /*30*/  UCODE("laload",   GetL_A()),
     /*31*/  UCODE("daload",   GetD_A()),
@@ -140,7 +140,7 @@ static Method _java[] = {
     /*38*/  UCODE("fstore",   {}),
     /*39*/  UCODE("dstore",   {}),
     /*3A*/  UCODE("astore",   {}),
-    /*3B*/  UCODE("istore_0", StorI(0)),
+    /*3B*/  UCODE("istore_0", StorI(0)),	/// save to local (auto)
     /*3C*/  UCODE("istore_1", StorI(1)),
     /*3D*/  UCODE("istore_2", StorI(2)),
     /*3E*/  UCODE("istore_3", StorI(3)),
@@ -156,18 +156,18 @@ static Method _java[] = {
     /*48*/  UCODE("dstore_1", StorF(1)),
     /*49*/  UCODE("dstore_2", StorF(2)),
     /*4A*/  UCODE("dstore_3", StorF(3)),
-    /*4B*/  UCODE("astore_0", StorR(0)),
-    /*4C*/  UCODE("astore_1", StorR(1)),
-    /*4D*/  UCODE("astore_2", StorR(2)),
-    /*4E*/  UCODE("astore_3", StorR(3)),
-    /*4F*/  UCODE("iastore",  SetI_A()),        // n = PopI(); v = PopI(); a = PopR(); SetI_A(a, n, v)
-    /*50*/  UCODE("lastore",  SetL_A()),
-    /*51*/  UCODE("fastore",  SetF_A()),
-    /*52*/  UCODE("dastore",  SetD_A()),
-    /*53*/  UCODE("aastore",  SetA_A()),
-    /*54*/  UCODE("bastore",  SetB_A()),
-    /*55*/  UCODE("castore",  SetC_A()),
-    /*56*/  UCODE("sastore",  SetS_A()),
+    /*4B*/  UCODE("astore_0", StorA(0)),		// store reference
+    /*4C*/  UCODE("astore_1", StorA(1)),
+    /*4D*/  UCODE("astore_2", StorA(2)),
+    /*4E*/  UCODE("astore_3", StorA(3)),
+    /*4F*/  UCODE("iastore",  PutI_A()),        // n = PopI(); v = PopI(); a = PopR(); PutI_A(a, n, v)
+    /*50*/  UCODE("lastore",  PutL_A()),
+    /*51*/  UCODE("fastore",  PutF_A()),
+    /*52*/  UCODE("dastore",  PutD_A()),
+    /*53*/  UCODE("aastore",  PutA_A()),
+    /*54*/  UCODE("bastore",  PutB_A()),
+    /*55*/  UCODE("castore",  PutC_A()),
+    /*56*/  UCODE("sastore",  PutS_A()),
     /// @}
     /// @definegroup Stack ops
     /// @{
@@ -289,10 +289,10 @@ static Method _java[] = {
     /// @}
     /// @definegroup Field Fetch ops
     /// @{
-    /*B2*/  UCODE("getstatic", GetI_S(OFF)),         // fetch from class variable
-    /*B3*/  UCODE("putstatic", SetI_S(OFF, PopI())), // store into class variable
-    /*B4*/  UCODE("getfield",  GetI_F(OFF)),
-    /*B5*/  UCODE("putfield",  SetI_F(OFF, PopI())),
+    /*B2*/  UCODE("getstatic", GetI_S(OFF)),                           /// fetch from class variable
+    /*B3*/  UCODE("putstatic", PutI_S(OFF, PopI())),                   /// store into class variable
+    /*B4*/  UCODE("getfield",  IU o = PopI(); GetI_F(o, OFF)),		   /// fetch from instance variable
+    /*B5*/  UCODE("putfield",  S32 v = PopI(); IU o = PopI(); PutI_F(o, OFF, v)),/// store into instance variable
     /// @}
     /// @definegroup Method/Interface Invokation ops
     /// @{
@@ -304,7 +304,7 @@ static Method _java[] = {
     /// @}
     /// @definegroup New and Array ops
     /// @{
-    /*BB*/  UCODE("new",          {}),
+    /*BB*/  UCODE("new",          t.class_new()),
     /*BC*/  UCODE("newarray",     {}),
     /*BD*/  UCODE("anewarray",    {}),
     /*BE*/  UCODE("arraylength",  {}),

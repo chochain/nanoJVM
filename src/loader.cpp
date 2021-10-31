@@ -122,7 +122,7 @@ IU Loader::getMethod(Klass &cls, const char *fname, const char *param) {
     IU  addr = cls.vt;
     U16 n_method = getU16(addr - 2);
     U16 m_match  = 0;
-    char buf[256];
+    char buf[128];
     while (n_method--) {
         U16 acc     = getU16(addr);
         U16 i_name  = getU16(addr + 2);

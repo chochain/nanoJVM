@@ -125,6 +125,7 @@ struct Thread {
     ///
     /// branching ops
     ///
+    void class_new();
     void invoke(U16 itype);
     void ret()             { IP = NULL; PC = 0xffff; }
     void jmp();        //      { IP += *(PU*)IP - 1;   }

@@ -26,14 +26,15 @@ IU Pool::get_class(const char *cls_name) {
 ///
 /// return m_root if m_name is NULL
 ///
-IU Pool::get_method(const char *m_name, const char *cls_name) {
+IU Pool::get_method(const char *m_name, const char *cls_name, bool supr) {
     Word *cls = (Word*)&pmem[get_class(cls_name)];
+    IU m_idx = 0;
     while (cls) {
-        IU m_idx  = find(m_name, *(IU*)cls->pfa(CLS_VT));
-        if (m_idx) return m_idx;
+        m_idx = find(m_name, *(IU*)cls->pfa(CLS_VT));
+        if (m_idx || !supr) break;
         cls = cls->lfa ? (Word*)&pmem[cls->lfa] : 0;
     }
-    return 0;
+    return m_idx;
 }
 ///
 /// method constructor
@@ -232,9 +233,17 @@ U16 Thread::getBE16()     { U16 n = cU16(PC); PC+=2; return n; }
 U32 Thread::getBE32()     { U32 n = cU32(PC); PC+=4; return n; }
 void Thread::jmp()        { PC += getBE16() - 3; }
 void Thread::cjmp(bool f) { PC += f ? getBE16() - 3 : sizeof(U16); }
+void Thread::class_new()  {
+	IU idx = getBE16();  			/// class index
+	/// TODO: allocate space for the object instance
+	IU cid = cOff(idx);             /// class name
+	char buf[128];
+	printf("%s", gStrRef(cid, buf));
+	push(cid);                      /// save object on stack
+}
 void Thread::invoke(U16 itype) {    /// invoke type: 0:virtual, 1:special, 2:static, 3:interface, 4:dynamic
-    IU idx   = cU16(PC);            /// 2 - method index in pool
-    PC += (itype==4) ? 4 : 2;       /// extra 2 for interface
+    IU idx   = getBE16();           /// 2 - method index in pool
+    if (itype==4) PC += 2;          /// extra 2 for dynamic
     IU c_m   = cOff(idx);           /// [02]000f:a=>[12,13]  [class_name, method_ref]
     IU cid   = cU16(c_m + 1);       /// 12
     IU mrf   = cU16(c_m + 3);       /// 13
@@ -244,7 +253,7 @@ void Thread::invoke(U16 itype) {    /// invoke type: 0:virtual, 1:special, 2:sta
 	printf(" %s::", gStrRef(cid, cls));
     printf("%s", gStr(cU16(mid + 1), xt));
     printf("%s", gStr(cU16(mid + 3), t));
-    int w = gPool.get_method(xt, cls);
+    int w = gPool.get_method(xt, cls, itype!=1);	/// special does not go up to supr class
     if (w >= 0) CALL(w);
     else        printf(" NOT FOUND");
 }

@@ -30,7 +30,7 @@ struct Pool {
     IU   find(const char *m_name, IU root);
     IU   add_method(Method &vt, IU &root);
     IU   get_class(const char *cls_name);
-    IU   get_method(const char *m_name, const char *cls_name=0);
+    IU   get_method(const char *m_name, const char *cls_name=0, bool supr=true);
 
     IU   register_class(const char *name, int sz, Method *vt, const char *supr = 0);
 
