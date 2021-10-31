@@ -234,7 +234,6 @@ int Loader::load_class(struct Klass **pcls) {
     cls->lfa   = g_cls_root;
     cls->supr  = i_supr;
     cls->intf  = p_intf;
-    cls->pfa   = p_fld;
     cls->vt    = p_method;
     cls->cvsz  = sz_cv;
     cls->ivsz  = sz_iv;
@@ -272,7 +271,7 @@ int Loader::run(Thread &t, Klass &cls) {
     printf("\nnanoJVM done.\n");
 }
 
-int main(int ac, char* av[]) {
+int main0(int ac, char* av[]) {
     static auto send_to_con = [](int len, const char *rst) { cout << rst; };
     
     setvbuf(stdout, NULL, _IONBF, 0);

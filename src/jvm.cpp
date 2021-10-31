@@ -18,10 +18,10 @@ IU Pool::find(const char *s, IU idx) {
     return 0;
 }
 ///
-/// return jvm_root if cls_name is NULL
+/// return cls_obj if cls_name is NULL
 ///
 IU Pool::get_class(const char *cls_name) {
-    return cls_name ? find(cls_name, cls_root) : jvm_root;
+	return cls_name ? find(cls_name, cls_root) : cls_root;
 }
 ///
 /// return m_root if m_name is NULL
@@ -29,8 +29,7 @@ IU Pool::get_class(const char *cls_name) {
 IU Pool::get_method(const char *m_name, const char *cls_name) {
     Word *cls = (Word*)&heap[get_class(cls_name)];
     while (cls) {
-        IU m_root = *(IU*)cls->pfa();
-        IU m_idx  = find(m_name, m_root);
+        IU m_idx  = find(m_name, *(IU*)cls->pfa(CLS_VT));
         if (m_idx) return m_idx;
         cls = cls->lfa ? (Word*)&heap[cls->lfa] : 0;
     }
@@ -53,11 +52,15 @@ IU Pool::register_class(const char *name, int sz, Method *vt, const char *supr) 
     }
     /// encode class
     IU cid = heap.idx;              /// preserve class link
-    add_iu(cls_root);
-    add_u8(STRLEN(name));           /// class name length
-    add_u8(0);                      /// class access control
-    add_str(name);                  /// enscribe class name
-    add_iu(m_root);                 /// set root of method linked list
+    add_iu(cls_root);				/// class linked list
+    add_u8(STRLEN(name));			/// class name string length
+    add_u8(0);						/// public
+    add_str(name);					/// class name string
+    add_iu(get_class(supr));		/// super class
+    add_iu(0);						/// interface
+    add_iu(m_root);					/// vt
+    add_iu(0);                      /// cvsz
+    add_iu(0);                      /// ivsz
     
     if (jvm_root==0) jvm_root = m_root;
     return cls_root = cid;          /// new class root
@@ -93,7 +96,7 @@ void words() {
     do {
         Word *cls = (Word*)&gPool.heap[cid];
         fout << "\n" << cls->nfa() << " " << cid << "::";
-        IU mid = *(IU*)cls->pfa();
+        IU mid = *(IU*)cls->pfa(CLS_VT);
         int i = 0;
         do {
             Word *m = (Word*)&gPool.heap[mid];
@@ -253,7 +256,7 @@ void Thread::invoke(U16 itype) {    /// invoke type: 0:virtual, 1:special, 2:sta
 /// main program
 ///
 #include <iostream>         // cin, cout
-int main0(int ac, char* av[]) {
+int main(int ac, char* av[]) {
     setvbuf(stdout, NULL, _IONBF, 0);
     static auto send_to_con = [](int len, const char *rst) { cout << rst; };
 

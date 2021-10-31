@@ -165,17 +165,24 @@ struct Method {
 ///   class list - linked list of words, dict[cls_root], pfa => next_class
 ///   vtable     - linked list of words, dict[class.pfa], pfa => next_method
 ///
-struct Word {
+#define CLS_SUPER 		0
+#define CLS_INTF  		2
+#define CLS_VT    		4
+#define CLS_CVSZ  		6
+#define CLS_IVSZ  		8
+struct Word {				 /// 4-byte header
     IU  lfa;                 /// link field to previous word
     U8  len;                 /// name of method
+
     U8  def:    1;           /// 0:native, 1:composite
     U8  immd:   1;           /// Forth immediate word
     U8  access: 2;           /// public, private, protected
     U8  ftype:  4;           /// static, finall, virtual, synchronized
+
     U8  data[];              /// name field + parameter field
 
-    const char *nfa() { return (const char*)&data[0]; }
-    U8 *pfa()         { return &data[len]; }
+    char *nfa()         { return (char*)&data[0];  }
+    U8   *pfa(U8 off=0) { return &data[len + off]; }
 };
 ///
 /// Klass class (same as Ruby, to avoid compiler confusion)
@@ -188,14 +195,16 @@ struct NativeKlass {
     Method vt[];
 };
 struct Klass {
-    IU  lfa;                 /// index to previous class
-    IU  supr;                /// index to super class
+	IU  lfa;				 /// class linked list
+	IU  len;                 /// class name string length
+	IU  supr;                /// index to super class
     IU  intf;                /// index to interface
-    IU  pfa;                 /// index to parameter fields
     IU  vt;                  /// index to method table
-    U16 cvsz;                /// size of class variables
-    U16 ivsz;                /// size of instance variables
-    U16 len;                 /// class name string length
+    IU  cvsz;                /// size of class variables
+    IU  ivsz;                /// size of instance variables
     U8  data[];              /// raw data (string name)
+
+    char *nfa() { return (char*)&data[0];   }
+    U8   *pfa() { return &data[len]; 		}
 };
 #endif // NANOJVM_CORE_H
