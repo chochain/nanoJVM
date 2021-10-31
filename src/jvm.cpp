@@ -35,6 +35,9 @@ IU Pool::get_method(const char *m_name, const char *cls_name) {
     }
     return 0;
 }
+///
+/// method constructor
+///
 IU Pool::add_method(Method &vt, IU &m_root) {
     IU mid = heap.idx;              /// store current method idx
     U8 f   = vt.immd ? 0x2 : 0;
@@ -45,6 +48,9 @@ IU Pool::add_method(Method &vt, IU &m_root) {
     add_pu((PU)vt.xt);              /// encode function pointer
     return m_root = mid;            /// adjust method root
 };
+///
+/// class contructor
+///
 IU Pool::register_class(const char *name, int sz, Method *vt, const char *supr) {
     /// encode vtable
     IU m_root = 0;
@@ -66,6 +72,9 @@ IU Pool::register_class(const char *name, int sz, Method *vt, const char *supr) 
     if (jvm_root==0) jvm_root = m_root;
     return cls_root = cid;          /// new class root
 }
+///
+/// word constructor
+///
 void Pool::colon(const char *name) {
     int mid = heap.idx;
     add_iu(jvm_root);
@@ -74,7 +83,9 @@ void Pool::colon(const char *name) {
     add_str(name);
     jvm_root = mid;
 }
-
+///
+/// Java Virtual Machine implementation
+///
 extern   Ucode gUcode;              /// JVM microcodes
 extern   Ucode gForth;              /// FVM microcodes
 Pool     gPool;                     /// memory management unit
@@ -87,7 +98,6 @@ string strbuf;                      /// input string buffer
 void (*fout_cb)(int, const char*);  /// forth output callback function
 
 #define ENDL    endl; fout_cb(fout.str().length(), fout.str().c_str()); fout.str("")
-
 ///
 /// debug helper
 ///
@@ -209,11 +219,13 @@ void outer(const char *cmd, void(*callback)(int, const char*)) {
     ss_dump();
 }
 #include "loader.h"
-extern Loader   gLoader;
-#define cU8(a)  gLoader.getU8(a)
-#define cU16(a) gLoader.getU16(a)
-#define cU32(a) gLoader.getU32(a)
-#define cOff(i) gLoader.poolOffset(i - 1)
+extern Loader        gLoader;
+#define cU8(a)       gLoader.getU8(a)
+#define cU16(a)      gLoader.getU16(a)
+#define cU32(a)      gLoader.getU32(a)
+#define cOff(i)      gLoader.poolOffset(i - 1)
+#define gStrRef(i,s) gLoader.getStr(i,s,true)
+#define gStr(i,s)    gLoader.getStr(i,s,false)
 
 U8  Thread::getBE8()      { return cU8(PC++); }
 U16 Thread::getBE16()     { U16 n = cU16(PC); PC+=2; return n; }
@@ -221,18 +233,17 @@ U32 Thread::getBE32()     { U32 n = cU32(PC); PC+=4; return n; }
 void Thread::jmp()        { PC += getBE16() - 3; }
 void Thread::cjmp(bool f) { PC += f ? getBE16() - 3 : sizeof(U16); }
 void Thread::invoke(U16 itype) {    /// invoke type: 0:virtual, 1:special, 2:static, 3:interface, 4:dynamic
-    IU idx   = cU16(PC);            /// 2
-    PC += (itype==4) ? 4 : 2;       /// advance program counter
-    IU addr  = cOff(idx);           /// [02]000f:a=>[12,13]
-    IU cidx  = cU16(addr + 1);      /// 12
-    IU midx  = cU16(addr + 3);      /// 13
+    IU idx   = cU16(PC);            /// 2 - method index in pool
+    PC += (itype==4) ? 4 : 2;       /// extra 2 for interface
+    IU c_m   = cOff(idx);           /// [02]000f:a=>[12,13]  [class_name, method_ref]
+    IU cid   = cU16(c_m + 1);       /// 12
+    IU mrf   = cU16(c_m + 3);       /// 13
+    IU mid   = cOff(mrf);           /// [13]008f:c=>[15,16]  [method_name, type_name]
 
-    char cls[256];
-    char xt[256];
-    gLoader.getStr(cidx, cls);
-	gLoader.getStr(midx, xt);
-    printf(" %s::%s", cls, xt);
-
+    char cls[128], xt[128], t[16];
+	printf(" %s::", gStrRef(cid, cls));
+    printf("%s", gStr(cU16(mid + 1), xt));
+    printf("%s", gStr(cU16(mid + 3), t));
     int w = gPool.get_method(xt, cls);
     if (w >= 0) CALL(w);
     else        printf(" NOT FOUND");

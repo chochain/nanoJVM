@@ -134,7 +134,7 @@ IU Loader::getMethod(Klass &cls, const char *fname, const char *param) {
         while (n_attr--) {
             if (m_match++) {
                 U16 i_code = getU16(addr);
-                printf("%s", getStr(i_code, buf));
+                printf("=%s", getStr(i_code, buf));
                 bool t_match = true;            /* attr is a Code */
                 if (t_match) return addr;
             }
@@ -198,15 +198,15 @@ int Loader::load_class(struct Klass **pcls) {
     U16 i_supr = getU16(addr);  addr += 2;      // super class
 
     char buf[256];
-    printf("\nclass %s",  getStr(i_cls,  buf, true));
-    printf(" extends %s", getStr(i_supr, buf, true));
+    printf("\nclass [%x]%s", i_cls, getStr(i_cls,  buf, true));
+    printf(" : [%x]%s {", i_supr, getStr(i_supr, buf, true));
     Klass *supr = 0;    /* search super class */
 
     U16 n_intf = getU16(addr);  addr += 2;      // number of interfaces
     IU  p_intf = addr;                          // pointer to interface section
     U16 n_fld  = getU16((addr += n_intf*2));    // number of fields
     IU  p_fld  = (addr += 2);
-    printf("\np_intf=%x, np_attr=%x", p_intf, p_fld);
+    printf("\n  p_intf=%x; p_attr=%x;", p_intf, p_fld);
     
     U16 sz_cv = 0, sz_iv = 0;
     while (n_fld--) {                           // scan fields
@@ -216,11 +216,11 @@ int Loader::load_class(struct Klass **pcls) {
         if (is_cls) sz_cv += sz;
         else        sz_iv += sz;
     }
-    printf("\nsz_cls=%x, sz_inst=%x", sz_cv, sz_iv);
+    printf("\n  sz_cls=%x; sz_inst=%x;", sz_cv, sz_iv);
 
     U16 n_method = getU16(addr);                // number of methods
     IU  p_method = (addr += 2);                 // pointer to methods
-    printf("\nn_method=%x, p_method=%x", n_method, p_method);
+    printf("\n  n_method=%x; p_method=%x;\n}", n_method, p_method);
     while (n_method--) {
         U16 flag = getU16(addr);                // get access flags
         bool is_cls = flag & ACC_STATIC;
