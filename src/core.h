@@ -11,7 +11,7 @@ using namespace std;
 ///
 /// memory block size setting
 ///
-#define HEAP_SZ         1024*48     /** global heap space size     */
+#define PMEM_SZ         1024*48     /** global heap space size     */
 #define VT_SZ           512         /** virtual table pool size    */
 #define RS_SZ           128         /** return stack size per VM   */
 #define SS_SZ           256         /** data stack size per thread */

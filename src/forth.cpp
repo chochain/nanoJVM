@@ -38,7 +38,7 @@ static Method _word[] = {
     /*D5*/  CODE(",",     DU n = t.pop(); gPool.add_du(n)),
     /*D6*/  CODE("allot", DU v = 0; for (IU n = t.pop(), i = 0; i < n; i++) gPool.add_du(v)), // n --
     /*D7*/  CODE("+!",    IU w = t.pop(); CELL(w) += t.pop()),       // n w --
-    /*D8*/  CODE("here",  t.push(gPool.heap.idx)),
+    /*D8*/  CODE("here",  t.push(gPool.pmem.idx)),
     /*D9*/  CODE("words", words()),
     /*DA*/  CODE("ss",    ss_dump()),
     /*DB*/  CODE("dump",  DU n = t.pop(); IU a = t.pop(); mem_dump(a, n)),
