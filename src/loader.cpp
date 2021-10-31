@@ -45,12 +45,18 @@ U32 Loader::getU32(IU addr) {
     for(U8 i = 0; i < 4; i++) v = (v << 8) | getU8(addr++);
     return v;
 }
-void Loader::printStr(IU addr, const char *hdr) {
-    U16 len = getU16(addr);
-    printf("%s", hdr ? hdr : "=>");
-    for (U16 i=0; i<len; i++) {
-        printf("%c", (char)getU8(addr+2+i));
+char *Loader::getStr(IU idx, char *buf, bool ref) {
+    IU n = poolOffset(idx - 1);    	/// [17]:00b6:1=>nanojvm/Forth, or
+    if (ref) {                      /// [12]008e:7=>17
+    	n = getU16(n + 1);     		/// 17
+    	n = poolOffset(n - 1);      /// [17]:00b6:1=>nanojvm/Forth
     }
+    U16 i;
+    for (i=0; i<getU16(n + 1); i++)   {
+        buf[i] = getU8(n + 3 + i);
+    }
+    buf[i] = '\0';
+    return buf;
 }
 U8 Loader::typeSize(char type){
     switch(type){
@@ -62,6 +68,16 @@ U8 Loader::typeSize(char type){
 }
 IU Loader::skipAttr(IU addr){
     return addr + 6 + getU32(addr + 2);
+}
+U8 Loader::getSize(IU &addr) {
+    U16 ifld = getU16(addr + 2);                 // field name index
+    U16 itype= getU16(addr + 4);                 // read type destriptor index
+    U16 xsz  = getU16(addr + 6);                 // get number of filed attributes
+    U8  type = getU8(poolOffset(itype-1) + 3);   // get type descriptor first character
+    addr += 8;                                   // pointer to field attributes
+    while (xsz--) addr = skipAttr(addr);         //
+
+    return typeSize(type);
 }
 U16 Loader::poolOffset(U16 idx, bool debug) {
     IU addr = 10;
@@ -78,7 +94,12 @@ U16 Loader::poolOffset(U16 idx, bool debug) {
             if (debug) printf("=>0x%x", getU32(addr));
             addr += 4; break;
         case CONST_UTF8:
-            if (debug) printStr(addr);
+            if (debug) {
+                printf("=>");
+                for (U16 i=0, n=getU16(addr); i<n; i++) {
+                    printf("%c", (char)getU8(addr+2+i));
+                }
+            }
             addr += 2 + getU16(addr); break;
         case CONST_STRING:
         case CONST_CLASS:
@@ -97,45 +118,23 @@ U16 Loader::poolOffset(U16 idx, bool debug) {
     }
     return addr;
 }
-U8 Loader::getInfo(IU &addr) {
-    U16 ifld = getU16(addr + 2);                 // field name index
-    U16 itype= getU16(addr + 4);                 // read type destriptor index
-    U16 xsz  = getU16(addr + 6);                 // get number of filed attributes
-    U8  type = getU8(poolOffset(itype-1) + 3);   // get type descriptor first character
-    addr += 8;                                   // pointer to field attributes
-    while (xsz--) addr = skipAttr(addr);         //
-
-    return typeSize(type);
-}
-void Loader::getConstName(U16 cidx, bool ref) {
-    printf("\nname[%02x]", cidx);
-    if (cidx) {
-        cidx = poolOffset(cidx-1);               // offset to index (1-based)
-        printf("%04x:", cidx);                   // bytecode:1
-        if (ref) {
-            cidx = getU16(cidx+1);               // str const index (bytecode:1)
-            printf("[%x]", cidx);
-            cidx = poolOffset(cidx-1);           // offset to name str (1-based)
-        }
-        printStr(cidx+1);
-    }
-}
 IU Loader::getMethod(Klass &cls, const char *fname, const char *param) {
     IU  addr = cls.vt;
     U16 n_method = getU16(addr - 2);
     U16 m_match  = 0;
+    char buf[256];
     while (n_method--) {
         U16 acc     = getU16(addr);
         U16 i_name  = getU16(addr + 2);
         U16 i_parm  = getU16(addr + 4);
         U16 n_attr  = getU16(addr + 6);
         addr += 8;
-        getConstName(i_name);
-        getConstName(i_parm);
+        printf("\ncall %s", getStr(i_name, buf));
+        printf("%s", getStr(i_parm, buf));
         while (n_attr--) {
             if (m_match++) {
                 U16 i_code = getU16(addr);
-                getConstName(i_code);
+                printf("%s", getStr(i_code, buf));
                 bool t_match = true;            /* attr is a Code */
                 if (t_match) return addr;
             }
@@ -198,8 +197,9 @@ int Loader::load_class(struct Klass **pcls) {
     U16 i_cls  = getU16(addr);  addr += 2;      // this class
     U16 i_supr = getU16(addr);  addr += 2;      // super class
 
-    getConstName(i_cls, true);
-    getConstName(i_supr, true);
+    char buf[256];
+    printf("\nclass %s",  getStr(i_cls,  buf, true));
+    printf(" extends %s", getStr(i_supr, buf, true));
     Klass *supr = 0;    /* search super class */
 
     U16 n_intf = getU16(addr);  addr += 2;      // number of interfaces
@@ -212,7 +212,7 @@ int Loader::load_class(struct Klass **pcls) {
     while (n_fld--) {                           // scan fields
         U16 flag = getU16(addr);                // get access flags
         bool is_cls = flag & ACC_STATIC;
-        U8 sz = getInfo(addr);                  // process one field_info
+        U8 sz = getSize(addr);                  // process one field_info
         if (is_cls) sz_cv += sz;
         else        sz_iv += sz;
     }
@@ -224,7 +224,7 @@ int Loader::load_class(struct Klass **pcls) {
     while (n_method--) {
         U16 flag = getU16(addr);                // get access flags
         bool is_cls = flag & ACC_STATIC;
-        U8 sz = getInfo(addr);
+        U8 sz = getSize(addr);
     }
     //now we have enough data to know this class's size -> alloc it
     U16 sz = sizeof(Klass) + sz_cv + (supr ? supr->cvsz : 0);
@@ -271,7 +271,7 @@ int Loader::run(Thread &t, Klass &cls) {
     printf("\nnanoJVM done.\n");
 }
 
-int main0(int ac, char* av[]) {
+int main(int ac, char* av[]) {
     static auto send_to_con = [](int len, const char *rst) { cout << rst; };
     
     setvbuf(stdout, NULL, _IONBF, 0);

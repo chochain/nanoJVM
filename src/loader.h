@@ -66,14 +66,13 @@ struct Loader {
     U8   getU8(IU addr);
     U16  getU16(IU addr);
     U32  getU32(IU addr);
-    void printStr(IU addr, const char *hdr=0);
+    char *getStr(IU addr, char *buf, bool ref=false);
     
     U8   typeSize(char type);
     IU   skipAttr(IU addr);
-    
+    U8   getSize(IU &addr);
+
     U16  poolOffset(U16 idx, bool debug=false);
-    U8   getInfo(IU &addr);
-    void getConstName(U16 cidx, bool ref=false);
     IU   getMethod(Klass &cls, const char *fname, const char *param);
     
     int  load_class(struct Klass **pcls);

@@ -33,6 +33,7 @@ IU Pool::get_method(const char *m_name, const char *cls_name) {
         if (m_idx) return m_idx;
         cls = cls->lfa ? (Word*)&heap[cls->lfa] : 0;
     }
+    return 0;
 }
 IU Pool::add_method(Method &vt, IU &m_root) {
     IU mid = heap.idx;              /// store current method idx
@@ -225,28 +226,12 @@ void Thread::invoke(U16 itype) {    /// invoke type: 0:virtual, 1:special, 2:sta
     IU addr  = cOff(idx);           /// [02]000f:a=>[12,13]
     IU cidx  = cU16(addr + 1);      /// 12
     IU midx  = cU16(addr + 3);      /// 13
-    IU p_cls = cOff(cidx);          /// [12]008e:7=>17
-    IU p_xt  = cOff(midx);          /// [13]0091:c=>[18,b]
-    IU s_cls = cU16(p_cls + 1);     /// 17
-    IU s_xt  = cU16(p_xt  + 1);     /// 18
-    IU s_t   = cU16(p_xt  + 3);     /// b
-
-    U16 i_cls= cOff(s_cls);         ///[17]:00b6:1=>nanojvm/Forth
-    U16 i_xt = cOff(s_xt);          ///[18]:00c6:1=>words
-    U16 i_t  = cOff(s_t);           ///[0b]:0049:1=>()V
 
     char cls[256];
     char xt[256];
-    U16 i;
-    for (i=0; i<cU16(i_cls + 1); i++)   {
-        cls[i] = cU8(i_cls + 3 + i);
-    }
-    cls[i] = '\0';
-    for (i=0; i<cU16(i_xt + 1); i++) {
-        xt[i] = cU8(i_xt + 3 + i);
-    }
-    xt[i] = '\0';
-    printf(" invoke %s::%s", cls, xt);
+    gLoader.getStr(cidx, cls);
+	gLoader.getStr(midx, xt);
+    printf(" %s::%s", cls, xt);
 
     int w = gPool.get_method(xt, cls);
     if (w >= 0) CALL(w);
@@ -256,7 +241,7 @@ void Thread::invoke(U16 itype) {    /// invoke type: 0:virtual, 1:special, 2:sta
 /// main program
 ///
 #include <iostream>         // cin, cout
-int main(int ac, char* av[]) {
+int main0(int ac, char* av[]) {
     setvbuf(stdout, NULL, _IONBF, 0);
     static auto send_to_con = [](int len, const char *rst) { cout << rst; };
 
