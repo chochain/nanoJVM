@@ -57,12 +57,12 @@
 ///
 /// Class method, field access macros
 ///
-#define OFF         (t.wide ? t.getBE32() : t.getBE16())
-#define OFF8        (t.getBE8())
-#define GetI_S()    PushI(t.gl[OFF])
-#define SetI_S()    (t.gl[OFF]=PopI())
-#define GetI_F()    PushI(t.gl[OFF])
-#define SetI_F()    (t.gl[OFF]=PopI())
+#define OFF          (t.wide ? t.getBE32() : t.getBE16())
+#define OFF8         (t.getBE8())
+#define GetI_S(n)    PushI(t.gl[(n)])
+#define SetI_S(n, v) (t.gl[(n)]=(v))
+#define GetI_F(n)    PushI(t.gl[(n)])
+#define SetI_F(n, v) (t.gl[(n)]=(v))
 
 #define UCODE(s, g) { s, [](Thread &t){ g; } }
 ///
@@ -212,7 +212,7 @@ static Method _java[] = {
     /// @{
     /*78*/  UCODE("ishl", TopS32 = t.ss.pop() << TopS32),
     /*79*/  UCODE("lshl", {}),
-    /*7A*/  UCODE("ishr", TopS32 = t.ss.pop() << TopS32),
+    /*7A*/  UCODE("ishr", TopS32 = t.ss.pop() >> TopS32),
     /*7B*/  UCODE("lshr", {}),
     /*7C*/  UCODE("iushr",TopU32 = (U32)t.ss.pop() >> TopS32),
     /*7D*/  UCODE("lushr",{}),
@@ -289,17 +289,16 @@ static Method _java[] = {
     /// @}
     /// @definegroup Field Fetch ops
     /// @{
-    /*B2*/  UCODE("getstatic", GetI_S()),    // fetch from class variable
-    /*B3*/  UCODE("putstatic", SetI_S()),    // store into class variable
-    /*B4*/  UCODE("getfield",  GetI_F()),
-    /*B5*/  UCODE("putfield",  SetI_F()),
+    /*B2*/  UCODE("getstatic", GetI_S(OFF)),         // fetch from class variable
+    /*B3*/  UCODE("putstatic", SetI_S(OFF, PopI())), // store into class variable
+    /*B4*/  UCODE("getfield",  GetI_F(OFF)),
+    /*B5*/  UCODE("putfield",  SetI_F(OFF, PopI())),
     /// @}
     /// @definegroup Method/Interface Invokation ops
     /// @{
     /*B6*/  UCODE("invokevirtual",   t.invoke(0)),
     /*B7*/  UCODE("invokespecial",   t.invoke(1)),
-//    /*B8*/  UCODE("invokestatic",    t.invoke(2)),
-    /*B8*/  { "invokestatic", _invoke2, false },
+	/*B8*/  UCODE("invokestatic",    t.invoke(2)),
     /*B9*/  UCODE("invokeinterface", t.invoke(3)),
     /*BA*/  UCODE("invokedynamic",   t.invoke(4)),
     /// @}
