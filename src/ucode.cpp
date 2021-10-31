@@ -174,7 +174,7 @@ static Method _java[] = {
     /*57*/  UCODE("pop",      PopI()),
     /*58*/  UCODE("pop2",     PopI(); PopI()),
     /*59*/  UCODE("dup",      PushI(TopS32)),
-    /*5A*/  UCODE("dup_x1",   S32 n = TopS32; S32 s = PopI(); PushI(n); PushI(s)),
+    /*5A*/  UCODE("dup_x1",   S32 n = t.ss.pop(); S32 s = TopS32; PushI(n); PushI(s)),
     /*5B*/  UCODE("dup_x2",   {}),
     /*5C*/  UCODE("dup2",     S32 n = TopS32; PushI(n); PushI(t.ss[-2]); TopS32 = n),
     /*5D*/  UCODE("dup2_x1",  {}),
