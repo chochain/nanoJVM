@@ -188,61 +188,6 @@ attribute_info {
     u1 info[attribute_length];
 }
 */
-int Loader::load_class(struct Klass **pcls) {
-    if ((U32)getU32(0) != MAGIC) return ERR_MAGIC;
-
-    U16 n_cnst = getU16(8) - 1;                 // number of constant pool entries
-    IU  addr   = poolOffset(n_cnst, true);      // skip constant descriptors
-    U16 acc    = getU16(addr);  addr += 2;      // class access flag
-    U16 i_cls  = getU16(addr);  addr += 2;      // this class
-    U16 i_supr = getU16(addr);  addr += 2;      // super class
-
-    char buf[256];
-    printf("\nclass [%x]%s", i_cls, getStr(i_cls,  buf, true));
-    printf(" : [%x]%s {", i_supr, getStr(i_supr, buf, true));
-    Klass *supr = 0;    /* search super class */
-
-    U16 n_intf = getU16(addr);  addr += 2;      // number of interfaces
-    IU  p_intf = addr;                          // pointer to interface section
-    U16 n_fld  = getU16((addr += n_intf*2));    // number of fields
-    IU  p_fld  = (addr += 2);
-    printf("\n  p_intf=%x; p_attr=%x;", p_intf, p_fld);
-    
-    U16 sz_cv = 0, sz_iv = 0;
-    while (n_fld--) {                           // scan fields
-        U16 flag = getU16(addr);                // get access flags
-        bool is_cls = flag & ACC_STATIC;
-        U8 sz = getSize(addr);                  // process one field_info
-        if (is_cls) sz_cv += sz;
-        else        sz_iv += sz;
-    }
-    printf("\n  sz_cls=%x; sz_inst=%x;", sz_cv, sz_iv);
-
-    U16 n_method = getU16(addr);                // number of methods
-    IU  p_method = (addr += 2);                 // pointer to methods
-    printf("\n  n_method=%x; p_method=%x;\n}", n_method, p_method);
-    while (n_method--) {
-        U16 flag = getU16(addr);                // get access flags
-        bool is_cls = flag & ACC_STATIC;
-        U8 sz = getSize(addr);
-    }
-    //now we have enough data to know this class's size -> alloc it
-    U16 sz = sizeof(Klass) + sz_cv + (supr ? supr->cvsz : 0);
-    struct Klass *cls = (Klass*)malloc(sz);
-    if (!cls) return ERR_MEMORY;
-
-    cls->lfa   = g_cls_root;
-    cls->supr  = i_supr;
-    cls->intf  = p_intf;
-    cls->vt    = p_method;
-    cls->cvsz  = sz_cv;
-    cls->ivsz  = sz_iv;
-    
-    *pcls = cls;
-    g_cls_root = i_cls;     /* reset class root */
-    return 0;
-}
-
 #include <iostream>
 #include "ucode.h"
 #include "jvm.h"
@@ -254,50 +199,70 @@ struct Loader gLoader;
 extern void (*fout_cb)(int, const char*);  /// forth output callback function
 extern void ss_dump();
 
-int Loader::run(Thread &t, Klass &cls) {
-    IU addr = getMethod(cls, "main", "()V");
-    if (!addr) return -1;
+IU Loader::createMethod(IU &addr, IU &m_root) {
+    U16 i_name  = getU16(addr + 2);
+    U16 i_parm  = getU16(addr + 4);
+    U16 n_attr  = getU16(addr + 6);
+    addr += 8;
 
-    printf("\n\nnanoJVM starting...\n\n");
-    t.PC = addr + 14;                      /// pointer to class file
-    U16 n_local = getU16(addr + 8);
-    /* allocate local stack */
-    while (t.PC!=0xffff) {
-        U8 op = getU8(t.PC++);
-        printf("%04x:%02x %s", t.PC-1, op, gUcode.vt[op].name);
-        gUcode.exec(t, op);                /// execute JVM opcode
-        ss_dump();
-    }
-    printf("\nnanoJVM done.\n");
+    IU  midx = addr + 14;
+    U32 len = getU32(midx - 4);
+    char name[128];
+    char parm[16];
+    printf("\n  [%02x]%s", i_name, getStr(i_name, name));
+    printf("%s=%x bytes", getStr(i_parm, parm), len);
+    fop op4 = (fop)((P32)getU32(midx));
+    Method m = { name, op4, FLAG_DEF };
+    gPool.add_method(m, m_root);
+    for (int i=4; i<len; i++) {
+    	gPool.add_u8(getU8(midx+i));
+	}
+
+    while (n_attr--) addr = skipAttr(addr);
 }
-
-int main(int ac, char* av[]) {
-    static auto send_to_con = [](int len, const char *rst) { cout << rst; };
-    
-    setvbuf(stdout, NULL, _IONBF, 0);
-    if(ac < 1){
-        fprintf(stderr, "Usage:> %s f.class\n", av[0]);
-        return -1;
-    }
-    FILE *f = fopen(av[1], "rb");
+int Loader::load_class(const char *fname) {
+    f = fopen(fname, "rb");
     if (!f) {
         fprintf(stderr," Failed to open file\n");
         return -1;
     }
-    ///
-    /// initialize system
-    ///
-    gLoader.init(f);
-    gPool.register_class("Ucode", gUcode.vtsz, gUcode.vt);
-    gPool.register_class("nanojvm/Forth", gForth.vtsz, gForth.vt, "Ucode");
-    fout_cb = send_to_con;                 /// setup callback function
-    ///
-    /// load class file
-    ///
-    struct Klass  *cls;
-    if (gLoader.load_class(&cls)) return 1;
-    ///
-    /// execution Java main program
-    ///
-    return gLoader.run(t0, *cls);
+    if ((U32)getU32(0) != MAGIC) return ERR_MAGIC;
+
+    U16 n_cnst = getU16(8) - 1;                 // number of constant pool entries
+    IU  addr   = poolOffset(n_cnst, true);      // skip constant descriptors
+    U16 acc    = getU16(addr);  addr += 2;      // class access flag
+    U16 i_cls  = getU16(addr);  addr += 2;      // this class
+    U16 i_supr = getU16(addr);  addr += 2;      // super class
+
+    char cls[128], supr[128];
+    printf("\nclass [%x]%s", i_cls, getStr(i_cls,  cls, true));
+    printf(" : [%x]%s {", i_supr, getStr(i_supr, supr, true));
+
+    U16 n_intf = getU16(addr);  addr += 2;      // number of interfaces
+    IU  p_intf = addr;                          // pointer to interface section
+    U16 n_fld  = getU16((addr += n_intf*2));    // number of fields
+    IU  p_fld  = (addr += 2);
+    printf("\n  p_intf=%x;  p_attr=%x;", p_intf, p_fld);
+    
+    U16 sz_cv = 0, sz_iv = 0;
+    while (n_fld--) {                           // scan fields
+        U16 flag = getU16(addr);                // get access flags
+        bool is_cls = flag & ACC_STATIC;
+        U8 sz = getSize(addr);                  // process one field_info
+        if (is_cls) sz_cv += sz;
+        else        sz_iv += sz;
+    }
+    printf("\n  sz_cls=%x;   sz_inst=%x;", sz_cv, sz_iv);
+
+    U16 n_method = getU16(addr);                // number of methods
+    IU  p_method = (addr += 2);                 // pointer to methods
+    printf("\n  n_method=%x; p_method=%x;", n_method, p_method);
+    IU  m_root = 0;
+    while (n_method--) {
+    	createMethod(addr, m_root);
+    }
+    printf("\n}");
+    gPool.add_class(cls, supr, m_root, sz_cv, sz_iv);
+
+    return 0;
 }

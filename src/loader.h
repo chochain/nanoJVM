@@ -58,7 +58,6 @@
 /// Java class file loader
 ///
 struct Loader {
-    IU   g_cls_root = 0;
     FILE *f = 0;
 
     void init(FILE *cls_file, bool debug=true);
@@ -74,8 +73,9 @@ struct Loader {
 
     U16  poolOffset(U16 idx, bool debug=false);
     IU   getMethod(Klass &cls, const char *fname, const char *param);
+    IU   createMethod(IU &addr, IU &m_root);
     
-    int  load_class(struct Klass **pcls);
-    int  run(Thread &t, Klass &cls);
+    int  load_class(const char *fname);
+    int  run(Thread &t);
 };
 #endif // NANOJVM_LOADER_H
