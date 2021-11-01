@@ -60,7 +60,7 @@ IU Pool::add_class(const char *name, const char *supr, IU m_root, U16 cvsz, U16 
     add_iu(m_root);					/// vt
     add_iu(cvsz);                   /// cvsz
     add_iu(cvsz);                   /// ivsz
-    return cid;
+    return cls_root = cid;
 }
 ///
 /// class contructor
@@ -71,7 +71,7 @@ void Pool::register_class(const char *name, int sz, Method *vt, const char *supr
     for (int i=0; i<sz; i++) {
         add_method(vt[i], m_root);
     }
-    cls_root = add_class(name, supr, m_root, 0, 0);
+    add_class(name, supr, m_root, 0, 0);
     if (jvm_root==0) jvm_root = m_root;
 }
 ///
@@ -221,13 +221,13 @@ void outer(const char *cmd, void(*callback)(int, const char*)) {
     ss_dump();
 }
 #include "loader.h"
-extern Loader        gLoader;
+extern  Loader       gLoader;
 #define cU8(a)       gLoader.getU8(a)
 #define cU16(a)      gLoader.getU16(a)
 #define cU32(a)      gLoader.getU32(a)
 #define cOff(i)      gLoader.poolOffset(i - 1)
-#define gStrRef(i,s) gLoader.getStr(i,s,true)
-#define gStr(i,s)    gLoader.getStr(i,s,false)
+#define gStrRef(i,s) gLoader.getStr(i, s, true)
+#define gStr(i,s)    gLoader.getStr(i, s, false)
 
 U8  Thread::getBE8()      { return cU8(PC++); }
 U16 Thread::getBE16()     { U16 n = cU16(PC); PC+=2; return n; }
@@ -261,9 +261,7 @@ void Thread::invoke(U16 itype) {    /// invoke type: 0:virtual, 1:special, 2:sta
 ///
 /// main program
 ///
-#include <iostream>         // cin, cout
-#include "loader.h"
-extern Loader gLoader;
+#include <iostream>         		/// cin, cout
 
 int main(int ac, char* av[]) {
     if (ac <= 1) {
