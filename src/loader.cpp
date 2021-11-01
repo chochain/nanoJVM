@@ -1,4 +1,3 @@
-#include "memory.h"     // malloc
 #include "loader.h"
 
 void Loader::init(FILE *cls_file, bool debug) {
@@ -118,31 +117,6 @@ U16 Loader::poolOffset(U16 idx, bool debug) {
     }
     return addr;
 }
-IU Loader::getMethod(Klass &cls, const char *fname, const char *param) {
-    IU  addr = cls.vt;
-    U16 n_method = getU16(addr - 2);
-    U16 m_match  = 0;
-    char buf[128];
-    while (n_method--) {
-        U16 acc     = getU16(addr);
-        U16 i_name  = getU16(addr + 2);
-        U16 i_parm  = getU16(addr + 4);
-        U16 n_attr  = getU16(addr + 6);
-        addr += 8;
-        printf("\ncall %s", getStr(i_name, buf));
-        printf("%s", getStr(i_parm, buf));
-        while (n_attr--) {
-            if (m_match++) {
-                U16 i_code = getU16(addr);
-                printf("=%s", getStr(i_code, buf));
-                bool t_match = true;            /* attr is a Code */
-                if (t_match) return addr;
-            }
-            addr = skipAttr(addr);
-        }
-    }
-    return 0;
-}
 /*
  * JVM class file format references
  *
@@ -188,16 +162,9 @@ attribute_info {
     u1 info[attribute_length];
 }
 */
-#include <iostream>
-#include "ucode.h"
 #include "jvm.h"
-extern Ucode  gUcode;
-extern Ucode  gForth;
 extern Pool   gPool;
-extern Thread t0;
 struct Loader gLoader;
-extern void (*fout_cb)(int, const char*);  /// forth output callback function
-extern void ss_dump();
 
 IU Loader::createMethod(IU &addr, IU &m_root) {
     U16 i_name  = getU16(addr + 2);
@@ -220,12 +187,7 @@ IU Loader::createMethod(IU &addr, IU &m_root) {
 
     while (n_attr--) addr = skipAttr(addr);
 }
-int Loader::load_class(const char *fname) {
-    f = fopen(fname, "rb");
-    if (!f) {
-        fprintf(stderr," Failed to open file\n");
-        return -1;
-    }
+int Loader::load_class() {
     if ((U32)getU32(0) != MAGIC) return ERR_MAGIC;
 
     U16 n_cnst = getU16(8) - 1;                 // number of constant pool entries
@@ -261,7 +223,7 @@ int Loader::load_class(const char *fname) {
     while (n_method--) {
     	createMethod(addr, m_root);
     }
-    printf("\n}");
+    printf("\n}\n");
     gPool.add_class(cls, supr, m_root, sz_cv, sz_iv);
 
     return 0;

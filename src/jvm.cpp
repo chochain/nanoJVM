@@ -266,15 +266,27 @@ void Thread::invoke(U16 itype) {    /// invoke type: 0:virtual, 1:special, 2:sta
 extern Loader gLoader;
 
 int main(int ac, char* av[]) {
+    if (ac <= 1) {
+        fprintf(stderr,"Usage:> $0 file_name.class\n");
+        return -1;
+    }
     setvbuf(stdout, NULL, _IONBF, 0);
     static auto send_to_con = [](int len, const char *rst) { cout << rst; };
 
-    cout << unitbuf << "nanoJVM v1 staring" << endl;
     gPool.register_class("Ucode", gUcode.vtsz, gUcode.vt);
     gPool.register_class("nanojvm/Forth", gForth.vtsz, gForth.vt, "Ucode");
 
+    FILE *f = fopen(av[1], "rb");
+    if (!f) {
+        fprintf(stderr," Failed to open file\n");
+        return -1;
+    }
+    gLoader.init(f);
+    if (gLoader.load_class()) return -1;
+
+    cout << unitbuf << "nanoJVM v1 staring" << endl;
+#if 0
     IU addr = gPool.get_method("main");
-#if 1
     t0.PC = addr + 14;                      /// pointer to class file
     U16 n_local = gLoader.getU16(addr + 8);
     /* allocate local stack */

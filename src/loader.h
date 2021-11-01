@@ -72,10 +72,10 @@ struct Loader {
     U8   getSize(IU &addr);
 
     U16  poolOffset(U16 idx, bool debug=false);
-    IU   getMethod(Klass &cls, const char *fname, const char *param);
+    IU   getMethod(const char *fname, const char *param);
     IU   createMethod(IU &addr, IU &m_root);
     
-    int  load_class(const char *fname);
+    int  load_class();
     int  run(Thread &t);
 };
 #endif // NANOJVM_LOADER_H
