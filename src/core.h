@@ -185,27 +185,4 @@ struct Word {				 /// 4-byte header
     char *nfa()         { return (char*)&data[0];  }
     U8   *pfa(U8 off=0) { return &data[len + off]; }
 };
-///
-/// Klass class (same as Ruby, to avoid compiler confusion)
-///
-struct NativeKlass {
-    const  char* name;
-    U16    cvsz;
-    U16    ivsz;
-    U16    vtsz;
-    Method vt[];
-};
-struct Klass {
-	IU  lfa;				 /// class linked list
-	IU  len;                 /// class name string length
-	IU  supr;                /// index to super class
-    IU  intf;                /// index to interface
-    IU  vt;                  /// index to method table
-    IU  cvsz;                /// size of class variables
-    IU  ivsz;                /// size of instance variables
-    U8  data[];              /// raw data (string name)
-
-    char *nfa() { return (char*)&data[0];   }
-    U8   *pfa() { return &data[len]; 		}
-};
 #endif // NANOJVM_CORE_H
