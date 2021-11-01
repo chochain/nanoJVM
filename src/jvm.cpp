@@ -41,23 +41,14 @@ IU Pool::get_method(const char *m_name, const char *cls_name, bool supr) {
 ///
 IU Pool::add_method(Method &vt, IU &m_root) {
     IU mid = pmem.idx;              /// store current method idx
-    U8 f   = vt.immd ? 0x2 : 0;
     add_iu(m_root);                 /// link to previous method
     add_u8(STRLEN(vt.name));        /// method name length
-    add_u8(f);                      /// method access control
+    add_u8((U8)vt.flag);            /// method access control
     add_str(vt.name);               /// enscribe method name
     add_pu((PU)vt.xt);              /// encode function pointer
     return m_root = mid;            /// adjust method root
 };
-///
-/// class contructor
-///
-IU Pool::register_class(const char *name, int sz, Method *vt, const char *supr) {
-    /// encode vtable
-    IU m_root = 0;
-    for (int i=0; i<sz; i++) {
-        add_method(vt[i], m_root);
-    }
+IU Pool::add_class(const char *name, const char *supr, IU m_root, U16 cvsz, U16 ivsz) {
     /// encode class
     IU cid = pmem.idx;              /// preserve class link
     add_iu(cls_root);				/// class linked list
@@ -67,11 +58,21 @@ IU Pool::register_class(const char *name, int sz, Method *vt, const char *supr) 
     add_iu(get_class(supr));		/// super class
     add_iu(0);						/// interface
     add_iu(m_root);					/// vt
-    add_iu(0);                      /// cvsz
-    add_iu(0);                      /// ivsz
-    
+    add_iu(cvsz);                   /// cvsz
+    add_iu(cvsz);                   /// ivsz
+    return cid;
+}
+///
+/// class contructor
+///
+void Pool::register_class(const char *name, int sz, Method *vt, const char *supr) {
+    /// encode vtable
+    IU m_root = 0;
+    for (int i=0; i<sz; i++) {
+        add_method(vt[i], m_root);
+    }
+    cls_root = add_class(name, supr, m_root, 0, 0);
     if (jvm_root==0) jvm_root = m_root;
-    return cls_root = cid;          /// new class root
 }
 ///
 /// word constructor
@@ -261,19 +262,34 @@ void Thread::invoke(U16 itype) {    /// invoke type: 0:virtual, 1:special, 2:sta
 /// main program
 ///
 #include <iostream>         // cin, cout
-int main0(int ac, char* av[]) {
+#include "loader.h"
+extern Loader gLoader;
+
+int main(int ac, char* av[]) {
     setvbuf(stdout, NULL, _IONBF, 0);
     static auto send_to_con = [](int len, const char *rst) { cout << rst; };
 
-    cout << unitbuf << "nanoJVM v1" << endl;
-
+    cout << unitbuf << "nanoJVM v1 staring" << endl;
     gPool.register_class("Ucode", gUcode.vtsz, gUcode.vt);
     gPool.register_class("nanojvm/Forth", gForth.vtsz, gForth.vt, "Ucode");
 
+    IU addr = gPool.get_method("main");
+#if 1
+    t0.PC = addr + 14;                      /// pointer to class file
+    U16 n_local = gLoader.getU16(addr + 8);
+    /* allocate local stack */
+    while (t0.PC!=0xffff) {
+    	U8 op = gLoader.getU8(t0.PC++);
+    	printf("%04x:%02x %s", t0.PC-1, op, gUcode.vt[op].name);
+    	gUcode.exec(t0, op);                /// execute JVM opcode
+    	ss_dump();
+    }
+#else
     string line;
     while (getline(cin, line)) {             /// fetch line from user console input
         outer(line.c_str(), send_to_con);
     }
-    cout << "Done." << endl;
+#endif
+    cout << "\nnanoJVM done." << endl;
     return 0;
 }
