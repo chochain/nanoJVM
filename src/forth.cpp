@@ -6,8 +6,8 @@
 
 #define IPOFF       (t.IP - t.M0)        /** calculate IP offset to memory base */
 #define CELL(a)     (*(DU*)(t.M0 + a))   /** fetch a cell from parameter memory */
-#define CODE(s, g)  { s, [](Thread &t){ g; }, false }
-#define IMMD(s, g)  { s, [](Thread &t){ g; }, true  }
+#define CODE(s, g)  { s, [](Thread &t){ g; }, 0 }
+#define IMMD(s, g)  { s, [](Thread &t){ g; }, FLAG_IMMD }
 
 static Method _word[] = {
     ///

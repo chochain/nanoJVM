@@ -142,6 +142,8 @@ typedef void (*fop)(Thread&); /// opcode function pointer
 ///
 /// Method class
 ///
+#define FLAG_DEF  0x1
+#define FLAG_IMMD 0x2
 struct Method {
     const char *name = 0;     /// for debugging, TODO (in const_pool)
 #if METHOD_PACKED
@@ -155,11 +157,9 @@ struct Method {
     };
 #else
     fop   xt = 0;            /// function pointer (or decayed lambda)
-    U16   immd;
+    U32   flag;
 #endif
-    Method(const char *n, fop f, bool im=false) : name(n), xt(f) {
-        if (im) immd = 1;
-    }
+    Method(const char *n, fop f, bool im=false) : name(n), xt(f), flag(im) {}
 };
 ///
 /// Word - shared struct for Class and Method

@@ -64,7 +64,7 @@
 #define GetI_F(o,n)   PushI(t.gl[(n)])
 #define PutI_F(o,n,v) (t.gl[(n)]=(v))
 
-#define UCODE(s, g) { s, [](Thread &t){ g; } }
+#define UCODE(s, g) { s, [](Thread &t){ g; }, 0 }
 ///
 /// micro-code (built-in methods)
 ///
@@ -121,10 +121,10 @@ static Method _java[] = {
     /*28*/  UCODE("dload_2",  LoadD(2)),
     /*29*/  UCODE("dload_3",  LoadD(3)),
     /*2A*/  UCODE("aload_0",  LoadA(0)),
-    /*2B*/  UCODE("aload_1",  LoadA(1)),	/// load ref from local (auto)
+    /*2B*/  UCODE("aload_1",  LoadA(1)),	    /// load ref from local (auto)
     /*2C*/  UCODE("aload_2",  LoadA(2)),
     /*2D*/  UCODE("aload_3",  LoadA(3)),
-    /*2E*/  UCODE("iaload",   GetI_A()),    /// n = PopI(); a = PopR(); GetI_A(a, n)
+    /*2E*/  UCODE("iaload",   GetI_A()),        /// n = PopI(); a = PopR(); GetI_A(a, n)
     /*2F*/  UCODE("faload",   GetF_A()),
     /*30*/  UCODE("laload",   GetL_A()),
     /*31*/  UCODE("daload",   GetD_A()),
@@ -156,11 +156,11 @@ static Method _java[] = {
     /*48*/  UCODE("dstore_1", StorF(1)),
     /*49*/  UCODE("dstore_2", StorF(2)),
     /*4A*/  UCODE("dstore_3", StorF(3)),
-    /*4B*/  UCODE("astore_0", StorA(0)),		// store reference
+    /*4B*/  UCODE("astore_0", StorA(0)),	// store reference
     /*4C*/  UCODE("astore_1", StorA(1)),
     /*4D*/  UCODE("astore_2", StorA(2)),
     /*4E*/  UCODE("astore_3", StorA(3)),
-    /*4F*/  UCODE("iastore",  PutI_A()),        // n = PopI(); v = PopI(); a = PopR(); PutI_A(a, n, v)
+    /*4F*/  UCODE("iastore",  PutI_A()),    // n = PopI(); v = PopI(); a = PopR(); PutI_A(a, n, v)
     /*50*/  UCODE("lastore",  PutL_A()),
     /*51*/  UCODE("fastore",  PutF_A()),
     /*52*/  UCODE("dastore",  PutD_A()),
