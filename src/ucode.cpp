@@ -57,8 +57,8 @@
 ///
 /// Class method, field access macros
 ///
-#define OFF           (t.wide ? t.getBE32() : t.getBE16())
-#define OFF8          (t.getBE8())
+#define OFF           (t.wide ? t.fetch4() : t.fetch2())
+#define OFF8          (t.fetch())
 #define GetI_S(n)     PushI(t.gl[(n)])
 #define PutI_S(n,v)   (t.gl[(n)]=(v))
 #define GetI_F(o,n)   PushI(t.gl[(n)])

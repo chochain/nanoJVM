@@ -1,105 +1,16 @@
 #ifndef NANOJVM_CORE_H
 #define NANOJVM_CORE_H
-#include <stdint.h>     // int16_t, ...
-#include <stdlib.h>     // strtol
-#include <string.h>     // strcmp
-using namespace std;
-///
-/// conditional compilation options
-///
-#define RANGE_CHECK
-///
-/// memory block size setting
-///
-#define PMEM_SZ         1024*48     /** global heap space size     */
-#define VT_SZ           512         /** virtual table pool size    */
-#define RS_SZ           128         /** return stack size per VM   */
-#define SS_SZ           256         /** data stack size per thread */
-#define CONST_SZ        128         /** constant pool size         */
-///
-/// Arduino support macros
-///
-#if ARDUINO
-#include <Arduino.h>
-#if ESP32
-#define analogWrite(c,v,mx) ledcWrite((c),(8191/mx)*min((int)(v),mx))
-#endif // ESP32
-#else
-#include <chrono>
-#include <thread>
-#define millis()        chrono::duration_cast<chrono::milliseconds>( \
-                            chrono::steady_clock::now().time_since_epoch()).count()
-#define delay(ms)       this_thread::sleep_for(chrono::milliseconds(ms))
-#define yield()         this_thread::yield()
-#define PROGMEM
-#endif // ARDUINO
-///
-/// array class template (so we don't have dependency on C++ STL)
-/// Note:
-///   * using decorator pattern
-///   * this is similar to vector class but much simplified
-///   * v array is dynamically allocated due to ESP32 has a 96K hard limit
-///
-template<class T, int N>
-struct List {
-    T   *v;             /// fixed-size array storage
-    int idx = 0;        /// current index of array
-    int max = 0;        /// high watermark for debugging
-
-    List()  { v = new T[N]; }      /// dynamically allocate array memory
-    ~List() { delete[] v;   }      /// free the memory
-    T& operator[](int i)   { return i < 0 ? v[idx + i] : v[i]; }
-#ifdef RANGE_CHECK
-    T pop() {
-        if (idx>0) return v[--idx];
-        throw "ERR: List empty";
-    }
-    int push(T t) {
-        if (idx<N) { v[max=idx] = t; return idx++; }
-        throw "ERR: List full";
-    }
-#else
-    T   pop()     { return v[--idx]; }
-    int push(T t) { v[max=idx] = t; return idx++; }
-#endif // RANGE_CHECK
-    void push(T *a, int n)  { for (int i=0; i<n; i++) push(*(a+i)); }
-    void merge(List& a)     { for (int i=0; i<a.idx; i++) push(a[i]);}
-    void clear(int i=0)     { idx=i; }
-};
-///
-/// universal types
-///
-typedef int8_t      S8;
-typedef int16_t     S16;
-typedef int32_t     S32;
-typedef int64_t     S64;
-typedef uint8_t     U8;
-typedef uint16_t    U16;
-typedef uint32_t    U32;
-typedef uint64_t    U64;
-typedef float       F32;
-typedef double      F64;
-typedef uintptr_t   P32;
-///
-/// logical size: instruction, data, and pointer units
-///
-typedef U16         IU;
-typedef S32         DU;
-typedef P32         PU;
-///
-/// memory alignment macros
-///
-#define ALIGN(sz)   ((sz) + (-(sz) & 0x1))  /** 2-byte alignment  */
-#define ALIGN16(sz) ((sz) + (-(sz) & 0xf))  /** 16-byte alignment */
-#define STRLEN(s)   (ALIGN(strlen(s)+1))    /** calculate string size with alignment */
+#include "common.h"         /// common types and configuration
+#include "loader.h"         /// Java class loader
 ///
 /// Thread class
 ///
 struct Thread {
     List<DU, SS_SZ>  ss;    /// data stack
-    DU    xs[SS_SZ];        /// DEBUG: execution local stack, REFACTOR: combine with ss
-    DU    gl[16];    		/// DEBUG: class variable (static)
-    U8    *M0     = NULL;   /// cached base address of memory pool
+    DU     xs[SS_SZ];       /// DEBUG: execution local stack, REFACTOR: combine with ss
+    DU     gl[16];          /// DEBUG: class variable (static)
+    Loader &J;              /// Java class loader
+    U8     *M0    = NULL;   /// cached base address of memory pool
 
     U16   frame   = 0;      /// local stack index
     bool  compile = false;  /// compile flag
@@ -109,32 +20,30 @@ struct Thread {
     IU    WP      = 0;      /// method index
     IU    IP      = 0;      /// instruction pointer (program counter)
 
-    Thread(U8 *heap) : M0(heap) {}
-
-    void init(U8 *heap);
+    Thread(Loader &ldr, U8 *mem) : J(ldr), M0(mem) {}
     ///
-    /// opcode fetcher
+    /// Java class file byte fetcher
     ///
-    U8   getBE8();  //         { return *IP++; PC++; }
-    U16  getBE16(); //         { U16 n = *(U16*)IP; IP += sizeof(U16); PC+=sizeof(U16); return n; }
-    U32  getBE32(); //         { U16 n = *(U16*)IP; IP += sizeof(U16); PC+=sizeof(U16); return n; }
+    U8   fetch()        { return J.getU8(IP++); }
+    U16  fetch2()       { U16 n = J.getU16(IP); IP+=2; return n; }
+    U32  fetch4()       { U32 n = J.getU32(IP); IP+=4; return n; }
+    ///
+    /// branching ops
+    ///
+    void ret()          { IP = 0; }
+    void jmp()          { IP += J.getU16(IP) - 1; }
+    void cjmp(bool f)   { IP += f ? J.getU16(IP) - 1 : sizeof(U16); }
     ///
     /// stack ops
     ///
-    void push(DU v)        { ss.push(tos); tos = v; }
-    DU   pop()             { DU n = tos; tos = ss.pop(); return n; }
+    void push(DU v)     { ss.push(tos); tos = v; }
+    DU   pop()          { DU n = tos; tos = ss.pop(); return n; }
     ///
-    /// Java
+    /// Java class/method ops
     ///
     void java_new();
     void java_inner(IU midx); /// execute Java method
     void invoke(U16 itype);
-    ///
-    /// branching ops
-    ///
-    void ret()             { IP = 0; }
-    void jmp();        //      { IP += *(PU*)IP - 1;   }
-    void cjmp(bool f); //      { IP += f ? *(PU*)IP - 1 : sizeof(PU); }
     ///
     /// local parameter access, CC:TODO
     ///
@@ -156,8 +65,8 @@ struct Method {
     union {
         fop   xt = 0;         /// function pointer (or decayed lambda)
         struct {
-        	U16 flag;
-        	IU  midx;
+            U16 flag;
+            IU  midx;
         };
     };
 #else
@@ -172,12 +81,12 @@ struct Method {
 ///   class list - linked list of words, dict[cls_root], pfa => next_class
 ///   vtable     - linked list of words, dict[class.pfa], pfa => next_method
 ///
-#define CLS_SUPER 		0
-#define CLS_INTF  		2
-#define CLS_VT    		4
-#define CLS_CVSZ  		6
-#define CLS_IVSZ  		8
-struct Word {				 /// 4-byte header
+#define CLS_SUPER       0
+#define CLS_INTF        2
+#define CLS_VT          4
+#define CLS_CVSZ        6
+#define CLS_IVSZ        8
+struct Word {                /// 4-byte header
     IU  lfa;                 /// link field to previous word
     U8  len;                 /// name of method
 
