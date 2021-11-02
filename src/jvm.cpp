@@ -203,9 +203,9 @@ void outer(const char *cmd, void(*callback)(int, const char*)) {
     while (fin >> strbuf) {
         const char *idiom = strbuf.c_str();
         printf("%s=>",idiom);
-        int w = gPool.get_method(idiom, "nanojvm/Forth");    /// search forth words
+        IU w = gPool.get_method(idiom, "nanojvm/Forth");    /// search forth words
         if (w > 0) {
-            Word *m = (Word*)&gPool.pmem[w];
+        	Word *m = (Word*)&gPool.pmem[w];
             printf("%s 0x%x\n", m->nfa(), w);
             if (t0.compile && !m->immd) {    /// * in compile mode?
                 gPool.add_iu(w);             /// * add found word to new colon word
@@ -225,19 +225,32 @@ void outer(const char *cmd, void(*callback)(int, const char*)) {
 #define cOff(i)      gLoader.poolOffset(i - 1)
 #define gStrRef(i,s) gLoader.getStr(i, s, true)
 #define gStr(i,s)    gLoader.getStr(i, s, false)
-
-U8  Thread::getBE8()      { return cU8(IP++); }
-U16 Thread::getBE16()     { U16 n = cU16(IP); IP+=2; return n; }
-U32 Thread::getBE32()     { U32 n = cU32(IP); IP+=4; return n; }
+///
+/// Thread class implementation
+///
+U8   Thread::getBE8()     { return cU8(IP++); }
+U16  Thread::getBE16()    { U16 n = cU16(IP); IP+=2; return n; }
+U32  Thread::getBE32()    { U32 n = cU32(IP); IP+=4; return n; }
 void Thread::jmp()        { IP += getBE16() - 3; }
 void Thread::cjmp(bool f) { IP += f ? getBE16() - 3 : sizeof(U16); }
-void Thread::class_new()  {
+void Thread::java_new()  {
 	IU idx = getBE16();  			/// class index
 	/// TODO: allocate space for the object instance
-	IU cid = cOff(idx);             /// class name
 	char buf[128];
-	printf("%s", gStrRef(cid, buf));
-	push(cid);                      /// save object on stack
+	printf(" %s", gStrRef(idx, buf));
+	push(idx);                      /// save object on stack
+}
+void Thread::java_inner(IU addr) {
+    U16 nloc = gLoader.getU16(addr - 6);	/// TODO: allocate local stack frame
+    rs.push(t0.IP);
+    t0.IP = addr;                           /// pointer to class file
+    while (t0.IP) {
+    	ss_dump();
+    	U8 op = gLoader.getU8(t0.IP++);
+    	printf("%04x:%02x %s", t0.IP-1, op, gUcode.vt[op].name);
+    	gUcode.exec(t0, op);                /// execute JVM opcode
+    }
+    t0.IP = rs.pop();
 }
 void Thread::invoke(U16 itype) {    /// invoke type: 0:virtual, 1:special, 2:static, 3:interface, 4:dynamic
     IU idx   = getBE16();           /// 2 - method index in pool
@@ -251,9 +264,15 @@ void Thread::invoke(U16 itype) {    /// invoke type: 0:virtual, 1:special, 2:sta
 	printf(" %s::", gStrRef(cid, cls));
     printf("%s", gStr(cU16(mid + 1), xt));
     printf("%s", gStr(cU16(mid + 3), t));
-    int w = gPool.get_method(xt, cls, itype!=1);	/// special does not go up to supr class
-    if (w >= 0) CALL(w);
-    else        printf(" NOT FOUND");
+
+    IU m = gPool.get_method(xt, cls, itype!=1);	/// special does not go up to supr class
+    if (m > 0) {
+        Word *w  = (Word*)&gPool.pmem[m];
+        IU  addr = *(IU*)w->pfa();
+        if (w->java) java_inner(addr);				/// call Java inner interpreter
+        else         CALL(m);						/// call Native method
+    }
+    else printf(" **NA**");
 }
 ///
 /// main program
@@ -261,6 +280,7 @@ void Thread::invoke(U16 itype) {    /// invoke type: 0:virtual, 1:special, 2:sta
 #include <iostream>         		/// cin, cout
 
 int main(int ac, char* av[]) {
+    static auto send_to_con = [](int len, const char *rst) { cout << rst; };
     if (ac <= 1) {
         fprintf(stderr,"Usage:> $0 file_name.class\n");
         return -1;
@@ -278,28 +298,19 @@ int main(int ac, char* av[]) {
     gLoader.init(f);
     if (gLoader.load_class()) return -1;
 
-    cout << unitbuf << "nanoJVM v1 staring" << endl;
+    cout << unitbuf << "nanoJVM v1 staring...\n\nmain()";
 #if 1
-    IU midx = gPool.get_method("main");
-    IU addr = gPool.getU16(midx);
-    printf("midx=%04x,addr=%04x", midx, addr); 
-    return 0;
-    t0.IP = addr + 14;                      /// pointer to class file
-    U16 n_local = gLoader.getU16(addr + 8);
-    /* allocate local stack */
-    while (t0.IP) {
-    	U8 op = gLoader.getU8(t0.IP++);
-    	printf("%04x:%02x %s", t0.IP-1, op, gUcode.vt[op].name);
-    	gUcode.exec(t0, op);                /// execute JVM opcode
-    	ss_dump();
-    }
+    fout_cb  = send_to_con;
+    IU midx  = gPool.get_method("main");
+    Word *w  = (Word*)&gPool.pmem[midx];
+    IU  addr = *(IU*)w->pfa();
+    t0.java_inner(addr);
 #else
-    static auto send_to_con = [](int len, const char *rst) { cout << rst; };
     string line;
     while (getline(cin, line)) {             /// fetch line from user console input
         outer(line.c_str(), send_to_con);
     }
 #endif
-    cout << "\nnanoJVM done." << endl;
+    cout << "\n\nnanoJVM done." << endl;
     return 0;
 }

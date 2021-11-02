@@ -97,11 +97,11 @@ typedef P32         PU;
 ///
 struct Thread {
     List<DU, SS_SZ>  ss;    /// data stack
-    DU    gl[16];           /// DEBUG: class variable (static)
     DU    xs[SS_SZ];        /// DEBUG: execution local stack, REFACTOR: combine with ss
-    int   local   = 0;      /// local stack index
+    DU    gl[16];    		/// DEBUG: class variable (static)
     U8    *M0     = NULL;   /// cached base address of memory pool
 
+    U16   frame   = 0;      /// local stack index
     bool  compile = false;  /// compile flag
     bool  wide    = false;  /// wide flag
     DU    base    = 10;     /// radix
@@ -110,6 +110,8 @@ struct Thread {
     IU    IP      = 0;      /// instruction pointer (program counter)
 
     Thread(U8 *heap) : M0(heap) {}
+
+    void init(U8 *heap);
     ///
     /// opcode fetcher
     ///
@@ -122,10 +124,14 @@ struct Thread {
     void push(DU v)        { ss.push(tos); tos = v; }
     DU   pop()             { DU n = tos; tos = ss.pop(); return n; }
     ///
+    /// Java
+    ///
+    void java_new();
+    void java_inner(IU midx); /// execute Java method
+    void invoke(U16 itype);
+    ///
     /// branching ops
     ///
-    void class_new();
-    void invoke(U16 itype);
     void ret()             { IP = 0; }
     void jmp();        //      { IP += *(PU*)IP - 1;   }
     void cjmp(bool f); //      { IP += f ? *(PU*)IP - 1 : sizeof(PU); }
@@ -133,9 +139,9 @@ struct Thread {
     /// local parameter access, CC:TODO
     ///
     template<typename T>
-    T    load(U32 i, T n)  { return *(T*)&xs[local+i]; }
+    T    load(U32 i, T n)  { return *(T*)&xs[frame+i]; }
     template<typename T>
-    void store(U32 i, T n) { *(T*)&xs[local+i] = n; }
+    void store(U32 i, T n) { *(T*)&xs[frame+i] = n; }
 };
 typedef void (*fop)(Thread&); /// opcode function pointer
 ///
@@ -177,8 +183,9 @@ struct Word {				 /// 4-byte header
 
     U8  def:    1;           /// 0:native, 1:composite
     U8  immd:   1;           /// Forth immediate word
+    U8  java:   1;           /// Java method
     U8  access: 2;           /// public, private, protected
-    U8  ftype:  4;           /// static, finall, virtual, synchronized
+    U8  ftype:  3;           /// static, finall, virtual, synchronized
 
     U8  data[];              /// name field + parameter field
 

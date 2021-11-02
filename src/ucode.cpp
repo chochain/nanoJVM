@@ -304,7 +304,7 @@ static Method _java[] = {
     /// @}
     /// @definegroup New and Array ops
     /// @{
-    /*BB*/  UCODE("new",          t.class_new()),
+    /*BB*/  UCODE("new",          t.java_new()),
     /*BC*/  UCODE("newarray",     {}),
     /*BD*/  UCODE("anewarray",    {}),
     /*BE*/  UCODE("arraylength",  {}),
