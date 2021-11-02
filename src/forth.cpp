@@ -4,7 +4,6 @@
 #include "ucode.h"
 #include "jvm.h"        // VM namespace
 
-#define IPOFF       (t.IP - t.M0)        /** calculate IP offset to memory base */
 #define CELL(a)     (*(DU*)(t.M0 + a))   /** fetch a cell from parameter memory */
 #define CODE(s, g)  { s, [](Thread &t){ g; }, 0 }
 #define IMMD(s, g)  { s, [](Thread &t){ g; }, FLAG_IMMD }
@@ -13,12 +12,12 @@ static Method _word[] = {
     ///
     /// @definegroup Forth Core
     /// @{
-    /*CA*/  CODE("dovar", t.push(IPOFF); t.IP += sizeof(DU)),
-    /*CB*/  CODE("dolit", t.push(*(DU*)t.IP); t.IP += sizeof(DU)),
+    /*CA*/  CODE("dovar", t.push(t.IP); t.IP += sizeof(DU)),
+    /*CB*/  CODE("dolit", t.push(CELL(t.IP)); t.IP += sizeof(DU)),
     /*CC*/  CODE("dostr",
-                const char *s = (const char*)t.IP;
-                t.push(IPOFF); t.IP += STRLEN(s)),
-    /*CD*/  CODE("unnest", t.IP = 0),
+                const char *s = (const char*)(t.M0 + t.IP);
+                t.push(t.IP); t.IP += STRLEN(s)),
+    /*CD*/  CODE("unnest", t.IP = 0xffff),
     /*CE*/  CODE("create",
                 gPool.colon(next_word());
                 gPool.add_iu(DOVAR)),

@@ -88,7 +88,7 @@ void Pool::colon(const char *name) {
 ///
 /// Java Virtual Machine implementation
 ///
-extern   Ucode gUcode;              /// JVM microcodes
+extern   Ucode gUcode;
 extern   Ucode gForth;              /// FVM microcodes
 Pool     gPool;                     /// memory management unit
 Thread   t0(&gPool.pmem[0]);        /// one thread for now
@@ -168,15 +168,15 @@ char *scan(char c) {
     return (char*)strbuf.c_str();
 }
 void inner(IU w)    {
-    rs.push(t0.IP - &gPool.pmem[0]);
+    rs.push(t0.IP);
     rs.push(t0.WP = w);
     Word *m = (Word*)&gPool.pmem[w];
-    t0.IP = m->pfa();
-    for (IU w1=*(IU*)t0.IP; t0.IP; t0.IP += sizeof(IU)) {
+    t0.IP = (IU)(m->pfa() - t0.M0);
+    for (IU w1=*(IU*)(t0.M0 + t0.IP); t0.IP; t0.IP += sizeof(IU)) {
         CALL(w1);
     }
     t0.WP = (IU)rs.pop();
-    t0.IP = &gPool.pmem[0] + rs.pop();
+    t0.IP = rs.pop();
 }
 int handle_number(const char *idiom) {
     char *p;
@@ -221,7 +221,6 @@ void outer(const char *cmd, void(*callback)(int, const char*)) {
     ss_dump();
 }
 #include "loader.h"
-extern  Loader       gLoader;
 #define cU8(a)       gLoader.getU8(a)
 #define cU16(a)      gLoader.getU16(a)
 #define cU32(a)      gLoader.getU32(a)
@@ -229,11 +228,11 @@ extern  Loader       gLoader;
 #define gStrRef(i,s) gLoader.getStr(i, s, true)
 #define gStr(i,s)    gLoader.getStr(i, s, false)
 
-U8  Thread::getBE8()      { return cU8(PC++); }
-U16 Thread::getBE16()     { U16 n = cU16(PC); PC+=2; return n; }
-U32 Thread::getBE32()     { U32 n = cU32(PC); PC+=4; return n; }
-void Thread::jmp()        { PC += getBE16() - 3; }
-void Thread::cjmp(bool f) { PC += f ? getBE16() - 3 : sizeof(U16); }
+U8  Thread::getBE8()      { return cU8(IP++); }
+U16 Thread::getBE16()     { U16 n = cU16(IP); IP+=2; return n; }
+U32 Thread::getBE32()     { U32 n = cU32(IP); IP+=4; return n; }
+void Thread::jmp()        { IP += getBE16() - 3; }
+void Thread::cjmp(bool f) { IP += f ? getBE16() - 3 : sizeof(U16); }
 void Thread::class_new()  {
 	IU idx = getBE16();  			/// class index
 	/// TODO: allocate space for the object instance
@@ -244,7 +243,7 @@ void Thread::class_new()  {
 }
 void Thread::invoke(U16 itype) {    /// invoke type: 0:virtual, 1:special, 2:static, 3:interface, 4:dynamic
     IU idx   = getBE16();           /// 2 - method index in pool
-    if (itype==4) PC += 2;          /// extra 2 for dynamic
+    if (itype==4) IP += 2;          /// extra 2 for dynamic
     IU c_m   = cOff(idx);           /// [02]000f:a=>[12,13]  [class_name, method_ref]
     IU cid   = cU16(c_m + 1);       /// 12
     IU mrf   = cU16(c_m + 3);       /// 13

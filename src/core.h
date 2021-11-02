@@ -100,15 +100,14 @@ struct Thread {
     DU    gl[16];           /// DEBUG: class variable (static)
     DU    xs[SS_SZ];        /// DEBUG: execution local stack, REFACTOR: combine with ss
     int   local   = 0;      /// local stack index
+    U8    *M0     = NULL;   /// cached base address of memory pool
 
     bool  compile = false;  /// compile flag
     bool  wide    = false;  /// wide flag
     DU    base    = 10;     /// radix
     DU    tos     = -1;     /// top of stack
     IU    WP      = 0;      /// method index
-    U8    *IP     = NULL;   /// instruction pointer (program counter)
-    U8    *M0     = NULL;   /// cached base address of memory pool
-    IU    PC;               /// DEBUG: for loader
+    IU    IP      = 0;      /// instruction pointer (program counter)
 
     Thread(U8 *heap) : M0(heap) {}
     ///
@@ -127,7 +126,7 @@ struct Thread {
     ///
     void class_new();
     void invoke(U16 itype);
-    void ret()             { IP = NULL; PC = 0xffff; }
+    void ret()             { IP = 0; }
     void jmp();        //      { IP += *(PU*)IP - 1;   }
     void cjmp(bool f); //      { IP += f ? *(PU*)IP - 1 : sizeof(PU); }
     ///
