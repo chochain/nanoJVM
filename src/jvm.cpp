@@ -21,7 +21,7 @@ IU Pool::find(const char *s, IU idx) {
 /// return cls_obj if cls_name is NULL
 ///
 IU Pool::get_class(const char *cls_name) {
-	return cls_name ? find(cls_name, cls_root) : cls_root;
+    return cls_name ? find(cls_name, cls_root) : cls_root;
 }
 ///
 /// return m_root if m_name is NULL
@@ -51,13 +51,13 @@ IU Pool::add_method(Method &vt, IU &m_root) {
 IU Pool::add_class(const char *name, const char *supr, IU m_root, U16 cvsz, U16 ivsz) {
     /// encode class
     IU cid = pmem.idx;              /// preserve class link
-    add_iu(cls_root);				/// class linked list
-    add_u8(STRLEN(name));			/// class name string length
-    add_u8(0);						/// public
-    add_str(name);					/// class name string
-    add_iu(get_class(supr));		/// super class
-    add_iu(0);						/// interface
-    add_iu(m_root);					/// vt
+    add_iu(cls_root);               /// class linked list
+    add_u8(STRLEN(name));           /// class name string length
+    add_u8(0);                      /// public
+    add_str(name);                  /// class name string
+    add_iu(get_class(supr));        /// super class
+    add_iu(0);                      /// interface
+    add_iu(m_root);                 /// vt
     add_iu(cvsz);                   /// cvsz
     add_iu(cvsz);                   /// ivsz
     return cls_root = cid;
@@ -88,11 +88,12 @@ void Pool::colon(const char *name) {
 ///
 /// Java Virtual Machine implementation
 ///
-extern   Ucode gUcode;
-extern   Ucode gForth;              /// FVM microcodes
-Pool     gPool;                     /// memory management unit
-Thread   t0(&gPool.pmem[0]);        /// one thread for now
-List<DU, RS_SZ> rs;                 /// return stack
+extern   Ucode  gUcode;                 /// Java microcode ROM
+extern   Ucode  gForth;                 /// Forth microcode ROM
+extern   Loader gLoader;                /// Java class loader
+Pool     gPool;                         /// memory management unit
+Thread   t0(gLoader, &gPool.pmem[0]);   /// one thread for now
+List<DU, RS_SZ> rs;                     /// return stack
 
 istringstream   fin;                /// forth_in
 ostringstream   fout;               /// forth_out
@@ -205,7 +206,7 @@ void outer(const char *cmd, void(*callback)(int, const char*)) {
         printf("%s=>",idiom);
         IU w = gPool.get_method(idiom, "nanojvm/Forth");    /// search forth words
         if (w > 0) {
-        	Word *m = (Word*)&gPool.pmem[w];
+            Word *m = (Word*)&gPool.pmem[w];
             printf("%s 0x%x\n", m->nfa(), w);
             if (t0.compile && !m->immd) {    /// * in compile mode?
                 gPool.add_iu(w);             /// * add found word to new colon word
@@ -218,66 +219,60 @@ void outer(const char *cmd, void(*callback)(int, const char*)) {
     }
     ss_dump();
 }
-#include "loader.h"
-#define cU8(a)       gLoader.getU8(a)
-#define cU16(a)      gLoader.getU16(a)
-#define cU32(a)      gLoader.getU32(a)
-#define cOff(i)      gLoader.poolOffset(i - 1)
-#define gStrRef(i,s) gLoader.getStr(i, s, true)
-#define gStr(i,s)    gLoader.getStr(i, s, false)
+///
+/// Java class file constant pool access macros
+///
+#define jU16(a)      J.getU16(a)
+#define jOff(i)      J.poolOffset(i - 1)
+#define jStrRef(i,s) J.getStr(i, s, true)
+#define jStr(i,s)    J.getStr(i, s, false)
 ///
 /// Thread class implementation
 ///
-U8   Thread::getBE8()     { return cU8(IP++); }
-U16  Thread::getBE16()    { U16 n = cU16(IP); IP+=2; return n; }
-U32  Thread::getBE32()    { U32 n = cU32(IP); IP+=4; return n; }
-void Thread::jmp()        { IP += getBE16() - 3; }
-void Thread::cjmp(bool f) { IP += f ? getBE16() - 3 : sizeof(U16); }
 void Thread::java_new()  {
-	IU idx = getBE16();  			/// class index
-	/// TODO: allocate space for the object instance
-	char buf[128];
-	printf(" %s", gStrRef(idx, buf));
-	push(idx);                      /// save object on stack
+    IU idx = fetch2();              /// class index
+    /// TODO: allocate space for the object instance
+    char buf[128];
+    printf(" %s", jStrRef(idx, buf));
+    push(idx);                      /// save object on stack
 }
 void Thread::java_inner(IU addr) {
-    U16 nloc = gLoader.getU16(addr - 6);	/// TODO: allocate local stack frame
+    U16 nloc = jU16(addr - 6);      /// TODO: allocate local stack frame
     rs.push(t0.IP);
-    t0.IP = addr;                           /// pointer to class file
+    t0.IP = addr;                   /// pointer to class file
     while (t0.IP) {
-    	ss_dump();
-    	U8 op = gLoader.getU8(t0.IP++);
-    	printf("%04x:%02x %s", t0.IP-1, op, gUcode.vt[op].name);
-    	gUcode.exec(t0, op);                /// execute JVM opcode
+        ss_dump();
+        U8 op = fetch();            /// fetch opcode
+        printf("%04x:%02x %s", t0.IP-1, op, gUcode.vt[op].name);
+        gUcode.exec(t0, op);        /// execute JVM opcode
     }
     t0.IP = rs.pop();
 }
 void Thread::invoke(U16 itype) {    /// invoke type: 0:virtual, 1:special, 2:static, 3:interface, 4:dynamic
-    IU idx   = getBE16();           /// 2 - method index in pool
+    IU idx   = fetch2();            /// 2 - method index in pool
     if (itype==4) IP += 2;          /// extra 2 for dynamic
-    IU c_m   = cOff(idx);           /// [02]000f:a=>[12,13]  [class_name, method_ref]
-    IU cid   = cU16(c_m + 1);       /// 12
-    IU mrf   = cU16(c_m + 3);       /// 13
-    IU mid   = cOff(mrf);           /// [13]008f:c=>[15,16]  [method_name, type_name]
+    IU c_m   = jOff(idx);           /// [02]000f:a=>[12,13]  [class_name, method_ref]
+    IU cid   = jU16(c_m + 1);       /// 12
+    IU mrf   = jU16(c_m + 3);       /// 13
+    IU mid   = jOff(mrf);           /// [13]008f:c=>[15,16]  [method_name, type_name]
 
     char cls[128], xt[128], t[16];
-	printf(" %s::", gStrRef(cid, cls));
-    printf("%s", gStr(cU16(mid + 1), xt));
-    printf("%s", gStr(cU16(mid + 3), t));
+    printf(" %s::%s", jStrRef(cid, cls), jStr(jU16(mid + 1), xt));
+    printf("%s", jStr(jU16(mid + 3), t));
 
-    IU m = gPool.get_method(xt, cls, itype!=1);	/// special does not go up to supr class
+    IU m = gPool.get_method(xt, cls, itype!=1); /// special does not go up to supr class
     if (m > 0) {
         Word *w  = (Word*)&gPool.pmem[m];
         IU  addr = *(IU*)w->pfa();
-        if (w->java) java_inner(addr);				/// call Java inner interpreter
-        else         CALL(m);						/// call Native method
+        if (w->java) java_inner(addr);              /// call Java inner interpreter
+        else         CALL(m);                       /// call Native method
     }
     else printf(" **NA**");
 }
 ///
 /// main program
 ///
-#include <iostream>         		/// cin, cout
+#include <iostream>                 /// cin, cout
 
 int main(int ac, char* av[]) {
     static auto send_to_con = [](int len, const char *rst) { cout << rst; };

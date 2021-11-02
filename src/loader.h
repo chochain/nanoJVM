@@ -1,8 +1,7 @@
 #ifndef NANOJVM_LOADER_H
 #define NANOJVM_LOADER_H
 #include <stdio.h>      // fopen and IO
-#include <memory.h>     // malloc
-#include "core.h"
+#include "common.h"
 ///
 /// types of constants
 ///
