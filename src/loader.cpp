@@ -38,12 +38,12 @@ U8 Loader::getU8(IU addr) {
     return v;
 }
 U16 Loader::getU16(IU addr) {
-    U16 v = (U16)getU8(addr++) << 8;
-    return v | getU8(addr);
+    U16 v = (U16)getU8(addr) << 8;
+    return v | (U8)fgetc(f);
 }
 U32 Loader::getU32(IU addr) {
-    U32 v = 0;
-    for(U8 i = 0; i < 4; i++) v = (v << 8) | getU8(addr++);
+    U32 v = (U32)getU8(addr);
+    for(U8 i = 0; i < 3; i++) v = (v << 8) | (U8)fgetc(f);
     return v;
 }
 char *Loader::getStr(IU idx, char *buf, bool ref) {
@@ -52,9 +52,10 @@ char *Loader::getStr(IU idx, char *buf, bool ref) {
     	n = getU16(n + 1);     		/// 17
     	n = poolOffset(n - 1);      /// [17]:00b6:1=>nanojvm/Forth
     }
-    U16 i;
-    for (i=0; i<getU16(n + 1); i++)   {
-        buf[i] = getU8(n + 3 + i);
+    U16 i, len = getU16(n + 1);
+    fseek(f, n + 3, SEEK_SET);		/// move cursor to string
+    for (i=0; i<len; i++)   {
+        buf[i] = fgetc(f);
     }
     buf[i] = '\0';
     return buf;
@@ -174,10 +175,10 @@ IU Loader::createMethod(IU &addr, IU &m_root) {
     addr += 8;
 
     IU  midx = addr + 14;
-    U16 len  = getU16(midx - 4);
+    U32 len  = getU32(midx - 4);
     char name[128], parm[16];
     printf("\n  [%02x]%s", i_name, getStr(i_name, name));
-    printf("%s=%x bytes", getStr(i_parm, parm), len);
+    printf("%s (%x bytes)", getStr(i_parm, parm), len);
     fop op4 = (fop)((P32)midx);
     Method m = { name, op4, FLAG_JAVA };
     gPool.add_method(m, m_root);

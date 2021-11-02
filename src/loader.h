@@ -76,7 +76,6 @@ struct Loader {
     IU   createMethod(IU &addr, IU &m_root);
     
     int  load_class();
-    int  run(Thread &t);
 };
 extern Loader gLoader;
 #endif // NANOJVM_LOADER_H
