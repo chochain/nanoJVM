@@ -78,4 +78,5 @@ struct Loader {
     int  load_class();
     int  run(Thread &t);
 };
+extern Loader gLoader;
 #endif // NANOJVM_LOADER_H

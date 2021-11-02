@@ -7,17 +7,19 @@ void Loader::init(FILE *cls_file, bool debug) {
     /// dump Java class file content
     ///
     fseek(f, 0L, SEEK_END);
-    U32 a0 = 0, sz = ftell(f);
-    for (IU i=a0; i<=(a0+sz); i+=16) {
+    U32 sz = ftell(f);
+
+    rewind(f);
+	char buf[17];
+    for (IU i=0; i<=sz; i+=16) {
         printf("\n%04x: ", i);
         for (int j=0; j<16; j++) {
-            U8 c = getU8(i+j);
-            printf("%02x%s", (U16)c, (j%4==3) ? "  " : " ");
+            char c = fgetc(f);
+            buf[j] = (c==0x7f||c<0x20) ? '_' : c;
+            printf("%02x%s", (U8)c, (j%4==3) ? "  " : " ");
         }
-        for (int j=0; j<16; j++) {   // print and advance to next byte
-            U8 c = getU8(i+j);
-            printf("%c", (char)((c==0x7f||c<0x20) ? '_' : c));
-        }
+        buf[16] = '\0';
+        printf("%s", buf);
     }
 }
 U8 Loader::getU8(IU addr) {
@@ -163,7 +165,6 @@ attribute_info {
 }
 */
 #include "jvm.h"
-extern Pool   gPool;
 struct Loader gLoader;
 
 IU Loader::createMethod(IU &addr, IU &m_root) {
