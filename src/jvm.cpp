@@ -132,17 +132,15 @@ void ss_dump() {
 ///
 void mem_dump(IU p0, DU sz) {
     fout << setbase(16) << setfill('0') << ENDL;
+    char buf[17] = { 0 };
     for (IU i=ALIGN16(p0); i<=ALIGN16(p0+sz); i+=16) {
         fout << setw(4) << i << ": ";
         for (int j=0; j<16; j++) {
             U8 c = gPool.pmem[i+j];
+            buf[j] = ((c>0x7f)||(c<0x20)) ? '_' : c;
             fout << setw(2) << (int)c << (j%4==3 ? "  " : " ");
         }
-        for (int j=0; j<16; j++) {   // print and advance to next byte
-            U8 c = gPool.pmem[i+j] & 0x7f;
-            fout << (char)((c==0x7f||c<0x20) ? '_' : c);
-        }
-        fout << ENDL;
+        fout << buf << ENDL;
         yield();
     }
     fout << setbase(10);
@@ -268,11 +266,10 @@ int main(int ac, char* av[]) {
         return -1;
     }
     setvbuf(stdout, NULL, _IONBF, 0);
-    static auto send_to_con = [](int len, const char *rst) { cout << rst; };
 
     gPool.register_class("Ucode", gUcode.vtsz, gUcode.vt);
     gPool.register_class("nanojvm/Forth", gForth.vtsz, gForth.vt, "Ucode");
-
+    
     FILE *f = fopen(av[1], "rb");
     if (!f) {
         fprintf(stderr," Failed to open file\n");
@@ -282,18 +279,22 @@ int main(int ac, char* av[]) {
     if (gLoader.load_class()) return -1;
 
     cout << unitbuf << "nanoJVM v1 staring" << endl;
-#if 0
-    IU addr = gPool.get_method("main");
-    t0.PC = addr + 14;                      /// pointer to class file
+#if 1
+    IU midx = gPool.get_method("main");
+    IU addr = gPool.getU16(midx);
+    printf("midx=%04x,addr=%04x", midx, addr); 
+    return 0;
+    t0.IP = addr + 14;                      /// pointer to class file
     U16 n_local = gLoader.getU16(addr + 8);
     /* allocate local stack */
-    while (t0.PC!=0xffff) {
-    	U8 op = gLoader.getU8(t0.PC++);
-    	printf("%04x:%02x %s", t0.PC-1, op, gUcode.vt[op].name);
+    while (t0.IP) {
+    	U8 op = gLoader.getU8(t0.IP++);
+    	printf("%04x:%02x %s", t0.IP-1, op, gUcode.vt[op].name);
     	gUcode.exec(t0, op);                /// execute JVM opcode
     	ss_dump();
     }
 #else
+    static auto send_to_con = [](int len, const char *rst) { cout << rst; };
     string line;
     while (getline(cin, line)) {             /// fetch line from user console input
         outer(line.c_str(), send_to_con);

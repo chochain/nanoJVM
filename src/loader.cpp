@@ -10,12 +10,12 @@ void Loader::init(FILE *cls_file, bool debug) {
     U32 sz = ftell(f);
 
     rewind(f);
-	char buf[17];
+	char buf[17] = { 0 };
     for (IU i=0; i<=sz; i+=16) {
         printf("\n%04x: ", i);
         for (int j=0; j<16; j++) {
             char c = fgetc(f);
-            buf[j] = (c==0x7f||c<0x20) ? '_' : c;
+            buf[j] = ((c>0x7f)||(c<0x20)) ? '_' : c;
             printf("%02x%s", (U8)c, (j%4==3) ? "  " : " ");
         }
         buf[16] = '\0';
@@ -174,17 +174,13 @@ IU Loader::createMethod(IU &addr, IU &m_root) {
     addr += 8;
 
     IU  midx = addr + 14;
-    U32 len = getU32(midx - 4);
-    char name[128];
-    char parm[16];
+    U16 len  = getU16(midx - 4);
+    char name[128], parm[16];
     printf("\n  [%02x]%s", i_name, getStr(i_name, name));
     printf("%s=%x bytes", getStr(i_parm, parm), len);
-    fop op4 = (fop)((P32)getU32(midx));
-    Method m = { name, op4, FLAG_DEF };
+    fop op4 = (fop)((P32)midx);
+    Method m = { name, op4, FLAG_JAVA };
     gPool.add_method(m, m_root);
-    for (int i=4; i<len; i++) {
-    	gPool.add_u8(getU8(midx+i));
-	}
 
     while (n_attr--) addr = skipAttr(addr);
 }
