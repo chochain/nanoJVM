@@ -76,8 +76,8 @@ static Method _java[] = {
     /// @definegroup Constant ops (CC:TODO)
     /// @{
     /*00*/  UCODE("nop",         {}),
-    /*01*/  UCODE("aconst_null", {}),
-    /*02*/  UCODE("iconst_M1",   {}),
+    /*01*/  UCODE("aconst_null", PushA(0)),
+    /*02*/  UCODE("iconst_M1", PushI(-1)),
     /*03*/  UCODE("iconst_0",  PushI(0)),
     /*04*/  UCODE("iconst_1",  PushI(1)),
     /*05*/  UCODE("iconst_2",  PushI(2)),
@@ -273,8 +273,8 @@ static Method _java[] = {
     /// @definegroup Branching ops
     /// @{
     /*A7*/  UCODE("goto",      t.jmp()),
-    /*A8*/  UCODE("jsr",       PushI((P32)(t.IP + sizeof(U16))); t.jmp()),
-    /*A9*/  UCODE("ret",       t.IP = (U8*)(P32)OFF),
+    /*A8*/  UCODE("jsr",       PushI(t.IP + sizeof(U16)); t.jmp()),
+    /*A9*/  UCODE("ret",       t.IP = OFF),
     /*AA*/  UCODE("tableswitch",  {}),
     /*AB*/  UCODE("lookupswitch", {}),
     /// @}
