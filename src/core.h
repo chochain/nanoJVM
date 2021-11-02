@@ -141,24 +141,25 @@ typedef void (*fop)(Thread&); /// opcode function pointer
 ///
 /// Method class
 ///
-#define FLAG_DEF  0x1
-#define FLAG_IMMD 0x2
+#define FLAG_IMMD 0x1
+#define FLAG_DEF  0x2
+#define FLAG_JAVA 0x4
 struct Method {
     const char *name = 0;     /// for debugging, TODO (in const_pool)
 #if METHOD_PACKED
     union {
         fop   xt = 0;         /// function pointer (or decayed lambda)
         struct {
-            U32 def:  1;
-            U32 immd: 1;
-            U32 rsv:  30;
+        	U16 flag;
+        	IU  midx;
         };
     };
 #else
     fop   xt = 0;            /// function pointer (or decayed lambda)
-    U32   flag;
+    U16   flag;
+    IU    midx;
 #endif
-    Method(const char *n, fop f, bool im=false) : name(n), xt(f), flag(im) {}
+    Method(const char *n, fop f, U32 im=0) : name(n), xt(f), flag(im) {}
 };
 ///
 /// Word - shared struct for Class and Method
