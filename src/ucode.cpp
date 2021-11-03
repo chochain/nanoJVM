@@ -160,7 +160,7 @@ static Method _java[] = {
     /*4C*/  UCODE("astore_1", StorA(1)),
     /*4D*/  UCODE("astore_2", StorA(2)),
     /*4E*/  UCODE("astore_3", StorA(3)),
-    /*4F*/  UCODE("iastore",  PutI_A()),    // n = PopI(); v = PopI(); a = PopR(); PutI_A(a, n, v)
+    /*4F*/  UCODE("iastore",  PutI_A()),    // v = PopI(); n = PopI(); a = PopR(); PutI_A(a, n, v)
     /*50*/  UCODE("lastore",  PutL_A()),
     /*51*/  UCODE("fastore",  PutF_A()),
     /*52*/  UCODE("dastore",  PutD_A()),

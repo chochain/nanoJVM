@@ -210,8 +210,7 @@ void outer(const char *cmd, void(*callback)(int, const char*)) {
 ///
 /// main program
 ///
-#include <iostream>                 /// cin, cout
-
+#include <iostream>           /// cin, cout
 int main(int ac, char* av[]) {
     static auto send_to_con = [](int len, const char *rst) { cout << rst; };
     if (ac <= 1) {
@@ -231,8 +230,9 @@ int main(int ac, char* av[]) {
     gLoader.init(f);
     if (gLoader.load_class()) return -1;
 
-    cout << unitbuf << "nanoJVM v1 staring...\n\nmain()";
-#if 1
+    cout << unitbuf << "nanoJVM v1 staring..." << endl;
+#if 0
+    printf("\nmain()");
     fout_cb  = send_to_con;
     IU midx  = gPool.get_method("main");
     Word *w  = (Word*)&gPool.pmem[midx];

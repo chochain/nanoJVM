@@ -11,6 +11,7 @@ char *scan(char c);
 void words();
 void ss_dump();
 void mem_dump(IU p0, DU sz);
+void inner();
 ///
 /// macros for parameter memory access
 ///
