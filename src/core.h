@@ -22,6 +22,11 @@ struct Thread {
 
     Thread(Loader &ldr, U8 *mem) : J(ldr), M0(mem) {}
     ///
+    /// Forth inner interpreter
+    ///
+    void forth_call(IU w);
+    void forth_inner(IU w);
+    ///
     /// Java class file byte fetcher
     ///
     U8   fetch()        { return J.getU8(IP++); }
@@ -42,7 +47,7 @@ struct Thread {
     /// Java class/method ops
     ///
     void java_new();
-    void java_inner(IU midx); /// execute Java method
+    void java_call(IU midx);   /// execute Java method
     void invoke(U16 itype);
     ///
     /// local parameter access, CC:TODO

@@ -102,12 +102,11 @@ extern   Ucode  gForth;                 /// Forth microcode ROM
 Loader   gLoader;                		/// Java class loader
 Pool     gPool;                         /// memory management unit
 Thread   t0(gLoader, &gPool.pmem[0]);   /// one thread for now
-List<DU, RS_SZ> rs;                     /// return stack
 
-istringstream   fin;                /// forth_in
-ostringstream   fout;               /// forth_out
-string strbuf;                      /// input string buffer
-void (*fout_cb)(int, const char*);  /// forth output callback function
+istringstream   fin;                    /// forth_in
+ostringstream   fout;                   /// forth_out
+string strbuf;                          /// input string buffer
+void (*fout_cb)(int, const char*);      /// forth output callback function
 
 #define ENDL    endl; fout_cb(fout.str().length(), fout.str().c_str()); fout.str("")
 ///
@@ -158,15 +157,6 @@ void mem_dump(IU p0, DU sz) {
 ///
 /// outer interpreter
 ///
-void inner(IU w);
-void CALL(IU w) {
-    Word *m = (Word*)&gPool.pmem[w];
-    if (m->def) inner(w);
-    else {
-        fop xt = *(fop*)m->pfa();
-        xt(t0);
-    }
-}
 char *next_word()  {
     fin >> strbuf;
     return (char*)strbuf.c_str();
@@ -174,17 +164,6 @@ char *next_word()  {
 char *scan(char c) {
     getline(fin, strbuf, c);
     return (char*)strbuf.c_str();
-}
-void inner(IU w)    {
-    rs.push(t0.IP);
-    rs.push(t0.WP = w);
-    Word *m = (Word*)&gPool.pmem[w];
-    t0.IP = (IU)(m->pfa() - t0.M0);
-    for (IU w1=*(IU*)(t0.M0 + t0.IP); t0.IP; t0.IP += sizeof(IU)) {
-        CALL(w1);
-    }
-    t0.WP = (IU)rs.pop();
-    t0.IP = rs.pop();
 }
 int handle_number(const char *idiom) {
     char *p;
@@ -220,63 +199,13 @@ void outer(const char *cmd, void(*callback)(int, const char*)) {
             if (t0.compile && !m->immd) {    /// * in compile mode?
                 gPool.add_iu(w);             /// * add found word to new colon word
             }
-            else CALL(w);                    /// * execute word
+            else t0.forth_call(w);           /// * execute word
         }
         else if (handle_number(idiom)) {
             fout << idiom << "? " << ENDL;   ///> display error prompt
         }
     }
     ss_dump();
-}
-///
-/// Java class file constant pool access macros
-///
-#define jOff(i)      J.offset(i - 1)
-#define jU16(a)      J.getU16(a)
-#define jStrRef(i,s) J.getStr(i, s, true)
-#define jStr(i,s)    J.getStr(i, s, false)
-///
-/// Thread class implementation
-///
-void Thread::java_new()  {
-    IU idx = fetch2();              /// class index
-    /// TODO: allocate space for the object instance
-    char buf[128];
-    printf(" %s", jStrRef(idx, buf));
-    push(idx);                      /// save object on stack
-}
-void Thread::java_inner(IU addr) {
-    U16 nloc = jU16(addr - 6);      /// TODO: allocate local stack frame
-    rs.push(t0.IP);
-    t0.IP = addr;                   /// pointer to class file
-    while (t0.IP) {
-        ss_dump();
-        U8 op = fetch();            /// fetch opcode
-        printf("%04x:%02x %s", t0.IP-1, op, gUcode.vt[op].name);
-        gUcode.exec(t0, op);        /// execute JVM opcode
-    }
-    t0.IP = rs.pop();
-}
-void Thread::invoke(U16 itype) {    /// invoke type: 0:virtual, 1:special, 2:static, 3:interface, 4:dynamic
-    IU idx   = fetch2();            /// 2 - method index in pool
-    if (itype==4) IP += 2;          /// extra 2 for dynamic
-    IU c_m   = jOff(idx);           /// [02]000f:a=>[12,13]  [class_name, method_ref]
-    IU cid   = jU16(c_m + 1);       /// 12
-    IU mrf   = jU16(c_m + 3);       /// 13
-    IU mid   = jOff(mrf);           /// [13]008f:c=>[15,16]  [method_name, type_name]
-
-    char cls[128], xt[128], t[16];
-    printf(" %s::%s", jStrRef(cid, cls), jStr(jU16(mid + 1), xt));
-    printf("%s", jStr(jU16(mid + 3), t));
-
-    IU m = gPool.get_method(xt, cls, itype!=1); /// special does not go up to supr class
-    if (m > 0) {
-        Word *w  = (Word*)&gPool.pmem[m];
-        IU  addr = *(IU*)w->pfa();
-        if (w->java) java_inner(addr);              /// call Java inner interpreter
-        else         CALL(m);                       /// call Native method
-    }
-    else printf(" **NA**");
 }
 ///
 /// main program
@@ -308,7 +237,7 @@ int main(int ac, char* av[]) {
     IU midx  = gPool.get_method("main");
     Word *w  = (Word*)&gPool.pmem[midx];
     IU  addr = *(IU*)w->pfa();
-    t0.java_inner(addr);
+    t0.java_call(addr);
 #else
     string line;
     while (getline(cin, line)) {             /// fetch line from user console input

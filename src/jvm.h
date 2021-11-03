@@ -23,7 +23,9 @@ void mem_dump(IU p0, DU sz);
 ///
 struct Pool {
     List<U8, PMEM_SZ>  pmem;      /// parameter memory
+    List<DU, RS_SZ>    rs;
     List<DU, CONST_SZ> cnst;      /// constant pool
+
     IU jvm_root = 0;              /// JVM builtin opcodes
     IU cls_root = 0;              /// Forth::context
 
@@ -49,6 +51,5 @@ struct Pool {
     void add_str(const char *s) { int sz = STRLEN(s); pmem.push((U8*)s,  sz); }
 };
 extern Pool gPool;
-
 #endif // NANOJVM_JVM_H
 
