@@ -32,6 +32,7 @@ struct Pool {
     IU   get_method(const char *m_name, const char *cls_name=0, bool supr=true);
 
     IU   add_method(Method &vt, IU &root);
+    IU   add_method(const char *m_name, U32 m_idx, U8 flag, IU &root);
     IU   add_class(const char *name, const char *supr, IU m_root, U16 cvsz, U16 ivsz);
     void register_class(const char *name, int sz, Method *vt, const char *supr = 0);
 

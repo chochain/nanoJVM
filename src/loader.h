@@ -56,25 +56,24 @@
 ///
 /// Java class file loader
 ///
-struct Loader {
+class Loader {
     FILE *f = 0;
 
+    U8   type_size(char type);
+    U16  skip_attr(U16 addr);
+    U8   get_size(U16 &addr);
+
+    U16  create_method(U16 &addr, U16 &m_root);
+    
+public:
     void init(FILE *cls_file, bool debug=true);
-
-    U8   getU8(IU addr);
-    U16  getU16(IU addr);
-    U32  getU32(IU addr);
-    char *getStr(IU addr, char *buf, bool ref=false);
-    
-    U8   typeSize(char type);
-    IU   skipAttr(IU addr);
-    U8   getSize(IU &addr);
-
-    U16  poolOffset(U16 idx, bool debug=false);
-    IU   getMethod(const char *fname, const char *param);
-    IU   createMethod(IU &addr, IU &m_root);
-    
     int  load_class();
+
+    U8   getU8(U16 addr);
+    U16  getU16(U16 addr);
+    U32  getU32(U16 addr);
+    U16  offset(U16 idx, bool debug=false);
+
+    char *getStr(U16 addr, char *buf, bool ref=false);
 };
-extern Loader gLoader;
 #endif // NANOJVM_LOADER_H

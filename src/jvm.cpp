@@ -48,6 +48,15 @@ IU Pool::add_method(Method &vt, IU &m_root) {
     add_pu((PU)vt.xt);              /// encode function pointer
     return m_root = mid;            /// adjust method root
 };
+IU Pool::add_method(const char *m_name, U32 m_idx, U8 flag, IU &m_root) {
+    IU mid = pmem.idx;              /// store current method idx
+    add_iu(m_root);                 /// link to previous method
+    add_u8(STRLEN(m_name));         /// method name length
+    add_u8(flag);                   /// method access control
+    add_str(m_name);                /// enscribe method name
+    add_du((DU)m_idx);              /// encode function pointer
+    return m_root = mid;            /// adjust method root
+};
 IU Pool::add_class(const char *name, const char *supr, IU m_root, U16 cvsz, U16 ivsz) {
     /// encode class
     IU cid = pmem.idx;              /// preserve class link
@@ -90,7 +99,7 @@ void Pool::colon(const char *name) {
 ///
 extern   Ucode  gUcode;                 /// Java microcode ROM
 extern   Ucode  gForth;                 /// Forth microcode ROM
-extern   Loader gLoader;                /// Java class loader
+Loader   gLoader;                		/// Java class loader
 Pool     gPool;                         /// memory management unit
 Thread   t0(gLoader, &gPool.pmem[0]);   /// one thread for now
 List<DU, RS_SZ> rs;                     /// return stack
@@ -222,8 +231,8 @@ void outer(const char *cmd, void(*callback)(int, const char*)) {
 ///
 /// Java class file constant pool access macros
 ///
+#define jOff(i)      J.offset(i - 1)
 #define jU16(a)      J.getU16(a)
-#define jOff(i)      J.poolOffset(i - 1)
 #define jStrRef(i,s) J.getStr(i, s, true)
 #define jStr(i,s)    J.getStr(i, s, false)
 ///

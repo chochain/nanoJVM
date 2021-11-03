@@ -1,27 +1,47 @@
 #include "loader.h"
-
-void Loader::init(FILE *cls_file, bool debug) {
-    f = cls_file;
-    if (!debug) return;
-    ///
-    /// dump Java class file content
-    ///
-    fseek(f, 0L, SEEK_END);
-    U32 sz = ftell(f);
-
-    rewind(f);
-	char buf[17] = { 0 };
-    for (IU i=0; i<=sz; i+=16) {
-        printf("\n%04x: ", i);
-        for (int j=0; j<16; j++) {
-            char c = fgetc(f);
-            buf[j] = ((c>0x7f)||(c<0x20)) ? '_' : c;
-            printf("%02x%s", (U8)c, (j%4==3) ? "  " : " ");
-        }
-        buf[16] = '\0';
-        printf("%s", buf);
+#include "jvm.h"
+///
+/// Loader - private methods
+///
+U8 Loader::type_size(char type){
+    switch(type){
+    case TYPE_BYTE:   case TYPE_BOOL:  return 1;
+    case TYPE_CHAR:   case TYPE_SHORT: return 2;
+    case TYPE_DOUBLE: case TYPE_LONG:  return 8;
+    default: return 4;
     }
 }
+IU Loader::skip_attr(IU addr){
+    return addr + 6 + getU32(addr + 2);
+}
+U8 Loader::get_size(IU &addr) {
+    U16 ifld = getU16(addr + 2);                 // field name index
+    U16 itype= getU16(addr + 4);                 // read type destriptor index
+    U16 xsz  = getU16(addr + 6);                 // get number of filed attributes
+    U8  type = getU8(offset(itype-1) + 3);       // get type descriptor first character
+    addr += 8;                                   // pointer to field attributes
+    while (xsz--) addr = skip_attr(addr);        //
+
+    return type_size(type);
+}
+IU Loader::create_method(IU &addr, IU &m_root) {
+    U16 i_name  = getU16(addr + 2);
+    U16 i_parm  = getU16(addr + 4);
+    U16 n_attr  = getU16(addr + 6);
+    addr += 8;
+
+    IU  midx = addr + 14;
+    U32 len  = getU32(midx - 4);
+    char name[128], parm[16];
+    printf("\n  [%02x]%s", i_name, getStr(i_name, name));
+    printf("%s (%x bytes)", getStr(i_parm, parm), len);
+    gPool.add_method(name, midx, FLAG_JAVA, m_root);
+
+    while (n_attr--) addr = skip_attr(addr);
+}
+///
+/// Loader - public methods
+///
 U8 Loader::getU8(IU addr) {
     U32   offset = (U32)addr;         // file offset
     if ((U32)ftell(f) != offset) {
@@ -47,10 +67,10 @@ U32 Loader::getU32(IU addr) {
     return v;
 }
 char *Loader::getStr(IU idx, char *buf, bool ref) {
-    IU n = poolOffset(idx - 1);    	/// [17]:00b6:1=>nanojvm/Forth, or
+    IU n = offset(idx - 1);    	    /// [17]:00b6:1=>nanojvm/Forth, or
     if (ref) {                      /// [12]008e:7=>17
     	n = getU16(n + 1);     		/// 17
-    	n = poolOffset(n - 1);      /// [17]:00b6:1=>nanojvm/Forth
+    	n = offset(n - 1);          /// [17]:00b6:1=>nanojvm/Forth
     }
     U16 i, len = getU16(n + 1);
     fseek(f, n + 3, SEEK_SET);		/// move cursor to string
@@ -60,28 +80,10 @@ char *Loader::getStr(IU idx, char *buf, bool ref) {
     buf[i] = '\0';
     return buf;
 }
-U8 Loader::typeSize(char type){
-    switch(type){
-    case TYPE_BYTE:   case TYPE_BOOL:  return 1;
-    case TYPE_CHAR:   case TYPE_SHORT: return 2;
-    case TYPE_DOUBLE: case TYPE_LONG:  return 8;
-    default: return 4;
-    }
-}
-IU Loader::skipAttr(IU addr){
-    return addr + 6 + getU32(addr + 2);
-}
-U8 Loader::getSize(IU &addr) {
-    U16 ifld = getU16(addr + 2);                 // field name index
-    U16 itype= getU16(addr + 4);                 // read type destriptor index
-    U16 xsz  = getU16(addr + 6);                 // get number of filed attributes
-    U8  type = getU8(poolOffset(itype-1) + 3);   // get type descriptor first character
-    addr += 8;                                   // pointer to field attributes
-    while (xsz--) addr = skipAttr(addr);         //
-
-    return typeSize(type);
-}
-U16 Loader::poolOffset(U16 idx, bool debug) {
+///
+/// calculate offset of an index in constant pool
+///
+U16 Loader::offset(U16 idx, bool debug) {
     IU addr = 10;
     ///
     /// loop over the constant pool to get the offset
@@ -165,31 +167,33 @@ attribute_info {
     u1 info[attribute_length];
 }
 */
-#include "jvm.h"
-struct Loader gLoader;
+void Loader::init(FILE *cls_file, bool debug) {
+    f = cls_file;
+    if (!debug) return;
+    ///
+    /// dump Java class file content
+    ///
+    fseek(f, 0L, SEEK_END);
+    U32 sz = ftell(f);
 
-IU Loader::createMethod(IU &addr, IU &m_root) {
-    U16 i_name  = getU16(addr + 2);
-    U16 i_parm  = getU16(addr + 4);
-    U16 n_attr  = getU16(addr + 6);
-    addr += 8;
-
-    IU  midx = addr + 14;
-    U32 len  = getU32(midx - 4);
-    char name[128], parm[16];
-    printf("\n  [%02x]%s", i_name, getStr(i_name, name));
-    printf("%s (%x bytes)", getStr(i_parm, parm), len);
-    fop op4 = (fop)((P32)midx);
-    Method m = { name, op4, FLAG_JAVA };
-    gPool.add_method(m, m_root);
-
-    while (n_attr--) addr = skipAttr(addr);
+    rewind(f);
+	char buf[17] = { 0 };
+    for (IU i=0; i<=sz; i+=16) {
+        printf("\n%04x: ", i);
+        for (int j=0; j<16; j++) {
+            char c = fgetc(f);
+            buf[j] = ((c>0x7f)||(c<0x20)) ? '_' : c;
+            printf("%02x%s", (U8)c, (j%4==3) ? "  " : " ");
+        }
+        buf[16] = '\0';
+        printf("%s", buf);
+    }
 }
 int Loader::load_class() {
     if ((U32)getU32(0) != MAGIC) return ERR_MAGIC;
 
     U16 n_cnst = getU16(8) - 1;                 // number of constant pool entries
-    IU  addr   = poolOffset(n_cnst, true);      // skip constant descriptors
+    IU  addr   = offset(n_cnst, true);          // skip constant descriptors
     U16 acc    = getU16(addr);  addr += 2;      // class access flag
     U16 i_cls  = getU16(addr);  addr += 2;      // this class
     U16 i_supr = getU16(addr);  addr += 2;      // super class
@@ -208,7 +212,7 @@ int Loader::load_class() {
     while (n_fld--) {                           // scan fields
         U16 flag = getU16(addr);                // get access flags
         bool is_cls = flag & ACC_STATIC;
-        U8 sz = getSize(addr);                  // process one field_info
+        U8 sz = get_size(addr);                  // process one field_info
         if (is_cls) sz_cv += sz;
         else        sz_iv += sz;
     }
@@ -219,10 +223,11 @@ int Loader::load_class() {
     printf("\n  n_method=%x; p_method=%x;", n_method, p_method);
     IU  m_root = 0;
     while (n_method--) {
-    	createMethod(addr, m_root);
+    	create_method(addr, m_root);
     }
     printf("\n}\n");
     gPool.add_class(cls, supr, m_root, sz_cv, sz_iv);
 
     return 0;
 }
+
