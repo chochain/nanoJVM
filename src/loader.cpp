@@ -24,7 +24,7 @@ U8 Loader::get_size(IU &addr) {
 
     return type_size(type);
 }
-IU Loader::create_method(IU &addr, IU &m_root) {
+void Loader::create_method(IU &addr, IU &m_root) {
     U16 i_name  = getU16(addr + 2);
     U16 i_parm  = getU16(addr + 4);
     U16 n_attr  = getU16(addr + 6);

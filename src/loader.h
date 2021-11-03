@@ -63,7 +63,7 @@ class Loader {
     U16  skip_attr(U16 addr);
     U8   get_size(U16 &addr);
 
-    U16  create_method(U16 &addr, U16 &m_root);
+    void create_method(U16 &addr, U16 &m_root);
     
 public:
     void init(FILE *cls_file, bool debug=true);

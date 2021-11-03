@@ -6,7 +6,6 @@
 #include "jvm.h"
 
 extern Ucode gUcode;
-
 ///
 /// Java class file constant pool access macros
 ///
