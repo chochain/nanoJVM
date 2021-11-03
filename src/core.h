@@ -19,6 +19,7 @@ struct Thread {
     DU    tos     = -1;     /// top of stack
     IU    WP      = 0;      /// method index
     IU    IP      = 0;      /// instruction pointer (program counter)
+    IU    context = 0;
 
     Thread(Loader &ldr, U8 *mem) : J(ldr), M0(mem) {}
     ///

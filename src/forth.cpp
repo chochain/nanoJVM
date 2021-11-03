@@ -39,7 +39,7 @@ static Method _word[] = {
     /*D7*/  CODE("+!",    IU w = t.pop(); CELL(w) += t.pop()),       // n w --
     /*D8*/  CODE("here",  t.push(gPool.pmem.idx)),
     /*D9*/  CODE("words", words()),
-    /*DA*/  CODE("ss",    ss_dump()),
+    /*DA*/  CODE("ss",    ss_dump(t)),
     /*DB*/  CODE("dump",  DU n = t.pop(); IU a = t.pop(); mem_dump(a, n)),
     /*DC*/  CODE("tick",  IU w = gPool.get_method(next_word()); t.push(w)),
     /*DD*/  CODE("clock", t.push(millis())),

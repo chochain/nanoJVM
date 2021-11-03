@@ -9,9 +9,9 @@ enum { DOVAR = 0xCA, DOLIT, DOSTR, UNNEST };    /// Forth opcodes
 char *next_word();
 char *scan(char c);
 void words();
-void ss_dump();
 void mem_dump(IU p0, DU sz);
 void inner();
+void ss_dump(Thread &t);
 ///
 /// macros for parameter memory access
 ///

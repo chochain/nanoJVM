@@ -99,9 +99,7 @@ void Pool::colon(const char *name) {
 ///
 extern   Ucode  gUcode;                 /// Java microcode ROM
 extern   Ucode  gForth;                 /// Forth microcode ROM
-Loader   gLoader;                		/// Java class loader
 Pool     gPool;                         /// memory management unit
-Thread   t0(gLoader, &gPool.pmem[0]);   /// one thread for now
 
 istringstream   fin;                    /// forth_in
 ostringstream   fout;                   /// forth_out
@@ -130,10 +128,10 @@ void words() {
     } while (cid);
     fout << setbase(10) << ENDL;
 }
-void ss_dump() {
-    if (t0.compile) return;
-    fout << " <"; for (int i=0; i<t0.ss.idx; i++) { fout << t0.ss[i] << " "; }
-    fout << t0.tos << "> ok" << ENDL;
+void ss_dump(Thread &t) {
+    if (t.compile) return;
+    fout << " <"; for (int i=0; i<t.ss.idx; i++) { fout << t.ss[i] << " "; }
+    fout << t.tos << "> ok" << ENDL;
     yield();
 }
 ///
@@ -165,26 +163,26 @@ char *scan(char c) {
     getline(fin, strbuf, c);
     return (char*)strbuf.c_str();
 }
-int handle_number(const char *idiom) {
+int handle_number(Thread &t, const char *idiom) {
     char *p;
-    int n = static_cast<int>(strtol(idiom, &p, t0.base));
+    int n = static_cast<int>(strtol(idiom, &p, t.base));
     printf("%d\n", n);
     if (*p != '\0') {        /// * not number
-        t0.compile = false;  ///> reset to interpreter mode
+        t.compile = false;   ///> reset to interpreter mode
         return -1;           ///> skip the entire input buffer
     }
     // is a number
-    if (t0.compile) {        /// * add literal when in compile mode
+    if (t.compile) {         /// * add literal when in compile mode
         gPool.add_iu(DOLIT); ///> dovar (+parameter field)
         gPool.add_du(n);     ///> data storage (32-bit integer now)
     }
-    else t0.push(n);         ///> or, add value onto data stack
+    else t.push(n);          ///> or, add value onto data stack
     return 0;
 }
 ///
 /// outer interpreter
 ///
-void outer(const char *cmd, void(*callback)(int, const char*)) {
+void outer(Thread &t, const char *cmd, void(*callback)(int, const char*)) {
     fin.clear();                             /// clear input stream error bit if any
     fin.str(cmd);                            /// feed user command into input stream
     fout_cb = callback;                      /// setup callback function
@@ -196,16 +194,16 @@ void outer(const char *cmd, void(*callback)(int, const char*)) {
         if (w > 0) {
             Word *m = (Word*)&gPool.pmem[w];
             printf("%s 0x%x\n", m->nfa(), w);
-            if (t0.compile && !m->immd) {    /// * in compile mode?
+            if (t.compile && !m->immd) {     /// * in compile mode?
                 gPool.add_iu(w);             /// * add found word to new colon word
             }
-            else t0.forth_call(w);           /// * execute word
+            else t.forth_call(w);            /// * execute word
         }
-        else if (handle_number(idiom)) {
+        else if (handle_number(t, idiom)) {
             fout << idiom << "? " << ENDL;   ///> display error prompt
         }
     }
-    ss_dump();
+    ss_dump(t);
 }
 ///
 /// main program
@@ -218,17 +216,26 @@ int main(int ac, char* av[]) {
         return -1;
     }
     setvbuf(stdout, NULL, _IONBF, 0);
-
+    ///
+    /// populate memory pool
+    ///
     gPool.register_class("Ucode", gUcode.vtsz, gUcode.vt);
     gPool.register_class("nanojvm/Forth", gForth.vtsz, gForth.vt, "Ucode");
-    
+    ///
+    /// instantiate Java class loader
+    ///
+    Loader ldr;
     FILE *f = fopen(av[1], "rb");
     if (!f) {
         fprintf(stderr," Failed to open file\n");
         return -1;
     }
-    gLoader.init(f);
-    if (gLoader.load_class()) return -1;
+    ldr.init(f);
+    if (ldr.load_class()) return -1;
+    ///
+    /// instantiate main thread (TODO: single thread for now)
+    ///
+    Thread t0(ldr, &gPool.pmem[0]);
 
     cout << unitbuf << "nanoJVM v1 staring..." << endl;
 #if 0
@@ -241,7 +248,7 @@ int main(int ac, char* av[]) {
 #else
     string line;
     while (getline(cin, line)) {             /// fetch line from user console input
-        outer(line.c_str(), send_to_con);
+        outer(t0, line.c_str(), send_to_con);
     }
 #endif
     cout << "\n\nnanoJVM done." << endl;

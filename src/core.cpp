@@ -47,7 +47,7 @@ void Thread::java_call(IU addr) {	/// Java inner interpreter
     gPool.rs.push(IP);
     IP = addr;                      /// pointer to class file
     while (IP) {
-        ss_dump();
+        ss_dump(*this);
         U8 op = fetch();            /// fetch opcode
         printf("%04x:%02x %s", IP-1, op, gUcode.vt[op].name);
         gUcode.exec(*this, op);     /// execute JVM opcode
