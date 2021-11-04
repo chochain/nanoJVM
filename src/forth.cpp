@@ -47,7 +47,7 @@ static Method _word[] = {
     /*E1*/  CODE("clock", t.push(millis())),
     /*E2*/  CODE("delay", delay(t.pop())),
     /*E3*/  CODE("bye",   exit(0)),
-    /*E4*/  CODE("interpreter", forth_outer(t))
+    /*E4*/  CODE("interpreter", forth_interpreter(t))
     /// @}
 };
 ///

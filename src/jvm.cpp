@@ -215,7 +215,7 @@ void outer(Thread &t, const char *cmd) {
 /// main program
 ///
 #include <iostream>           /// cin, cout
-void forth_outer(Thread &t) {
+void forth_interpreter(Thread &t) {
 	cout << endl;
 	string line;
 	while (getline(cin, line)) {             /// fetch line from user console input
