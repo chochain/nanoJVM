@@ -322,6 +322,7 @@ static Method _java[] = {
     /*C7*/  UCODE("ifnonnull",    t.cjmp(PopA() != 0)),
     /*C8*/  UCODE("goto_w",       t.jmp()),
     /*C9*/  UCODE("jsr_w",        PushI((P32)(t.IP + sizeof(U32))); t.jmp()),
+    /*CA*/  UCODE("<init>",       {})
 };
 ///
 /// microcode ROM, use extern by main program

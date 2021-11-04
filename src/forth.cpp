@@ -12,41 +12,41 @@ static Method _word[] = {
     ///
     /// @definegroup Forth Core
     /// @{
-    /*CA*/  CODE("dovar", t.push(t.IP); t.IP += sizeof(DU)),
-    /*CB*/  CODE("dolit", t.push(CELL(t.IP)); t.IP += sizeof(DU)),
-    /*CC*/  CODE("dostr",
+    /*CB*/  CODE("dovar", t.push(t.IP); t.IP += sizeof(DU)),
+    /*CC*/  CODE("dolit", t.push(CELL(t.IP)); t.IP += sizeof(DU)),
+    /*CD*/  CODE("dostr",
                 const char *s = (const char*)(t.M0 + t.IP);
                 t.push(t.IP); t.IP += STRLEN(s)),
-    /*CD*/  CODE("unnest", t.IP = 0xffff),
-    /*CE*/  CODE("create",
+    /*CE*/  CODE("unnest", t.IP = 0xffff),
+    /*CF*/  CODE("create",
                 gPool.colon(next_word());
                 gPool.add_iu(DOVAR)),
-    /*CF*/  CODE("variable",
+    /*D0*/  CODE("variable",
                 gPool.colon(next_word());
                 DU n = 0;
                 gPool.add_iu(DOVAR);
                 gPool.add_du(n)),
-    /*D0*/  CODE("constant",
+    /*D1*/  CODE("constant",
                 gPool.colon(next_word());
                 gPool.add_iu(DOLIT);
                 gPool.add_du(t.pop())),
-    /*D1*/  CODE(":",     gPool.colon(next_word()); t.compile=true),
-    /*D2*/  IMMD(";",     gPool.add_iu(UNNEST); t.compile = false),
-    /*D3*/  CODE("@",     IU w = t.pop(); t.push(CELL(w))),          // w -- n
-    /*D4*/  CODE("!",     IU w = t.pop(); CELL(w) = t.pop();),       // n w --
-    /*D5*/  CODE(",",     DU n = t.pop(); gPool.add_du(n)),
-    /*D6*/  CODE("allot", DU v = 0; for (IU n = t.pop(), i = 0; i < n; i++) gPool.add_du(v)), // n --
-    /*D7*/  CODE("+!",    IU w = t.pop(); CELL(w) += t.pop()),       // n w --
-    /*  */  CODE("decimal", t.base = 10),
-    /*  */  CODE("hex",     t.base = 16),
-    /*D8*/  CODE("here",  t.push(gPool.pmem.idx)),
-    /*D9*/  CODE("words", words(t)),
-    /*DA*/  CODE("ss",    ss_dump(t)),
-    /*DB*/  CODE("dump",  DU n = t.pop(); IU a = t.pop(); mem_dump(t, a, n)),
-    /*DC*/  CODE("tick",  IU w = gPool.get_method(next_word()); t.push(w)),
-    /*DD*/  CODE("clock", t.push(millis())),
-    /*DE*/  CODE("delay", delay(t.pop())),
-    /*DF*/  CODE("bye",   exit(0))
+    /*D2*/  CODE(":",     gPool.colon(next_word()); t.compile=true),
+    /*D3*/  IMMD(";",     gPool.add_iu(UNNEST); t.compile = false),
+    /*D4*/  CODE("@",     IU w = t.pop(); t.push(CELL(w))),          // w -- n
+    /*D5*/  CODE("!",     IU w = t.pop(); CELL(w) = t.pop();),       // n w --
+    /*D6*/  CODE(",",     DU n = t.pop(); gPool.add_du(n)),
+    /*D7*/  CODE("allot", DU v = 0; for (IU n = t.pop(), i = 0; i < n; i++) gPool.add_du(v)), // n --
+    /*D8*/  CODE("+!",    IU w = t.pop(); CELL(w) += t.pop()),       // n w --
+    /*D9*/  CODE("decimal", t.base = 10),
+    /*DA*/  CODE("hex",     t.base = 16),
+    /*DB*/  CODE("here",  t.push(gPool.pmem.idx)),
+    /*DC*/  CODE("words", words(t)),
+    /*DE*/  CODE("ss",    ss_dump(t)),
+    /*DF*/  CODE("dump",  DU n = t.pop(); IU a = t.pop(); mem_dump(t, a, n)),
+    /*E0*/  CODE("tick",  IU w = gPool.get_method(next_word(), t.cls_id); t.push(w)),
+    /*E1*/  CODE("clock", t.push(millis())),
+    /*E2*/  CODE("delay", delay(t.pop())),
+    /*E3*/  CODE("bye",   exit(0))
     /// @}
 };
 ///
