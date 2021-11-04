@@ -10,5 +10,6 @@ public class Forth {
     public static int  tick(String s)      { return 0; }  // TODO
     public static int  clock()             { return 0; }
     public static void delay(int t)        {}
-    public static void bye()     {}
+    public static void interpreter()       {}
+    public static void bye()               {}
 }
