@@ -6,6 +6,9 @@
 #include "jvm.h"
 
 extern Ucode gUcode;
+///==========================================================================
+/// Thread class implementation
+///==========================================================================
 ///
 /// Java class file constant pool access macros
 ///
@@ -14,27 +17,39 @@ extern Ucode gUcode;
 #define jStrRef(i,s) J.getStr(i, s, true)
 #define jStr(i,s)    J.getStr(i, s, false)
 ///
-/// Thread class implementation
+/// VM Execution Unit
 ///
-void Thread::forth_call(IU w) {
-	Word *m = (Word*)&gPool.pmem[w];
-	if (m->def) forth_inner(w);
+void Thread::dispatch(IU midx) {
+    Word *w  = (Word*)&gPool.pmem[midx];
+    IU  addr = *(IU*)w->pfa();
+    if (w->java) java_call(addr);           /// call Java inner interpreter
+    else         forth_call(midx);          /// call Native method
+}
+///
+/// Forth core
+///
+void Thread::forth_call(IU midx) {
+	Word *w = (Word*)&gPool.pmem[midx];
+	if (w->def) forth_inner(midx);
 	else {
-		fop xt = *(fop*)m->pfa();
+		fop xt = *(fop*)w->pfa();
 		xt(*this);
 	}
 }
-void Thread::forth_inner(IU w)    {
+void Thread::forth_inner(IU midx)    {
     gPool.rs.push(IP);
-    gPool.rs.push(WP = w);
-    Word *m = (Word*)&gPool.pmem[w];
-    IP = (IU)(m->pfa() - M0);
-    for (IU w1=*(IU*)(M0 + IP); IP!=0; IP += sizeof(IU)) {
-        forth_call(w1);
+    gPool.rs.push(WP = midx);
+    Word *w = (Word*)&gPool.pmem[midx];
+    IP = (IU)(w->pfa() - M0);
+    for (IU m1=*(IU*)(M0 + IP); IP!=0; IP += sizeof(IU)) {
+        forth_call(m1);
     }
     WP = (IU)gPool.rs.pop();
     IP = gPool.rs.pop();
 }
+///
+/// Java core
+///
 void Thread::java_new()  {
     IU idx = fetch2();              /// class index
     /// TODO: allocate space for the object instance
@@ -42,10 +57,10 @@ void Thread::java_new()  {
     printf(" %s", jStrRef(idx, buf));
     push(idx);                      /// save object on stack
 }
-void Thread::java_call(IU addr) {	/// Java inner interpreter
-    U16 nloc = jU16(addr - 6);      /// TODO: allocate local stack frame
+void Thread::java_call(IU jidx) {	/// Java inner interpreter
+    U16 nloc = jU16(jidx - 6);      /// TODO: allocate local stack frame
     gPool.rs.push(IP);
-    IP = addr;                      /// pointer to class file
+    IP = jidx;                      /// pointer to class file
     while (IP) {
         ss_dump(*this);
         U8 op = fetch();            /// fetch opcode
@@ -66,12 +81,8 @@ void Thread::invoke(U16 itype) {    /// invoke type: 0:virtual, 1:special, 2:sta
     printf(" %s::%s", jStrRef(cid, cls), jStr(jU16(mid + 1), xt));
     printf("%s", jStr(jU16(mid + 3), t));
 
-    IU m = gPool.get_method(xt, cls, itype!=1); /// special does not go up to supr class
-    if (m > 0) {
-        Word *w  = (Word*)&gPool.pmem[m];
-        IU  addr = *(IU*)w->pfa();
-        if (w->java) java_call(addr);           /// call Java inner interpreter
-        else         forth_call(m);             /// call Native method
-    }
-    else printf(" **NA**");
+    IU c = gPool.get_class(cls);
+    IU m = gPool.get_method(xt, c, itype!=1); /// special does not go up to supr class
+    if (m > 0) dispatch(m);
+    else       printf(" **NA**");
 }

@@ -17,16 +17,25 @@ struct Thread {
     bool  wide    = false;  /// wide flag
     DU    base    = 10;     /// radix
     DU    tos     = -1;     /// top of stack
+    IU    cls_id  = 0;		/// current class, =~ Forth context
     IU    WP      = 0;      /// method index
     IU    IP      = 0;      /// instruction pointer (program counter)
-    IU    context = 0;		/// current class
 
-    Thread(Loader &ld, U8 *mem) : J(ld), M0(mem) {}
+    Thread(Loader &ld, U8 *mem, IU cid) : J(ld), M0(mem), cls_id(cid) {}
     ///
-    /// Forth inner interpreter
+    /// VM Execution Unit
     ///
-    void forth_call(IU w);
-    void forth_inner(IU w);
+    void dispatch(IU midx); /// instruction dispatcher dispatch
+    ///
+    /// Forth core
+    void forth_call(IU midx);  /// Forth word/ucode caller
+    void forth_inner(IU midx); /// Forth inner interpreter
+    ///
+    /// Java core
+    ///
+    void java_new();           /// instantiate Java object
+    void java_call(IU jidx);   /// execute Java method
+    void invoke(U16 itype);    /// invoke type: 0:virtual, 1:special, 2:static, 3:interface, 4:dynamic
     ///
     /// Java class file byte fetcher
     ///
@@ -44,12 +53,6 @@ struct Thread {
     ///
     void push(DU v)     { ss.push(tos); tos = v; }
     DU   pop()          { DU n = tos; tos = ss.pop(); return n; }
-    ///
-    /// Java class/method ops
-    ///
-    void java_new();
-    void java_call(IU midx);   /// execute Java method
-    void invoke(U16 itype);
     ///
     /// local parameter access, CC:TODO
     ///
