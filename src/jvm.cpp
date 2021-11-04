@@ -110,7 +110,7 @@ void (*fout_cb)(int, const char*);      /// forth output callback function
 ///
 /// debug helper
 ///
-void words() {
+void words(Thread &t) {
     fout << setbase(16);
     IU cid = gPool.cls_root;
     do {
@@ -126,18 +126,19 @@ void words() {
         } while (mid);
         cid = cls->lfa;
     } while (cid);
-    fout << setbase(10) << ENDL;
+    fout << setbase(t.base) << ENDL;
 }
 void ss_dump(Thread &t) {
     if (t.compile) return;
-    fout << " <"; for (int i=0; i<t.ss.idx; i++) { fout << t.ss[i] << " "; }
+    fout << setbase(t.base) << " <";
+    for (int i=0; i<t.ss.idx; i++) { fout << t.ss[i] << " "; }
     fout << t.tos << "> ok" << ENDL;
     yield();
 }
 ///
 /// dump pmem at p0 offset for sz bytes
 ///
-void mem_dump(IU p0, DU sz) {
+void mem_dump(Thread &t, IU p0, DU sz) {
     fout << setbase(16) << setfill('0') << ENDL;
     char buf[17] = { 0 };
     for (IU i=ALIGN16(p0); i<=ALIGN16(p0+sz); i+=16) {
@@ -150,7 +151,7 @@ void mem_dump(IU p0, DU sz) {
         fout << buf << ENDL;
         yield();
     }
-    fout << setbase(10);
+    fout << setbase(t.base);
 }
 ///
 /// outer interpreter
@@ -205,6 +206,13 @@ void outer(Thread &t, const char *cmd, void(*callback)(int, const char*)) {
     }
     ss_dump(t);
 }
+
+#define CODE(s, g)  { s, [](Thread &t){ g; }, 0 }
+static Method _obj[] = {
+	CODE("<init>", {}),
+};
+Ucode gObject(sizeof(_obj)/sizeof(Method), _obj);
+
 ///
 /// main program
 ///
@@ -220,22 +228,23 @@ int main(int ac, char* av[]) {
     /// populate memory pool
     ///
     gPool.register_class("Ucode", gUcode.vtsz, gUcode.vt);
-    gPool.register_class("nanojvm/Forth", gForth.vtsz, gForth.vt, "Ucode");
+    gPool.register_class("java/lang/Object", sizeof(_obj)/sizeof(Method), _obj, "Ucode");
+    gPool.register_class("nanojvm/Forth", gForth.vtsz, gForth.vt, "java/lang/Object");
     ///
     /// instantiate Java class loader
     ///
-    Loader ldr;
+    Loader ld;
     FILE *f = fopen(av[1], "rb");
     if (!f) {
         fprintf(stderr," Failed to open file\n");
         return -1;
     }
-    ldr.init(f);
-    if (ldr.load_class()) return -1;
+    ld.init(f);
+    if (ld.load_class()) return -1;
     ///
     /// instantiate main thread (TODO: single thread for now)
     ///
-    Thread t0(ldr, &gPool.pmem[0]);
+    Thread t0(ld, &gPool.pmem[0]);
 
     cout << unitbuf << "nanoJVM v1 staring..." << endl;
 #if 0

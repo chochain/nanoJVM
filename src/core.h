@@ -19,9 +19,9 @@ struct Thread {
     DU    tos     = -1;     /// top of stack
     IU    WP      = 0;      /// method index
     IU    IP      = 0;      /// instruction pointer (program counter)
-    IU    context = 0;
+    IU    context = 0;		/// current class
 
-    Thread(Loader &ldr, U8 *mem) : J(ldr), M0(mem) {}
+    Thread(Loader &ld, U8 *mem) : J(ld), M0(mem) {}
     ///
     /// Forth inner interpreter
     ///
