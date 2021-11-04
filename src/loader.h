@@ -59,9 +59,9 @@
 class Loader {
     FILE *f = 0;
 
-    U8   type_size(char type);
-    U16  skip_attr(U16 addr);
-    U8   get_size(U16 &addr);
+    U8   _type_size(char type);
+    U16  _attr_size(U16 addr);
+    U8   field_size(U16 &addr);
 
     void create_method(U16 &addr, U16 &m_root);
     

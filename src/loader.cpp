@@ -3,7 +3,7 @@
 ///
 /// Loader - private methods
 ///
-U8 Loader::type_size(char type){
+U8 Loader::_type_size(char type){
     switch(type){
     case TYPE_BYTE:   case TYPE_BOOL:  return 1;
     case TYPE_CHAR:   case TYPE_SHORT: return 2;
@@ -11,18 +11,18 @@ U8 Loader::type_size(char type){
     default: return 4;
     }
 }
-IU Loader::skip_attr(IU addr){
-    return addr + 6 + getU32(addr + 2);
+IU Loader::_attr_size(IU addr){
+    return (IU)6 + getU32(addr + 2);
 }
-U8 Loader::get_size(IU &addr) {
+U8 Loader::field_size(IU &addr) {
     U16 ifld = getU16(addr + 2);                 // field name index
     U16 itype= getU16(addr + 4);                 // read type destriptor index
     U16 xsz  = getU16(addr + 6);                 // get number of filed attributes
     U8  type = getU8(offset(itype-1) + 3);       // get type descriptor first character
     addr += 8;                                   // pointer to field attributes
-    while (xsz--) addr = skip_attr(addr);        //
+    while (xsz--) addr += _attr_size(addr);      //
 
-    return type_size(type);
+    return _type_size(type);
 }
 void Loader::create_method(IU &addr, IU &m_root) {
     U16 i_name  = getU16(addr + 2);
@@ -37,7 +37,7 @@ void Loader::create_method(IU &addr, IU &m_root) {
     printf("%s (%x bytes)", getStr(i_parm, parm), len);
     gPool.add_method(name, midx, FLAG_JAVA, m_root);
 
-    while (n_attr--) addr = skip_attr(addr);
+    while (n_attr--) addr += _attr_size(addr);
 }
 ///
 /// Loader - public methods
@@ -212,7 +212,7 @@ U16 Loader::load_class() {
     while (n_fld--) {                           // scan fields
         U16 flag = getU16(addr);                // get access flags
         bool is_cls = flag & ACC_STATIC;
-        U8 sz = get_size(addr);                  // process one field_info
+        U8 sz = field_size(addr);               // process one field_info
         if (is_cls) sz_cv += sz;
         else        sz_iv += sz;
     }
