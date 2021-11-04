@@ -183,10 +183,9 @@ int handle_number(Thread &t, const char *idiom) {
 ///
 /// outer interpreter
 ///
-void outer(Thread &t, const char *cmd, void(*callback)(int, const char*)) {
+void outer(Thread &t, const char *cmd) {
     fin.clear();                             /// clear input stream error bit if any
     fin.str(cmd);                            /// feed user command into input stream
-    fout_cb = callback;                      /// setup callback function
     fout.str("");                            /// clean output buffer, ready for next
     while (fin >> strbuf) {
         const char *idiom = strbuf.c_str();
@@ -216,6 +215,13 @@ void outer(Thread &t, const char *cmd, void(*callback)(int, const char*)) {
 /// main program
 ///
 #include <iostream>           /// cin, cout
+void forth_outer(Thread &t) {
+	cout << endl;
+	string line;
+	while (getline(cin, line)) {             /// fetch line from user console input
+		outer(t, line.c_str());
+	}
+}
 int main(int ac, char* av[]) {
     static auto send_to_con = [](int len, const char *rst) { cout << rst; };
     if (ac <= 1) {
@@ -223,6 +229,7 @@ int main(int ac, char* av[]) {
         return -1;
     }
     setvbuf(stdout, NULL, _IONBF, 0);
+    fout_cb = send_to_con;
     ///
     /// populate memory pool
     ///
@@ -246,17 +253,11 @@ int main(int ac, char* av[]) {
     Thread t0(ld, &gPool.pmem[0], cidx);
 
     cout << unitbuf << "nanoJVM v1 staring..." << endl;
-#if 0
+
     printf("\nmain()");
-    fout_cb  = send_to_con;
     IU midx  = gPool.get_method("main", cidx);
     t0.dispatch(midx);
-#else
-    string line;
-    while (getline(cin, line)) {             /// fetch line from user console input
-        outer(t0, line.c_str(), send_to_con);
-    }
-#endif
+
     cout << "\n\nnanoJVM done." << endl;
     return 0;
 }

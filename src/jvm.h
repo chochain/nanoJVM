@@ -11,7 +11,7 @@ char *scan(char c);
 void words(Thread &t);
 void ss_dump(Thread &t);
 void mem_dump(Thread &t, IU p0, DU sz);
-void inner();
+void forth_outer(Thread &t);
 ///
 /// macros for parameter memory access
 ///

@@ -46,7 +46,8 @@ static Method _word[] = {
     /*E0*/  CODE("tick",  IU w = gPool.get_method(next_word(), t.cls_id); t.push(w)),
     /*E1*/  CODE("clock", t.push(millis())),
     /*E2*/  CODE("delay", delay(t.pop())),
-    /*E3*/  CODE("bye",   exit(0))
+    /*E3*/  CODE("bye",   exit(0)),
+    /*E4*/  CODE("interpreter", forth_outer(t))
     /// @}
 };
 ///
