@@ -58,7 +58,8 @@ void Thread::java_new()  {
     push(idx);                      /// save object on stack
 }
 void Thread::java_call(IU jidx) {	/// Java inner interpreter
-    U16 nloc = jU16(jidx - 6);      /// TODO: allocate local stack frame
+	U16 nlv = jU16(jidx - 6);       /// local variable counts, TODO: handle types other than integer
+    frame -= nlv;                   /// allocate local variables
     gPool.rs.push(IP);
     IP = jidx;                      /// pointer to class file
     while (IP) {
@@ -67,7 +68,8 @@ void Thread::java_call(IU jidx) {	/// Java inner interpreter
         printf("%04x:%02x %s", IP-1, op, gUcode.vt[op].name);
         gUcode.exec(*this, op);     /// execute JVM opcode
     }
-    IP = gPool.rs.pop();
+    IP = gPool.rs.pop();            /// restore stack frame
+    frame += nlv;                   /// pop off local variables
 }
 void Thread::invoke(U16 itype) {    /// invoke type: 0:virtual, 1:special, 2:static, 3:interface, 4:dynamic
     IU idx   = fetch2();            /// 2 - method index in pool
@@ -75,11 +77,11 @@ void Thread::invoke(U16 itype) {    /// invoke type: 0:virtual, 1:special, 2:sta
     IU c_m   = jOff(idx);           /// [02]000f:a=>[12,13]  [class_name, method_ref]
     IU cid   = jU16(c_m + 1);       /// 12
     IU mrf   = jU16(c_m + 3);       /// 13
-    IU mid   = jOff(mrf);           /// [13]008f:c=>[15,16]  [method_name, type_name]
+    IU midx  = jOff(mrf);           /// [13]008f:c=>[15,16]  [method_name, type_name]
 
     char cls[128], xt[128], t[16];
-    printf(" %s::%s", jStrRef(cid, cls), jStr(jU16(mid + 1), xt));
-    printf("%s", jStr(jU16(mid + 3), t));
+    printf(" %s::%s", jStrRef(cid, cls), jStr(jU16(midx + 1), xt));
+    printf("%s", jStr(jU16(midx + 3), t));
 
     IU c = gPool.get_class(cls);
     IU m = gPool.get_method(xt, c, itype!=1); /// special does not go up to supr class

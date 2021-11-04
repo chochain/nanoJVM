@@ -7,12 +7,11 @@
 ///
 struct Thread {
     List<DU, SS_SZ>  ss;    /// data stack
-    DU     xs[SS_SZ];       /// DEBUG: execution local stack, REFACTOR: combine with ss
     DU     gl[16];          /// DEBUG: class variable (static)
     Loader &J;              /// Java class loader
     U8     *M0    = NULL;   /// cached base address of memory pool
 
-    U16   frame   = 0;      /// local stack index
+    U16   frame   = SS_SZ-1;/// local stack index
     bool  compile = false;  /// compile flag
     bool  wide    = false;  /// wide flag
     DU    base    = 10;     /// radix
@@ -54,13 +53,13 @@ struct Thread {
     void push(DU v)     { ss.push(tos); tos = v; }
     DU   pop()          { DU n = tos; tos = ss.pop(); return n; }
     ///
-    /// local parameter access, CC:TODO
+    /// local variable access
     ///
-    void iinc(U8 i, S8 v)  { xs[frame+i] += v; }
+    void iinc(U8 i, S8 v)  { ss[frame + i] += v; }
     template<typename T>
-    T    load(U32 i, T n)  { return *(T*)&xs[frame+i]; }
+    T    load(U32 i, T n)  { return *(T*)&ss[frame + i]; }
     template<typename T>
-    void store(U32 i, T n) { *(T*)&xs[frame+i] = n; }
+    void store(U32 i, T n) { *(T*)&ss[frame + i] = n; }
 };
 typedef void (*fop)(Thread&); /// opcode function pointer
 ///
