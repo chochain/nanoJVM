@@ -37,10 +37,12 @@ static Method _word[] = {
     /*D5*/  CODE(",",     DU n = t.pop(); gPool.add_du(n)),
     /*D6*/  CODE("allot", DU v = 0; for (IU n = t.pop(), i = 0; i < n; i++) gPool.add_du(v)), // n --
     /*D7*/  CODE("+!",    IU w = t.pop(); CELL(w) += t.pop()),       // n w --
+    /*  */  CODE("decimal", t.base = 10),
+    /*  */  CODE("hex",     t.base = 16),
     /*D8*/  CODE("here",  t.push(gPool.pmem.idx)),
-    /*D9*/  CODE("words", words()),
+    /*D9*/  CODE("words", words(t)),
     /*DA*/  CODE("ss",    ss_dump(t)),
-    /*DB*/  CODE("dump",  DU n = t.pop(); IU a = t.pop(); mem_dump(a, n)),
+    /*DB*/  CODE("dump",  DU n = t.pop(); IU a = t.pop(); mem_dump(t, a, n)),
     /*DC*/  CODE("tick",  IU w = gPool.get_method(next_word()); t.push(w)),
     /*DD*/  CODE("clock", t.push(millis())),
     /*DE*/  CODE("delay", delay(t.pop())),
