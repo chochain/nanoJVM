@@ -26,8 +26,8 @@ IU Pool::get_class(const char *cls_name) {
 ///
 /// return m_root if m_name is NULL
 ///
-IU Pool::get_method(const char *m_name, const char *cls_name, bool supr) {
-    Word *cls = (Word*)&pmem[get_class(cls_name)];
+IU Pool::get_method(const char *m_name, IU cls_id, bool supr) {
+    Word *cls = (Word*)&pmem[cls_id ? cls_id : cls_root];
     IU m_idx = 0;
     while (cls) {
         m_idx = find(m_name, *(IU*)cls->pfa(CLS_VT));
@@ -191,28 +191,27 @@ void outer(Thread &t, const char *cmd, void(*callback)(int, const char*)) {
     while (fin >> strbuf) {
         const char *idiom = strbuf.c_str();
         printf("%s=>",idiom);
-        IU w = gPool.get_method(idiom, "nanojvm/Forth");    /// search forth words
-        if (w > 0) {
+        IU w = gPool.get_method(idiom, t.cls_id);    /// search for word in current context
+        if (w > 0) {						 ///> if handle method found
             Word *m = (Word*)&gPool.pmem[w];
             printf("%s 0x%x\n", m->nfa(), w);
             if (t.compile && !m->immd) {     /// * in compile mode?
                 gPool.add_iu(w);             /// * add found word to new colon word
             }
-            else t.forth_call(w);            /// * execute word
+            else t.dispatch(w);              /// * execute method (either Java or Forth)
+            continue;
         }
-        else if (handle_number(t, idiom)) {
-            fout << idiom << "? " << ENDL;   ///> display error prompt
+        w = gPool.get_class(idiom);			 ///> try as a class name (vocabulary)
+        if (w > 0) {                         ///
+            printf("class 0x%x\n", w);
+        	t.cls_id = w;					 /// * switch class (context)
+        }
+        else if (handle_number(t, idiom)) {	 ///> try as a number
+        	fout << idiom << "? " << ENDL;   ///> display error prompt
         }
     }
     ss_dump(t);
 }
-
-#define CODE(s, g)  { s, [](Thread &t){ g; }, 0 }
-static Method _obj[] = {
-	CODE("<init>", {}),
-};
-Ucode gObject(sizeof(_obj)/sizeof(Method), _obj);
-
 ///
 /// main program
 ///
@@ -227,8 +226,7 @@ int main(int ac, char* av[]) {
     ///
     /// populate memory pool
     ///
-    gPool.register_class("Ucode", gUcode.vtsz, gUcode.vt);
-    gPool.register_class("java/lang/Object", sizeof(_obj)/sizeof(Method), _obj, "Ucode");
+    gPool.register_class("java/lang/Object", gUcode.vtsz, gUcode.vt);
     gPool.register_class("nanojvm/Forth", gForth.vtsz, gForth.vt, "java/lang/Object");
     ///
     /// instantiate Java class loader
@@ -240,20 +238,19 @@ int main(int ac, char* av[]) {
         return -1;
     }
     ld.init(f);
-    if (ld.load_class()) return -1;
+    U16 cidx = ld.load_class();
+    if (!cidx) return -1;
     ///
     /// instantiate main thread (TODO: single thread for now)
     ///
-    Thread t0(ld, &gPool.pmem[0]);
+    Thread t0(ld, &gPool.pmem[0], cidx);
 
     cout << unitbuf << "nanoJVM v1 staring..." << endl;
 #if 0
     printf("\nmain()");
     fout_cb  = send_to_con;
-    IU midx  = gPool.get_method("main");
-    Word *w  = (Word*)&gPool.pmem[midx];
-    IU  addr = *(IU*)w->pfa();
-    t0.java_call(addr);
+    IU midx  = gPool.get_method("main", cidx);
+    t0.dispatch(midx);
 #else
     string line;
     while (getline(cin, line)) {             /// fetch line from user console input

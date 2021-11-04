@@ -32,7 +32,7 @@ struct Pool {
 
     IU   find(const char *m_name, IU root);
     IU   get_class(const char *cls_name);
-    IU   get_method(const char *m_name, const char *cls_name=0, bool supr=true);
+    IU   get_method(const char *m_name, IU cls_id=0, bool supr=true);
 
     IU   add_method(Method &vt, IU &root);
     IU   add_method(const char *m_name, U32 m_idx, U8 flag, IU &root);
