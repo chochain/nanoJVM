@@ -67,7 +67,7 @@ class Loader {
     
 public:
     void init(FILE *cls_file, bool debug=true);
-    int  load_class();
+    U16  load_class();
 
     U8   getU8(U16 addr);
     U16  getU16(U16 addr);

@@ -189,7 +189,7 @@ void Loader::init(FILE *cls_file, bool debug) {
         printf("%s", buf);
     }
 }
-int Loader::load_class() {
+U16 Loader::load_class() {
     if ((U32)getU32(0) != MAGIC) return ERR_MAGIC;
 
     U16 n_cnst = getU16(8) - 1;                 // number of constant pool entries
@@ -226,8 +226,6 @@ int Loader::load_class() {
     	create_method(addr, m_root);
     }
     printf("\n}\n");
-    gPool.add_class(cls, supr, m_root, sz_cv, sz_iv);
-
-    return 0;
+    return gPool.add_class(cls, supr, m_root, sz_cv, sz_iv);
 }
 
