@@ -222,7 +222,7 @@ static Method _java[] = {
     /*81*/  UCODE("lor",  {}),
     /*82*/  UCODE("ixor", TopU32 = t.ss.pop() ^ TopU32),
     /*83*/  UCODE("lxor", {}),
-    /*84*/  UCODE("iinc", TopS32 += OFF),
+    /*84*/  UCODE("iinc", U8 n = OFF8; S8 i = OFF8; t.iinc(n, i)),
     /// @}
     /// @definegroup ALU Conversion ops
     /// @{

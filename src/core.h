@@ -56,6 +56,7 @@ struct Thread {
     ///
     /// local parameter access, CC:TODO
     ///
+    void iinc(U8 i, S8 v)  { xs[frame+i] += v; }
     template<typename T>
     T    load(U32 i, T n)  { return *(T*)&xs[frame+i]; }
     template<typename T>
