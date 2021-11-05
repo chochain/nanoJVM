@@ -1,4 +1,4 @@
-package nanojvm;
+package ej32;
 
 public class Forth {
     public static void decimal() {}

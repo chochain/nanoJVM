@@ -1,4 +1,4 @@
-import nanojvm.Forth;
+import ej32.Forth;
 
 class Outer
 {
