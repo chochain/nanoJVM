@@ -67,10 +67,10 @@ U32 Loader::getU32(IU addr) {
     return v;
 }
 char *Loader::getStr(IU idx, char *buf, bool ref) {
-    IU n = offset(idx - 1);    	    /// [17]:00b6:1=>nanojvm/Forth, or
+    IU n = offset(idx - 1);    	    /// [17]:00b6:1=>ej32/Forth, or
     if (ref) {                      /// [12]008e:7=>17
     	n = getU16(n + 1);     		/// 17
-    	n = offset(n - 1);          /// [17]:00b6:1=>nanojvm/Forth
+    	n = offset(n - 1);          /// [17]:00b6:1=>ej32/Forth
     }
     U16 i, len = getU16(n + 1);
     fseek(f, n + 3, SEEK_SET);		/// move cursor to string

@@ -234,7 +234,7 @@ int main(int ac, char* av[]) {
     /// populate memory pool
     ///
     gPool.register_class("java/lang/Object", gUcode.vtsz, gUcode.vt);
-    gPool.register_class("nanojvm/Forth", gForth.vtsz, gForth.vt, "java/lang/Object");
+    gPool.register_class("ej32/Forth", gForth.vtsz, gForth.vt, "java/lang/Object");
     ///
     /// instantiate Java class loader
     ///
@@ -252,12 +252,12 @@ int main(int ac, char* av[]) {
     ///
     Thread t0(ld, &gPool.pmem[0], cidx);
 
-    cout << unitbuf << "nanoJVM v1 staring..." << endl;
+    cout << unitbuf << "eJ32 v1 staring..." << endl;
 
     printf("\nmain()");
     IU midx  = gPool.get_method("main", cidx);
     t0.dispatch(midx);
 
-    cout << "\n\nnanoJVM done." << endl;
+    cout << "\n\neJ32 done." << endl;
     return 0;
 }
