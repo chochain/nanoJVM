@@ -71,9 +71,9 @@ void Thread::java_call(IU jidx) {	/// Java inner interpreter
     IP = gPool.rs.pop();            /// restore stack frame
     frame += nlv;                   /// pop off local variables
 }
-void Thread::invoke(U16 itype) {    /// invoke type: 0:virtual, 1:special, 2:static, 3:interface, 4:dynamic
+void Thread::invoke(U16 itype, IU jidx) { /// invoke type: 0:virtual, 1:special, 2:static, 3:interface, 4:dynamic
     IU idx   = fetch2();            /// 2 - method index in pool
-    if (itype==4) IP += 2;          /// extra 2 for dynamic
+    if (itype>2) IP += 2;           /// extra 2 for interface and dynamic
     IU c_m   = jOff(idx);           /// [02]000f:a=>[12,13]  [class_name, method_ref]
     IU cid   = jU16(c_m + 1);       /// 12
     IU mrf   = jU16(c_m + 3);       /// 13

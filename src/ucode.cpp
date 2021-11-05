@@ -68,9 +68,6 @@
 ///
 /// micro-code (built-in methods)
 ///
-auto _invoke2 = [](Thread &t){
-    t.invoke(2);
-};
 static Method _java[] = {
     ///
     /// @definegroup Constant ops (CC:TODO)
@@ -279,12 +276,13 @@ static Method _java[] = {
     /*AB*/  UCODE("lookupswitch", {}),
     /// @}
     /// @definegroup Return ops
+    /// @brief - because we separte return stack from data stack, t.ret() is all we needed
     /// @{
-    /*AC*/  UCODE("ireturn",   S32 n = TopS32; t.ret(); PushI(n)),
-    /*AD*/  UCODE("lreturn",   S64 n = TopS64; t.ret(); PushL(n)),
-    /*AE*/  UCODE("freturn",   F32 n = TopF32; t.ret(); PushF(n)),
-    /*AF*/  UCODE("dreturn",   F64 n = TopF64; t.ret(); PushD(n)),
-    /*B0*/  UCODE("areturn",   P32 n = TopU32; t.ret(); PushA(n)),
+    /*AC*/  UCODE("ireturn",   t.ret()),
+    /*AD*/  UCODE("lreturn",   t.ret()),
+    /*AE*/  UCODE("freturn",   t.ret()),
+    /*AF*/  UCODE("dreturn",   t.ret()),
+    /*B0*/  UCODE("areturn",   t.ret()),
     /*B1*/  UCODE("return",    t.ret()),
     /// @}
     /// @definegroup Field Fetch ops
@@ -296,11 +294,11 @@ static Method _java[] = {
     /// @}
     /// @definegroup Method/Interface Invokation ops
     /// @{
-    /*B6*/  UCODE("invokevirtual",   t.invoke(0)),
-    /*B7*/  UCODE("invokespecial",   t.invoke(1)),
-	/*B8*/  UCODE("invokestatic",    t.invoke(2)),
-    /*B9*/  UCODE("invokeinterface", t.invoke(3)),
-    /*BA*/  UCODE("invokedynamic",   t.invoke(4)),
+    /*B6*/  UCODE("invokevirtual",   t.invoke(0, PopI())),
+    /*B7*/  UCODE("invokespecial",   t.invoke(1, PopI())),
+	/*B8*/  UCODE("invokestatic",    t.invoke(2, 0)),
+    /*B9*/  UCODE("invokeinterface", t.invoke(3, PopI())),
+    /*BA*/  UCODE("invokedynamic",   t.invoke(4, 0)),
     /// @}
     /// @definegroup New and Array ops
     /// @{
