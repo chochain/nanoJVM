@@ -3,9 +3,11 @@
 #include <string>       // string class
 #include <stdlib.h>     // strtol
 #include "ucode.h"
-#include "jvm.h"
+#include "mmu.h"
 
 extern Ucode gUcode;
+extern void  ss_dump(Thread &t);
+
 ///==========================================================================
 /// Thread class implementation
 ///==========================================================================

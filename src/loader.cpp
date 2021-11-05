@@ -1,5 +1,5 @@
 #include "loader.h"
-#include "jvm.h"
+#include "mmu.h"
 ///
 /// Loader - private methods
 ///

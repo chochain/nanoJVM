@@ -2,6 +2,8 @@
 #define NANOJVM_UCODE_H
 #include "core.h"
 
+enum { DOVAR = 0xCB, DOLIT, DOSTR, UNNEST };    /// Forth opcodes
+
 struct Ucode {
     int     vtsz;
     Method  *vt;

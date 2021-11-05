@@ -2,6 +2,7 @@
 #define NANOJVM_CORE_H
 #include "common.h"         /// common types and configuration
 #include "loader.h"         /// Java class loader
+
 ///
 /// Thread class
 ///
@@ -20,7 +21,9 @@ struct Thread {
     IU    WP      = 0;      /// method index
     IU    IP      = 0;      /// instruction pointer (program counter)
 
-    Thread(Loader &ld, U8 *mem, IU cid) : J(ld), M0(mem), cls_id(cid) {}
+    Thread(Loader &ld, U8 *mem) : J(ld), M0(mem) {}
+
+    void init_cls(IU cid) { cls_id = cid; }
     ///
     /// VM Execution Unit
     ///

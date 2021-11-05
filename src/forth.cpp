@@ -1,7 +1,5 @@
-#include <sstream>      // iostream, stringstream
-#include <iomanip>      // setbase
-#include <cstdlib>      // strtol
 #include "ucode.h"
+#include "mmu.h"
 #include "jvm.h"        // VM namespace
 
 #define CELL(a)     (*(DU*)(t.M0 + a))   /** fetch a cell from parameter memory */
