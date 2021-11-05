@@ -1,105 +1,21 @@
-#include <sstream>      // iostream, stringstream
+#include <sstream>      // stringstream
+#include <iostream>     // cin, cout
 #include <iomanip>      // setbase
 #include <string>       // string class
 #include <stdlib.h>     // strtol
-#include "ucode.h"
-#include "jvm.h"
+#include "ucode.h"		// microcode managemer
+#include "mmu.h"		// memory pool manager
+#include "jvm.h"		// virtual machine core
+
 using namespace std;    // default to C++ standard template library
-///
-/// search for word following given linked list
-///
-IU Pool::find(const char *s, IU idx) {
-    U8 len = STRLEN(s); // check length first, speed up matching
-    do {
-        Word *w = (Word*)&pmem[idx];
-        if (w->len==len && strcmp(w->nfa(), s)==0) return idx;
-        idx = w->lfa;
-    } while (idx);
-    return 0;
-}
-///
-/// return cls_obj if cls_name is NULL
-///
-IU Pool::get_class(const char *cls_name) {
-    return cls_name ? find(cls_name, cls_root) : cls_root;
-}
-///
-/// return m_root if m_name is NULL
-///
-IU Pool::get_method(const char *m_name, IU cls_id, bool supr) {
-    Word *cls = (Word*)&pmem[cls_id ? cls_id : cls_root];
-    IU m_idx = 0;
-    while (cls) {
-        m_idx = find(m_name, *(IU*)cls->pfa(CLS_VT));
-        if (m_idx || !supr) break;
-        cls = cls->lfa ? (Word*)&pmem[cls->lfa] : 0;
-    }
-    return m_idx;
-}
-///
-/// method constructor
-///
-IU Pool::add_method(Method &vt, IU &m_root) {
-    IU mid = pmem.idx;              /// store current method idx
-    add_iu(m_root);                 /// link to previous method
-    add_u8(STRLEN(vt.name));        /// method name length
-    add_u8((U8)vt.flag);            /// method access control
-    add_str(vt.name);               /// enscribe method name
-    add_pu((PU)vt.xt);              /// encode function pointer
-    return m_root = mid;            /// adjust method root
-};
-IU Pool::add_method(const char *m_name, U32 m_idx, U8 flag, IU &m_root) {
-    IU mid = pmem.idx;              /// store current method idx
-    add_iu(m_root);                 /// link to previous method
-    add_u8(STRLEN(m_name));         /// method name length
-    add_u8(flag);                   /// method access control
-    add_str(m_name);                /// enscribe method name
-    add_du((DU)m_idx);              /// encode function pointer
-    return m_root = mid;            /// adjust method root
-};
-IU Pool::add_class(const char *name, const char *supr, IU m_root, U16 cvsz, U16 ivsz) {
-    /// encode class
-    IU cid = pmem.idx;              /// preserve class link
-    add_iu(cls_root);               /// class linked list
-    add_u8(STRLEN(name));           /// class name string length
-    add_u8(0);                      /// public
-    add_str(name);                  /// class name string
-    add_iu(get_class(supr));        /// super class
-    add_iu(0);                      /// interface
-    add_iu(m_root);                 /// vt
-    add_iu(cvsz);                   /// cvsz
-    add_iu(cvsz);                   /// ivsz
-    return cls_root = cid;
-}
-///
-/// class contructor
-///
-void Pool::register_class(const char *name, int sz, Method *vt, const char *supr) {
-    /// encode vtable
-    IU m_root = 0;
-    for (int i=0; i<sz; i++) {
-        add_method(vt[i], m_root);
-    }
-    add_class(name, supr, m_root, 0, 0);
-    if (jvm_root==0) jvm_root = m_root;
-}
-///
-/// word constructor
-///
-void Pool::colon(const char *name) {
-    int mid = pmem.idx;
-    add_iu(jvm_root);
-    add_u8(STRLEN(name));
-    add_u8(0);
-    add_str(name);
-    jvm_root = mid;
-}
 ///
 /// Java Virtual Machine implementation
 ///
 extern   Ucode  gUcode;                 /// Java microcode ROM
 extern   Ucode  gForth;                 /// Forth microcode ROM
-Pool     gPool;                         /// memory management unit
+extern   Pool   gPool;                  /// memory pool manager
+Loader   gLoader;                       /// loader instance
+Thread   gT0(gLoader, &gPool.pmem[0]);  /// main thread, only one for now
 
 istringstream   fin;                    /// forth_in
 ostringstream   fout;                   /// forth_out
@@ -211,10 +127,7 @@ void outer(Thread &t, const char *cmd) {
     }
     ss_dump(t);
 }
-///
-/// main program
-///
-#include <iostream>           /// cin, cout
+
 void forth_interpreter(Thread &t) {
 	cout << endl;
 	string line;
@@ -222,12 +135,9 @@ void forth_interpreter(Thread &t) {
 		outer(t, line.c_str());
 	}
 }
-int main(int ac, char* av[]) {
+
+int jvm_setup(const char *fname) {
     static auto send_to_con = [](int len, const char *rst) { cout << rst; };
-    if (ac <= 1) {
-        fprintf(stderr,"Usage:> $0 file_name.class\n");
-        return -1;
-    }
     setvbuf(stdout, NULL, _IONBF, 0);
     fout_cb = send_to_con;
     ///
@@ -238,26 +148,22 @@ int main(int ac, char* av[]) {
     ///
     /// instantiate Java class loader
     ///
-    Loader ld;
-    FILE *f = fopen(av[1], "rb");
-    if (!f) {
-        fprintf(stderr," Failed to open file\n");
-        return -1;
-    }
-    ld.init(f);
-    U16 cidx = ld.load_class();
-    if (!cidx) return -1;
+    FILE *f = fopen(fname, "rb");
+    if (!f) return -2;
+    
+    gLoader.init(f);
+    U16 cidx = gLoader.load_class();
+    if (!cidx) return -3;
+
+    gT0.init_cls(cidx);
+}
+
+void jvm_run() {
     ///
     /// instantiate main thread (TODO: single thread for now)
     ///
-    Thread t0(ld, &gPool.pmem[0], cidx);
-
-    cout << unitbuf << "eJ32 v1 staring..." << endl;
-
     printf("\nmain()");
-    IU midx  = gPool.get_method("main", cidx);
-    t0.dispatch(midx);
-
-    cout << "\n\neJ32 done." << endl;
-    return 0;
+    IU midx  = gPool.get_method("main");
+    
+    gT0.dispatch(midx);
 }
