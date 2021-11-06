@@ -1,19 +1,5 @@
 #include "loader.h"
 #include "mmu.h"
-
-#if ARDUINO
-#define LOG(s)      Serial.print(s)
-#define LOGH(h)     Serial.print(h, HEX)
-#define FSIZE(f)    f.size()
-#define FSEEK(o)    f.seek(o, SeekSet)
-#define FGETC(f)    ((U8)f.read())
-#else
-#define LOG(s)      printf("%s", s)
-#define LOGH(h)     printf("%04x", h)
-#define FSIZE(f)    (fseek(f, 0L, SEEK_END), fetll(f))
-#define FSEEK(o)    fseek(f, o, SEEK_SET)
-#define FGETC(f)    ((U8)fgetc(f))
-#endif // ARDUINO
 ///
 /// Loader - private methods
 ///
@@ -47,8 +33,8 @@ void Loader::create_method(IU &addr, IU &m_root) {
     IU  midx = addr + 14;
     U32 len  = getU32(midx - 4);
     char name[128], parm[16];
-    LOG("\n  ["); LOGH(i_name); LOG(getStr(i_name, name)); LOG("]");
-    LOG(getStr(i_parm, parm)); LOG(" ("); LOGH(len); LOG(" bytes)");
+    LOG("\n  ["); LOX2(i_name); LOG("]"); LOG(getStr(i_name, name));
+    LOG(getStr(i_parm, parm)); LOG(" ("); LOX(len); LOG(" bytes)");
     gPool.add_method(name, midx, FLAG_JAVA, m_root);
 
     while (n_attr--) addr += _attr_size(addr);
@@ -57,7 +43,7 @@ void Loader::create_method(IU &addr, IU &m_root) {
 /// Loader - public methods
 ///
 U8 Loader::getU8(IU addr) {
-    FSEEK(addr);
+    FSEEK(f, addr);
     return FGETC(f);
 }
 U16 Loader::getU16(IU addr) {
@@ -76,7 +62,7 @@ char *Loader::getStr(IU idx, char *buf, bool ref) {
     	n = offset(n - 1);          /// [17]:00b6:1=>ej32/Forth
     }
     U16 i, len = getU16(n + 1);
-    FSEEK(n + 3);		            /// move cursor to string
+    FSEEK(f, n + 3);		        /// move cursor to string
     for (i=0; i<len; i++)   {
         buf[i] = FGETC(f);
     }
@@ -95,24 +81,24 @@ U16 Loader::offset(U16 idx, bool debug) {
     for (int i=0; i<idx; i++) {
         U8 t = getU8(addr);
         if (debug) {
-            LOG("\n["); LOGH(i+1); LOG("]"); LOGH(addr); LOG(":"); LOGH(t);
+            LOG("\n["); LOX2(i+1); LOG("]"); LOX4(addr); LOG(":"); LOX2(t);
         }
         addr++;
         switch(t){
         case CONST_INT:
-            if (debug) { LOG("=>0x"); LOGH(getU32(addr)); }
+            if (debug) { LOG("=>0x"); LOX(getU32(addr)); }
             addr += 4; break;
         case CONST_UTF8:
             if (debug) {
                 LOG("=>");
                 for (U16 i=0, n=getU16(addr); i<n; i++) {
-                    LOG((char)getU8(addr+2+i));
+                    CHR(getU8(addr+2+i));
                 }
             }
             addr += 2 + getU16(addr); break;
         case CONST_STRING:
         case CONST_CLASS:
-            if (debug) { LOG("=>"); LOGH(getU16(addr)); }
+            if (debug) { LOG("=>"); LOX(getU16(addr)); }
             addr += 2; break;
         case CONST_LONG:
         case CONST_DOUBLE:
@@ -121,8 +107,8 @@ U16 Loader::offset(U16 idx, bool debug) {
         case CONST_METHOD:
         case CONST_NAME_TYPE:
             if (debug) {
-                LOG("=>["); LOGH(getU16(addr));
-                LOG(",");   LOGH(getU16(addr+2)); LOG("]");
+                LOG("=>["); LOX(getU16(addr));
+                LOG(",");   LOX(getU16(addr+2)); LOG("]");
             }
             addr += 4; break;
         default: addr += 4; break;
@@ -177,26 +163,27 @@ attribute_info {
 */
 int Loader::init(const char *fname, bool debug) {
 #if ARDUINO
+    if (!SPIFFS.begin()) { LOG("failed to open SPIFFS"); return -1; }
     f = SPIFFS.open(fname, "r");
-    if (!f.available()) return -2;
+    if (!f.available()) { LOG("failed to open file: "); LOG(fname); return -2; }
 #else
     f = fopen(fname, "rb");
-    if (!f) return -2;
+    if (!f) { LOG("failed to open file: "); LOG(fname); return -2; }
 #endif
+    LOG("\nJava class file: "); LOG(fname);
     if (!debug) return 0;
     ///
     /// dump Java class file content
     ///
     U32 sz = FSIZE(f);
-
-    FSEEK(0);
+    FSEEK(f, 0);
 	char buf[17] = { 0 };
     for (IU i=0; i<=sz; i+=16) {
-        LOG("\n"); LOGH(i); LOG(": ");
+        LOG("\n"); LOX4(i); LOG(": ");
         for (int j=0; j<16; j++) {
             char c = FGETC(f);
             buf[j] = ((c>0x7f)||(c<0x20)) ? '_' : c;
-            LOGH((int)c); LOG(j%4==3 ? "  " : " ");
+            LOX2((int)c); LOG(j%4==3 ? "  " : " ");
         }
         buf[16] = '\0';
         LOG(buf);
@@ -213,14 +200,14 @@ U16 Loader::load_class() {
     U16 i_supr = getU16(addr);  addr += 2;      // super class
 
     char cls[128], supr[128];
-    LOG("\nclass ["); LOGH(i_cls); LOG("]"); LOG(getStr(i_cls,  cls, true));
-    LOG(" : ["); LOGH(i_supr); LOG("]"); LOG(getStr(i_supr, supr, true));
+    LOG("\nclass ["); LOX(i_cls); LOG("]"); LOG(getStr(i_cls,  cls, true));
+    LOG(" : ["); LOX(i_supr); LOG("]"); LOG(getStr(i_supr, supr, true));
 
     U16 n_intf = getU16(addr);  addr += 2;      // number of interfaces
     IU  p_intf = addr;                          // pointer to interface section
     U16 n_fld  = getU16((addr += n_intf*2));    // number of fields
     IU  p_fld  = (addr += 2);
-    LOG("\n  p_intf="); LOGH(p_intf); LOG(", p_attr=");   LOGH(p_fld);
+    LOG("\n  p_intf="); LOX(p_intf); LOG(", p_attr="); LOX(p_fld);
     
     U16 sz_cv = 0, sz_iv = 0;
     while (n_fld--) {                           // scan fields
@@ -230,15 +217,16 @@ U16 Loader::load_class() {
         if (is_cls) sz_cv += sz;
         else        sz_iv += sz;
     }
-    LOG("\n  sz_cls="); LOGH(sz_cv); LOG(", sz_inst="); LOGH(sz_iv);
+    LOG("\n  sz_cls="); LOX(sz_cv); LOG(", sz_inst="); LOX(sz_iv);
 
     U16 n_method = getU16(addr);                // number of methods
     IU  p_method = (addr += 2);                 // pointer to methods
-    LOG("\n  n_method="); LOGH(n_method); LOG(", p_method="); LOGH(p_method);
+    LOG("\n  n_method="); LOX(n_method); LOG(", p_method="); LOX(p_method);
     IU  m_root = 0;
     while (n_method--) {
     	create_method(addr, m_root);
     }
-    LOG("\n}\n");
+    LOG("\n} loaded.\n");
+    
     return gPool.add_class(cls, supr, m_root, sz_cv, sz_iv);
 }

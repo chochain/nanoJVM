@@ -56,7 +56,7 @@ void Thread::java_new()  {
     IU idx = fetch2();              /// class index
     /// TODO: allocate space for the object instance
     char buf[128];
-    printf(" %s", jStrRef(idx, buf));
+    LOG(" "); LOG(jStrRef(idx, buf));
     push(idx);                      /// save object on stack
 }
 void Thread::java_call(IU jidx) {	/// Java inner interpreter
@@ -67,7 +67,8 @@ void Thread::java_call(IU jidx) {	/// Java inner interpreter
     while (IP) {
         ss_dump(*this);
         U8 op = fetch();            /// fetch opcode
-        printf("%04x:%02x %s", IP-1, op, gUcode.vt[op].name);
+        LOG("j"); LOX4(IP-1); LOG(":"); LOX2(op);
+        LOG(" "); LOG(gUcode.vt[op].name);
         gUcode.exec(*this, op);     /// execute JVM opcode
     }
     IP = gPool.rs.pop();            /// restore stack frame
@@ -82,11 +83,11 @@ void Thread::invoke(U16 itype, IU jidx) { /// invoke type: 0:virtual, 1:special,
     IU midx  = jOff(mrf);           /// [13]008f:c=>[15,16]  [method_name, type_name]
 
     char cls[128], xt[128], t[16];
-    printf(" %s::%s", jStrRef(cid, cls), jStr(jU16(midx + 1), xt));
-    printf("%s", jStr(jU16(midx + 3), t));
+    LOG(" "); LOG(jStrRef(cid, cls)); LOG("::"); LOG(jStr(jU16(midx + 1), xt));
+    LOG(jStr(jU16(midx + 3), t));
 
     IU c = gPool.get_class(cls);
     IU m = gPool.get_method(xt, c, itype!=1); /// special does not go up to supr class
     if (m > 0) dispatch(m);
-    else       printf(" **NA**");
+    else       LOG(" **NA**");
 }
