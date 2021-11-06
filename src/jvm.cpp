@@ -58,7 +58,7 @@ void mem_dump(Thread &t, IU p0, DU sz) {
     fout << setbase(16) << setfill('0') << ENDL;
     char buf[17] = { 0 };
     for (IU i=ALIGN16(p0); i<=ALIGN16(p0+sz); i+=16) {
-        fout << setw(4) << i << ": ";
+        fout << "m" << setw(4) << i << ": ";
         for (int j=0; j<16; j++) {
             U8 c = gPool.pmem[i+j];
             buf[j] = ((c>0x7f)||(c<0x20)) ? '_' : c;
@@ -83,7 +83,7 @@ char *scan(char c) {
 int handle_number(Thread &t, const char *idiom) {
     char *p;
     int n = static_cast<int>(strtol(idiom, &p, t.base));
-    printf("%d\n", n);
+    LOX(n); LOG("\n");
     if (*p != '\0') {        /// * not number
         t.compile = false;   ///> reset to interpreter mode
         return -1;           ///> skip the entire input buffer
@@ -99,17 +99,18 @@ int handle_number(Thread &t, const char *idiom) {
 ///
 /// outer interpreter
 ///
-void outer(Thread &t, const char *cmd) {
+void outer(Thread &t, const char *cmd, void(*callback)(int, const char*)) {
     fin.clear();                             /// clear input stream error bit if any
     fin.str(cmd);                            /// feed user command into input stream
+    fout_cb = callback;
     fout.str("");                            /// clean output buffer, ready for next
     while (fin >> strbuf) {
         const char *idiom = strbuf.c_str();
-        printf("%s=>",idiom);
+        LOG(idiom); LOG("=>");
         IU w = gPool.get_method(idiom, t.cls_id);    /// search for word in current context
         if (w > 0) {						 ///> if handle method found
             Word *m = (Word*)&gPool.pmem[w];
-            printf("%s 0x%x\n", m->nfa(), w);
+            LOG(m->nfa()); LOG(" 0x"); LOX(w);
             if (t.compile && !m->immd) {     /// * in compile mode?
                 gPool.add_iu(w);             /// * add found word to new colon word
             }
@@ -118,7 +119,7 @@ void outer(Thread &t, const char *cmd) {
         }
         w = gPool.get_class(idiom);			 ///> try as a class name (vocabulary)
         if (w > 0) {                         ///
-            printf("class 0x%x\n", w);
+            LOG("class 0x"); LOX(w); LOG("\n");
         	t.cls_id = w;					 /// * switch class (context)
         }
         else if (handle_number(t, idiom)) {	 ///> try as a number
@@ -128,16 +129,16 @@ void outer(Thread &t, const char *cmd) {
     ss_dump(t);
 }
 
+void send_to_con(int len, const char *msg) { LOG(msg); };
 void forth_interpreter(Thread &t) {
 	cout << endl;
 	string line;
 	while (getline(cin, line)) {             /// fetch line from user console input
-		outer(t, line.c_str());
+		outer(t, line.c_str(), send_to_con);
 	}
 }
 
 int jvm_setup(const char *fname) {
-    static auto send_to_con = [](int len, const char *rst) { cout << rst; };
     setvbuf(stdout, NULL, _IONBF, 0);
     fout_cb = send_to_con;
     ///
@@ -148,19 +149,51 @@ int jvm_setup(const char *fname) {
     ///
     /// instantiate Java class loader
     ///
-    gLoader.init("/java/Hello.class");
+    if (gLoader.init(fname)) return -1;
+    
     U16 cidx = gLoader.load_class();
-    if (!cidx) return -3;
-
+    if (!cidx) return -2;
+    
     gT0.init_cls(cidx);
+    return 0;
 }
 
+#if ARDUINO
+void mem_stat(Thread &t) {
+    LOG("Core:");           LOX(xPortGetCoreID());
+    LOG(" heap[maxblk=");   LOX(heap_caps_get_largest_free_block(MALLOC_CAP_8BIT));
+    LOG(", avail=");        LOX(heap_caps_get_free_size(MALLOC_CAP_8BIT));
+    LOG(", ss_max=");       LOX(t.ss.max);
+    LOG(", rs_max=");       LOX(gPool.rs.max);
+    LOG(", pmem=");         LOX(gPool.pmem.idx);
+    LOG("], lowest[heap="); LOX(heap_caps_get_minimum_free_size(MALLOC_CAP_8BIT));
+    LOG(", stack=");        LOX(uxTaskGetStackHighWaterMark(NULL));
+    LOG("]\n");
+    if (!heap_caps_check_integrity_all(true)) {
+//        heap_trace_dump();     // dump memory, if we have to
+        abort();                 // bail, on any memory error
+    }
+}
+String console_cmd;
+void jvm_run() {
+    if (Serial.available()) {
+        console_cmd = Serial.readString();
+        LOG(console_cmd);
+        outer(gT0, console_cmd.c_str(), send_to_con);
+        mem_stat(gT0);
+        delay(2);
+    }
+}
+#else 
+void mem_stat(Thread &t) {}
 void jvm_run() {
     ///
     /// instantiate main thread (TODO: single thread for now)
     ///
-    printf("\nmain()");
+    LOG("\nmain()");
     IU midx  = gPool.get_method("main");
     
     gT0.dispatch(midx);
 }
+#endif // ARDUINO
+

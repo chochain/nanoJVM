@@ -12,6 +12,7 @@ void mem_dump(Thread &t, IU p0, DU sz);
 void forth_interpreter(Thread &t);
 
 int  jvm_setup(const char *fname);
+void mem_stat(Thread &t);
 void jvm_run();
 
 #endif // NANOJVM_JVM_H
