@@ -148,10 +148,7 @@ int jvm_setup(const char *fname) {
     ///
     /// instantiate Java class loader
     ///
-    FILE *f = fopen(fname, "rb");
-    if (!f) return -2;
-    
-    gLoader.init(f);
+    gLoader.init("/java/Hello.class");
     U16 cidx = gLoader.load_class();
     if (!cidx) return -3;
 

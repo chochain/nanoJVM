@@ -1,6 +1,5 @@
 #ifndef NANOJVM_LOADER_H
 #define NANOJVM_LOADER_H
-#include <stdio.h>      // fopen and IO
 #include "common.h"
 ///
 /// types of constants
@@ -57,8 +56,11 @@
 /// Java class file loader
 ///
 class Loader {
-    FILE *f = 0;
-
+#if ARDUINO
+    File f;
+#else
+    FILE *f;
+#endif
     U8   _type_size(char type);
     U16  _attr_size(U16 addr);
     U8   field_size(U16 &addr);
@@ -66,7 +68,7 @@ class Loader {
     void create_method(U16 &addr, U16 &m_root);
     
 public:
-    void init(FILE *cls_file, bool debug=true);
+    int  init(const char *fname, bool debug=true);
     U16  load_class();
 
     U8   getU8(U16 addr);

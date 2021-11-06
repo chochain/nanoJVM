@@ -6,7 +6,6 @@
 #include <stdint.h>     // int16_t, ...
 #include <stdlib.h>     // strtol
 #include <string.h>     // strcmp
-using namespace std;
 ///
 /// conditional compilation options
 ///
@@ -24,10 +23,13 @@ using namespace std;
 ///
 #if ARDUINO
 #include <Arduino.h>
+#include "SPIFFS.h"
+#include "FS.h"
 #if ESP32
 #define analogWrite(c,v,mx) ledcWrite((c),(8191/mx)*min((int)(v),mx))
 #endif // ESP32
 #else
+#include <stdio.h>
 #include <chrono>
 #include <thread>
 #define millis()        chrono::duration_cast<chrono::milliseconds>( \

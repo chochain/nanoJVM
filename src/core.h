@@ -2,7 +2,6 @@
 #define NANOJVM_CORE_H
 #include "common.h"         /// common types and configuration
 #include "loader.h"         /// Java class loader
-
 ///
 /// Thread class
 ///
