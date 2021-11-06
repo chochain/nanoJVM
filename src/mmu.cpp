@@ -2,7 +2,6 @@
 #include "mmu.h"
 
 Pool gPool;             /// global memory pool manager
-
 ///
 /// search for word following given linked list
 ///
@@ -79,16 +78,17 @@ void Pool::register_class(const char *name, int sz, Method *vt, const char *supr
         add_method(vt[i], m_root);
     }
     add_class(name, supr, m_root, 0, 0);
-    if (jvm_root==0) jvm_root = m_root;
 }
 ///
 /// word constructor
 ///
-void Pool::colon(const char *name) {
+void Pool::colon(Thread &t, const char *name) {
+    Word *w = (Word*)&pmem[t.cls_id];
+    IU  *pm_root = (IU*)(w->pfa() + CLS_VT);
     int mid = pmem.idx;
-    add_iu(jvm_root);
+    add_iu(*pm_root);
     add_u8(STRLEN(name));
     add_u8(0);
     add_str(name);
-    jvm_root = mid;
+    *pm_root = mid;
 }
