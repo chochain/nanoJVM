@@ -6,6 +6,7 @@
 #include <stdint.h>     // int16_t, ...
 #include <stdlib.h>     // strtol
 #include <string.h>     // strcmp
+using namespace std;
 ///
 /// conditional compilation options
 ///
@@ -97,5 +98,26 @@ typedef P32         PU;
 #define ALIGN(sz)   ((sz) + (-(sz) & 0x1))  /** 2-byte alignment  */
 #define ALIGN16(sz) ((sz) + (-(sz) & 0xf))  /** 16-byte alignment */
 #define STRLEN(s)   (ALIGN(strlen(s)+1))    /** calculate string size with alignment */
-
+///
+/// console and file/SPIFFS IO macros
+///
+#if ARDUINO
+#define LOG(s)      Serial.print(s)
+#define CHR(c)      Serial.print((char)(c))
+#define LOX(h)      Serial.print(h, HEX)
+#define LOX2(h)     LOX((h)>>4); LOX((h)&0xf)
+#define LOX4(h)     LOX2((h)>>8); LOX2((h)&0xff)
+#define FSIZE(f)    f.size()
+#define FSEEK(f, o) f.seek(o, SeekSet)
+#define FGETC(f)    ((U8)f.read())
+#else
+#define LOG(s)      printf("%s", s)
+#define CHR(c)      printf("%c", (char)c)
+#define LOX(h)      printf("%x", h)
+#define LOX2(h)     printf("%02x", (U8)(h))
+#define LOX4(h)     printf("%04x", h)
+#define FSIZE(f)    (fseek(f, 0L, SEEK_END), ftell(f))
+#define FSEEK(f, o) fseek(f, o, SEEK_SET)
+#define FGETC(f)    ((U8)fgetc(f))
+#endif // ARDUINO
 #endif // NANOJVM_COMMON_H
