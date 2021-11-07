@@ -16,21 +16,17 @@ struct Thread {
     bool  wide    = false;  /// wide flag
     DU    base    = 10;     /// radix
     DU    tos     = -1;     /// top of stack
-    IU    cls_id  = 0;		/// current class, =~ Forth context
+    IU    cls     = 0;		/// current class, =~ Forth context
     IU    WP      = 0;      /// method index
     IU    IP      = 0;      /// instruction pointer (program counter)
 
-    Thread(Loader &ld, U8 *mem) : J(ld), M0(mem) {}
+    Thread(Loader &ld) : J(ld) {}
 
-    void init_cls(IU cid) { cls_id = cid; }
+    void init(U8 *mem, IU cidx) { M0 = mem; cls = cidx; }
     ///
     /// VM Execution Unit
     ///
     void dispatch(IU midx); /// instruction dispatcher dispatch
-    ///
-    /// Forth core
-    void forth_call(IU midx);  /// Forth word/ucode caller
-    void forth_inner(IU midx); /// Forth inner interpreter
     ///
     /// Java core
     ///
@@ -67,23 +63,22 @@ typedef void (*fop)(Thread&); /// opcode function pointer
 ///
 /// Method class
 ///
-#define FLAG_IMMD 0x1
-#define FLAG_DEF  0x2
-#define FLAG_JAVA 0x4
+#define FLAG_IMMD   0x1
+#define FLAG_FORTH  0x2
+#define FLAG_JAVA   0x4
 struct Method {
     const char *name = 0;     /// for debugging, TODO (in const_pool)
 #if METHOD_PACKED
     union {
         fop   xt = 0;         /// function pointer (or decayed lambda)
         struct {
-            U16 flag;
-            IU  midx;
+            U32 flag: 3;
+            U32 rsv:  29;
         };
     };
 #else
-    fop   xt = 0;            /// function pointer (or decayed lambda)
-    U16   flag;
-    IU    midx;
+    fop   xt   = 0;           /// function pointer (or decayed lambda)
+    U16   flag = 0;
 #endif
     Method(const char *n, fop f, U32 im=0) : name(n), xt(f), flag(im) {}
 };
@@ -92,7 +87,7 @@ struct Method {
 ///   class list - linked list of words, dict[cls_root], pfa => next_class
 ///   vtable     - linked list of words, dict[class.pfa], pfa => next_method
 ///
-#define CLS_SUPER       0
+#define CLS_SUPR        0
 #define CLS_INTF        2
 #define CLS_VT          4
 #define CLS_CVSZ        6
@@ -101,8 +96,8 @@ struct Word {                /// 4-byte header
     IU  lfa;                 /// link field to previous word
     U8  len;                 /// name of method
 
-    U8  def:    1;           /// 0:native, 1:composite
     U8  immd:   1;           /// Forth immediate word
+    U8  forth:  1;           /// 0:native, 1:composite
     U8  java:   1;           /// Java method
     U8  access: 2;           /// public, private, protected
     U8  ftype:  3;           /// static, finall, virtual, synchronized
