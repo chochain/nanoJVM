@@ -15,21 +15,21 @@ static Method _word[] = {
     /*CD*/  CODE("dostr",
                 const char *s = (const char*)(t.M0 + t.IP);
                 t.push(t.IP); t.IP += STRLEN(s)),
-    /*CE*/  CODE("unnest", t.IP = 0xffff),
+    /*CE*/  CODE("unnest", t.IP = 0),
     /*CF*/  CODE("create",
                 gPool.colon(t, next_word());
-                gPool.add_iu(DOVAR)),
+                gPool.add_op(DOVAR)),
     /*D0*/  CODE("variable",
                 gPool.colon(t, next_word());
                 DU n = 0;
-                gPool.add_iu(DOVAR);
+                gPool.add_op(DOVAR);
                 gPool.add_du(n)),
     /*D1*/  CODE("constant",
                 gPool.colon(t, next_word());
-                gPool.add_iu(DOLIT);
+                gPool.add_op(DOLIT);
                 gPool.add_du(t.pop())),
     /*D2*/  CODE(":",     gPool.colon(t, next_word()); t.compile=true),
-    /*D3*/  IMMD(";",     gPool.add_iu(UNNEST); t.compile = false),
+    /*D3*/  IMMD(";",     gPool.add_op(UNNEST); t.compile = false),
     /*D4*/  CODE("@",     IU w = t.pop(); t.push(CELL(w))),          // w -- n
     /*D5*/  CODE("!",     IU w = t.pop(); CELL(w) = t.pop();),       // n w --
     /*D6*/  CODE(",",     DU n = t.pop(); gPool.add_du(n)),
@@ -41,7 +41,7 @@ static Method _word[] = {
     /*DC*/  CODE("words", words(t)),
     /*DE*/  CODE("ss",    ss_dump(t)),
     /*DF*/  CODE("dump",  DU n = t.pop(); IU a = t.pop(); mem_dump(t, a, n)),
-    /*E0*/  CODE("tick",  IU w = gPool.get_method(next_word(), t.cls_id); t.push(w)),
+    /*E0*/  CODE("tick",  IU w = gPool.get_method(next_word(), t.cls); t.push(w)),
     /*E1*/  CODE("clock", t.push(millis())),
     /*E2*/  CODE("delay", delay(t.pop())),
     /*E3*/  CODE("bye",   exit(0)),
