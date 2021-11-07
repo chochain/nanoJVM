@@ -10,7 +10,8 @@ using namespace std;
 ///
 /// conditional compilation options
 ///
-#define RANGE_CHECK
+#define RANGE_CHECK     1
+#define DEBUG           1
 ///
 /// memory block size setting
 ///
@@ -19,6 +20,7 @@ using namespace std;
 #define RS_SZ           128         /** return stack size per VM   */
 #define SS_SZ           256         /** data stack size per thread */
 #define CONST_SZ        128         /** constant pool size         */
+#define LOOKUP_SZ       4
 ///
 /// Arduino support macros
 ///
