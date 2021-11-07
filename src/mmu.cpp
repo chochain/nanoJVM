@@ -66,6 +66,7 @@ IU Pool::add_class(const char *name, const char *supr, IU m_root, U16 cvsz, U16 
     add_iu(m_root);                 /// vt
     add_iu(cvsz);                   /// cvsz
     add_iu(cvsz);                   /// ivsz
+    if (!jvm_root) jvm_root = cid;  /// mark JVM ucode root
     return cls_root = cid;
 }
 ///
@@ -79,16 +80,28 @@ void Pool::register_class(const char *name, int sz, Method *vt, const char *supr
     }
     add_class(name, supr, m_root, 0, 0);
 }
+
+void Pool::build_lookup() {
+	static const char *wlist[LOOKUP_SZ] = {
+		"dovar", "dolit", "dostr", "unnest"
+	};
+	Word *cls = WORD(find("ej32/Forth", cls_root));
+	IU   vt   = *(IU*)cls->pfa(CLS_VT);
+	for (int i=0; i<LOOKUP_SZ; i++) {
+		IU w = find(wlist[i], vt);
+		lookup[i] = w;
+	}
+}
 ///
 /// word constructor
 ///
 void Pool::colon(Thread &t, const char *name) {
-    Word *w = (Word*)&pmem[t.cls_id];
-    IU  *pm_root = (IU*)(w->pfa() + CLS_VT);
-    int mid = pmem.idx;
-    add_iu(*pm_root);
+    Word *w  = (Word*)&pmem[t.cls];	/// get class word
+    IU   *vt = (IU*)w->pfa(CLS_VT); /// pointer to method root
+    int  mid = pmem.idx;			/// keep current
+    add_iu(*vt);
     add_u8(STRLEN(name));
-    add_u8(0);
+    add_u8(FLAG_FORTH);				/// a Forth word
     add_str(name);
-    *pm_root = mid;
+    *vt = mid;
 }
