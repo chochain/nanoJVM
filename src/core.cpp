@@ -22,32 +22,29 @@ extern void  ss_dump(Thread &t);
 /// VM Execution Unit
 ///
 void Thread::dispatch(IU midx) {
-    Word *w  = (Word*)&gPool.pmem[midx];
-    IU  addr = *(IU*)w->pfa();
-    if (w->java) java_call(addr);           /// call Java inner interpreter
-    else         forth_call(midx);          /// call Native method
-}
-///
-/// Forth core
-///
-void Thread::forth_call(IU midx) {
-	Word *w = (Word*)&gPool.pmem[midx];
-	if (w->def) forth_inner(midx);
-	else {
-		fop xt = *(fop*)w->pfa();
-		xt(*this);
-	}
-}
-void Thread::forth_inner(IU midx)    {
-    gPool.rs.push(IP);
-    gPool.rs.push(WP = midx);
-    Word *w = (Word*)&gPool.pmem[midx];
-    IP = (IU)(w->pfa() - M0);
-    for (IU m1=*(IU*)(M0 + IP); IP!=0; IP += sizeof(IU)) {
-        forth_call(m1);
+    Word *w  = WORD(midx);
+    if (w->java) {                   /// call Java inner interpreter
+        IU  addr = *(IU*)w->pfa();
+    	java_call(addr);
     }
-    WP = (IU)gPool.rs.pop();
-    IP = gPool.rs.pop();
+    else if (w->forth) {			 /// Forth core
+        gPool.rs.push(IP);			 /// setup call frame
+        gPool.rs.push(WP = midx);
+        IP = (IU)(w->pfa() - M0);	 /// get new IP
+        while (IP) {				 /// Forth inner interpreter
+        	IU midx1 = *(IU*)(M0 + IP); /// fetch next instruction
+            LOG("\nm"); LOX4(IP-1); LOG(":"); LOX4(midx1);
+            LOG(" "); LOG(WORD(midx1)->nfa());
+            IP += sizeof(IU);        /// too bad, we cannot do IP++
+            dispatch(midx1);		 /// recursively call
+        }
+        WP = (IU)gPool.rs.pop();     /// restore call frame
+        IP = gPool.rs.pop();
+    }
+    else {
+		fop xt = *(fop*)w->pfa();	 /// Native method pointer
+		xt(*this);
+    }
 }
 ///
 /// Java core
