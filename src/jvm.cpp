@@ -15,7 +15,7 @@ extern   Ucode  gUcode;                 /// Java microcode ROM
 extern   Ucode  gForth;                 /// Forth microcode ROM
 extern   Pool   gPool;                  /// memory pool manager
 Loader   gLoader;                       /// loader instance
-Thread   gT0(gLoader, &gPool.pmem[0]);  /// main thread, only one for now
+Thread   gT0(gLoader);  				/// main thread, only one for now
 
 istringstream   fin;                    /// forth_in
 ostringstream   fout;                   /// forth_out
@@ -30,18 +30,19 @@ void words(Thread &t) {
     fout << setbase(16);
     IU cid = gPool.cls_root;
     do {
-        Word *cls = (Word*)&gPool.pmem[cid];
-        fout << "\n" << cls->nfa() << " " << cid << "::";
+        Word *cls = WORD(cid);
+        Word *supr= WORD(*(IU*)cls->pfa(CLS_SUPR));
+        fout << "\n" << cls->nfa() << " : " << supr->nfa() << " " << cid;
         IU mid = *(IU*)cls->pfa(CLS_VT);
         int i = 0;
         do {
-            Word *m = (Word*)&gPool.pmem[mid];
+            Word *w = WORD(mid);
             if ((i++%10)==0) { fout << ENDL; fout << "\t"; yield(); }
-            fout << m->nfa() << " " << mid << " ";
-            mid = m->lfa;
+            fout << w->nfa() << " " << mid << " ";
+            mid = w->lfa;
         } while (mid);
         cid = cls->lfa;
-    } while (cid);
+    } while (cid && cid != gPool.jvm_root);
     fout << setbase(t.base) << ENDL;
 }
 void ss_dump(Thread &t) {
@@ -90,7 +91,7 @@ int handle_number(Thread &t, const char *idiom) {
     }
     // is a number
     if (t.compile) {         /// * add literal when in compile mode
-        gPool.add_iu(DOLIT); ///> dovar (+parameter field)
+        gPool.add_op(DOLIT); ///> dovar (+parameter field)
         gPool.add_du(n);     ///> data storage (32-bit integer now)
     }
     else t.push(n);          ///> or, add value onto data stack
@@ -107,20 +108,20 @@ void outer(Thread &t, const char *cmd, void(*callback)(int, const char*)) {
     while (fin >> strbuf) {
         const char *idiom = strbuf.c_str();
         LOG(idiom); LOG("=>");
-        IU w = gPool.get_method(idiom, t.cls_id);    /// search for word in current context
-        if (w > 0) {						 ///> if handle method found
-            Word *m = (Word*)&gPool.pmem[w];
-            LOG(m->nfa()); LOG(" 0x"); LOX(w);
-            if (t.compile && !m->immd) {     /// * in compile mode?
-                gPool.add_iu(w);             /// * add found word to new colon word
+        IU m = gPool.get_method(idiom, t.cls);    /// search for word in current context
+        if (m > 0) {						 ///> if handle method found
+            Word *w = WORD(m);
+            LOG(w->nfa()); LOG(" 0x"); LOX(m);
+            if (t.compile && !w->immd) {     /// * in compile mode?
+                gPool.add_iu(m);             /// * add found word to new colon word
             }
-            else t.dispatch(w);              /// * execute method (either Java or Forth)
+            else t.dispatch(m);              /// * execute method (either Java or Forth)
             continue;
         }
-        w = gPool.get_class(idiom);			 ///> try as a class name (vocabulary)
-        if (w > 0) {                         ///
-            LOG("class 0x"); LOX(w); LOG("\n");
-        	t.cls_id = w;					 /// * switch class (context)
+        m = gPool.get_class(idiom);			 ///> try as a class name (vocabulary)
+        if (m > 0) {                         ///
+            LOG("class 0x"); LOX(m); LOG("\n");
+        	t.cls = m;					     /// * switch class (context)
         }
         else if (handle_number(t, idiom)) {	 ///> try as a number
         	fout << idiom << "? " << ENDL;   ///> display error prompt
@@ -129,7 +130,7 @@ void outer(Thread &t, const char *cmd, void(*callback)(int, const char*)) {
     ss_dump(t);
 }
 
-void send_to_con(int len, const char *msg) { LOG(msg); };
+void send_to_con(int len, const char *msg) { LOG(msg); }
 void forth_interpreter(Thread &t) {
 	cout << endl;
 	string line;
@@ -139,13 +140,17 @@ void forth_interpreter(Thread &t) {
 }
 
 int jvm_setup(const char *fname) {
+	Method _obj[] = { { "<init>", {}, false } };
+
     setvbuf(stdout, NULL, _IONBF, 0);
     fout_cb = send_to_con;
     ///
     /// populate memory pool
     ///
-    gPool.register_class("java/lang/Object", gUcode.vtsz, gUcode.vt);
+    gPool.register_class("Ucode", gUcode.vtsz, gUcode.vt);
+    gPool.register_class("java/lang/Object", sizeof(_obj)/sizeof(Method), _obj, "Ucode");
     gPool.register_class("ej32/Forth", gForth.vtsz, gForth.vt, "java/lang/Object");
+    gPool.build_lookup();
     ///
     /// instantiate Java class loader
     ///
@@ -154,7 +159,7 @@ int jvm_setup(const char *fname) {
     U16 cidx = gLoader.load_class();
     if (!cidx) return -2;
     
-    gT0.init_cls(cidx);
+    gT0.init(&gPool.pmem[0], cidx);
     return 0;
 }
 
