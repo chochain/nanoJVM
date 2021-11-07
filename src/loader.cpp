@@ -3,7 +3,7 @@
 ///
 /// Loader - private methods
 ///
-U8 Loader::_type_size(char type){
+U8 Loader::type_size(char type){
     switch(type){
     case TYPE_BYTE:   case TYPE_BOOL:  return 1;
     case TYPE_CHAR:   case TYPE_SHORT: return 2;
@@ -11,7 +11,7 @@ U8 Loader::_type_size(char type){
     default: return 4;
     }
 }
-IU Loader::_attr_size(IU addr){
+IU Loader::attr_size(IU addr){
     return (IU)6 + getU32(addr + 2);
 }
 U8 Loader::field_size(IU &addr) {
@@ -20,9 +20,9 @@ U8 Loader::field_size(IU &addr) {
     U16 xsz  = getU16(addr + 6);                 // get number of filed attributes
     U8  type = getU8(offset(itype-1) + 3);       // get type descriptor first character
     addr += 8;                                   // pointer to field attributes
-    while (xsz--) addr += _attr_size(addr);      //
+    while (xsz--) addr += attr_size(addr);      //
 
-    return _type_size(type);
+    return type_size(type);
 }
 void Loader::create_method(IU &addr, IU &m_root) {
     U16 i_name  = getU16(addr + 2);
@@ -37,7 +37,7 @@ void Loader::create_method(IU &addr, IU &m_root) {
     LOG(getStr(i_parm, parm)); LOG(" ("); LOX(len); LOG(" bytes)");
     gPool.add_method(name, midx, FLAG_JAVA, m_root);
 
-    while (n_attr--) addr += _attr_size(addr);
+    while (n_attr--) addr += attr_size(addr);
 }
 ///
 /// Loader - public methods
