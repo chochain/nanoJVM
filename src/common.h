@@ -28,9 +28,6 @@ using namespace std;
 #include <Arduino.h>
 #include "SPIFFS.h"
 #include "FS.h"
-#if ESP32
-#define analogWrite(c,v,mx) ledcWrite((c),(8191/mx)*min((int)(v),mx))
-#endif // ESP32
 #else
 #include <stdio.h>
 #include <chrono>
