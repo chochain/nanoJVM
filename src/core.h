@@ -31,8 +31,8 @@ struct Thread {
     /// Java core
     ///
     void java_new();           		 /// instantiate Java object
-    void java_call(IU jidx);   		 /// execute Java method
-    void invoke(U16 itype, IU jidx); /// invoke type: 0:virtual, 1:special, 2:static, 3:interface, 4:dynamic
+    void java_call(IU jdx);   		 /// execute Java method
+    void invoke(U16 itype, IU oid);  /// invoke type: 0:virtual, 1:special, 2:static, 3:interface, 4:dynamic
     ///
     /// Java class file byte fetcher
     ///

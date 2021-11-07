@@ -50,17 +50,17 @@ void Thread::dispatch(IU midx) {
 /// Java core
 ///
 void Thread::java_new()  {
-    IU idx = fetch2();              /// class index
-    /// TODO: allocate space for the object instance
+    IU jdx = fetch2();              /// class index
     char buf[128];
-    LOG(" "); LOG(jStrRef(idx, buf));
-    push(idx);                      /// save object on stack
+    LOG(" "); LOG(jStrRef(jdx, buf));
+    /// TODO: allocate space for the object instance
+    push(jdx);                      /// save object on stack, fake now
 }
-void Thread::java_call(IU jidx) {	/// Java inner interpreter
-	U16 nlv = jU16(jidx - 6);       /// local variable counts, TODO: handle types other than integer
+void Thread::java_call(IU jdx) {	/// Java inner interpreter
+	U16 nlv = jU16(jdx - 6);        /// local variable counts, TODO: handle types other than integer
     frame -= nlv;                   /// allocate local variables
     gPool.rs.push(IP);
-    IP = jidx;                      /// pointer to class file
+    IP = jdx;                       /// pointer to class file
     while (IP) {
         ss_dump(*this);
         U8 op = fetch();            /// fetch opcode
@@ -71,20 +71,20 @@ void Thread::java_call(IU jidx) {	/// Java inner interpreter
     IP = gPool.rs.pop();            /// restore stack frame
     frame += nlv;                   /// pop off local variables
 }
-void Thread::invoke(U16 itype, IU jidx) { /// invoke type: 0:virtual, 1:special, 2:static, 3:interface, 4:dynamic
-    IU idx   = fetch2();            /// 2 - method index in pool
+void Thread::invoke(U16 itype, IU oid) { /// invoke type: 0:virtual, 1:special, 2:static, 3:interface, 4:dynamic
+    IU jdx   = fetch2();            /// 2 - method index in pool
     if (itype>2) IP += 2;           /// extra 2 for interface and dynamic
-    IU c_m   = jOff(idx);           /// [02]000f:a=>[12,13]  [class_name, method_ref]
+    IU c_m   = jOff(jdx);           /// [02]000f:a=>[12,13]  [class_idx, method_idx]
     IU cid   = jU16(c_m + 1);       /// 12
-    IU mrf   = jU16(c_m + 3);       /// 13
-    IU midx  = jOff(mrf);           /// [13]008f:c=>[15,16]  [method_name, type_name]
+    IU mid   = jU16(c_m + 3);       /// 13
+    IU mrf   = jOff(mid);           /// [13]008f:c=>[15,16]  [method_name, type_name]
 
-    char cls[128], xt[128], t[16];
-    LOG(" "); LOG(jStrRef(cid, cls)); LOG("::"); LOG(jStr(jU16(midx + 1), xt));
-    LOG(jStr(jU16(midx + 3), t));
+    char cls[128], mn[128], t[16];
+    LOG(" "); LOG(jStrRef(cid, cls)); LOG("::"); LOG(jStr(jU16(mrf + 1), mn));
+    LOG(jStr(jU16(mrf + 3), t));
 
     IU c = gPool.get_class(cls);
-    IU m = gPool.get_method(xt, c, itype!=1); /// special does not go up to supr class
+    IU m = gPool.get_method(mn, c, itype!=1); /// special does not go up to supr class
     if (m > 0) dispatch(m);
     else       LOG(" **NA**");
 }

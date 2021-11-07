@@ -140,8 +140,7 @@ void forth_interpreter(Thread &t) {
 }
 
 int jvm_setup(const char *fname) {
-	Method _obj[] = { { "<init>", {}, false } };
-
+	Method _obj[] = { {"<init>", [](Thread &t){}, false} };
     setvbuf(stdout, NULL, _IONBF, 0);
     fout_cb = send_to_con;
     ///
