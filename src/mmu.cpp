@@ -78,7 +78,7 @@ void Pool::register_class(const char *name, int sz, Method *vt, const char *supr
     for (int i=0; i<sz; i++) {
         add_method(vt[i], m_root);
     }
-    add_class(name, supr, m_root, 0, 0);
+    if (sz) add_class(name, supr, m_root, 0, 0);
 }
 
 void Pool::build_lookup() {
