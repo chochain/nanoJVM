@@ -12,14 +12,14 @@ static Method _esp32[] = {
     ///
     /// @definegroup ESP32 supporting functions
     /// @{
-    /*E5*/ CODE("pinMode",      DU p = POP; pinMode(p, POP)),
-    /*E6*/ CODE("digitalRead",  PUSH(digitalRead(POP))),
-    /*E7*/ CODE("digitalWrite", DU p = POP; digitalWrite(p, POP)),
-    /*E8*/ CODE("analogRead",   PUSH(analogRead(POP))),
-    /*E9*/ CODE("analogWrite",  DU p  = POP; analogWrite(p, POP, 255)),
-    /*EA*/ CODE("ledcAttachPin",DU p  = POP; ledcAttachPin(p, POP)),
-    /*EB*/ CODE("ledcSetup",    DU ch = POP; DU freq=POP; ledcSetup(ch, freq, POP)),
-    /*EC*/ CODE("ledcWriteTone",DU ch = POP; ledcWriteTone(ch, POP)),
+    CODE("pinMode",      DU p = POP; pinMode(p, POP)),
+    CODE("digitalRead",  PUSH(digitalRead(POP))),
+    CODE("digitalWrite", DU p = POP; digitalWrite(p, POP)),
+    CODE("analogRead",   PUSH(analogRead(POP))),
+    CODE("analogWrite",  DU p  = POP; analogWrite(p, POP, 255)),
+    CODE("ledcAttachPin",DU p  = POP; ledcAttachPin(p, POP)),
+    CODE("ledcSetup",    DU ch = POP; DU freq=POP; ledcSetup(ch, freq, POP)),
+    CODE("ledcWriteTone",DU ch = POP; ledcWriteTone(ch, POP)),
     /// @}
 #endif // ARDUINO
 };
