@@ -149,9 +149,9 @@ int jvm_setup(const char *fname) {
     ///
     gPool.register_class("Ucode", uCode.vtsz, uCode.vt);
     gPool.register_class("java/lang/Object", sizeof(_obj)/sizeof(Method), _obj, "Ucode");
-    gPool.register_class("ej32/Forth",   uForth.vtsz, uForth.vt, "java/lang/Object");
+    gPool.register_class("ej32/Forth", uForth.vtsz, uForth.vt, "java/lang/Object");
 #if ARDUINO
-    gPool.register_class("ej32/Arduino", uESP32.vtsz, uESP32.vt, "ej32/Forth");
+    gPool.register_class("ej32/ESP32", uESP32.vtsz, uESP32.vt, "ej32/Forth");
 #endif
     gPool.build_lookup();
     ///

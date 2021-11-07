@@ -63,10 +63,10 @@ void Thread::java_call(IU jdx) {	/// Java inner interpreter
     IP = jdx;                       /// pointer to class file
     while (IP) {
         ss_dump(*this);
-        U8 op = fetch();            /// fetch opcode
+        U8 op = fetch();            /// fetch JVM opcode
         LOG("j"); LOX4(IP-1); LOG(":"); LOX2(op);
         LOG(" "); LOG(uCode.vt[op].name);
-        uCode.exec(*this, op);      /// execute JVM opcode
+        uCode.exec(*this, op);      /// execute JVM opcode (in microcode ROM)
     }
     IP = gPool.rs.pop();            /// restore stack frame
     frame += nlv;                   /// pop off local variables
