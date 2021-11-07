@@ -11,8 +11,9 @@ using namespace std;    // default to C++ standard template library
 ///
 /// Java Virtual Machine implementation
 ///
-extern   Ucode  gUcode;                 /// Java microcode ROM
-extern   Ucode  gForth;                 /// Forth microcode ROM
+extern   Ucode  uCode;                  /// Java microcode ROM
+extern   Ucode  uForth;                 /// Forth microcode ROM
+extern   Ucode  uESP32;                 /// ESP32 supporting functions
 extern   Pool   gPool;                  /// memory pool manager
 Loader   gLoader;                       /// loader instance
 Thread   gT0(gLoader);  				/// main thread, only one for now
@@ -146,9 +147,12 @@ int jvm_setup(const char *fname) {
     ///
     /// populate memory pool
     ///
-    gPool.register_class("Ucode", gUcode.vtsz, gUcode.vt);
+    gPool.register_class("Ucode", uCode.vtsz, uCode.vt);
     gPool.register_class("java/lang/Object", sizeof(_obj)/sizeof(Method), _obj, "Ucode");
-    gPool.register_class("ej32/Forth", gForth.vtsz, gForth.vt, "java/lang/Object");
+    gPool.register_class("ej32/Forth",   uForth.vtsz, uForth.vt, "java/lang/Object");
+#if ARDUINO
+    gPool.register_class("ej32/Arduino", uESP32.vtsz, uESP32.vt, "ej32/Forth");
+#endif
     gPool.build_lookup();
     ///
     /// instantiate Java class loader

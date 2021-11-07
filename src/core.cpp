@@ -5,7 +5,7 @@
 #include "ucode.h"
 #include "mmu.h"
 
-extern Ucode gUcode;
+extern Ucode uCode;
 extern void  ss_dump(Thread &t);
 
 ///==========================================================================
@@ -65,8 +65,8 @@ void Thread::java_call(IU jdx) {	/// Java inner interpreter
         ss_dump(*this);
         U8 op = fetch();            /// fetch opcode
         LOG("j"); LOX4(IP-1); LOG(":"); LOX2(op);
-        LOG(" "); LOG(gUcode.vt[op].name);
-        gUcode.exec(*this, op);     /// execute JVM opcode
+        LOG(" "); LOG(uCode.vt[op].name);
+        uCode.exec(*this, op);      /// execute JVM opcode
     }
     IP = gPool.rs.pop();            /// restore stack frame
     frame += nlv;                   /// pop off local variables

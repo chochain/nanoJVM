@@ -325,4 +325,4 @@ static Method _java[] = {
 ///
 /// microcode ROM, use extern by main program
 ///
-Ucode gUcode(sizeof(_java)/sizeof(Method), _java);
+Ucode uCode(sizeof(_java)/sizeof(Method), _java);
