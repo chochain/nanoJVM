@@ -12,24 +12,24 @@ static Method _esp32[] = {
     /// @definegroup ESP32 supporting functions
     /// @{
 #if ARDUINO && ESP32
-    CODE("pinMode",      DU p = POP; pinMode(p, POP)),
+    CODE("pinMode",      DU m = POP; pinMode(POP, m)),
     CODE("digitalRead",  PUSH(digitalRead(POP))),
-    CODE("digitalWrite", DU p = POP; digitalWrite(p, POP)),
+    CODE("digitalWrite", DU v = POP; digitalWrite(POP, v)),
     CODE("analogRead",   PUSH(analogRead(POP))),
-    CODE("analogWrite",  DU p  = POP; analogWrite(p, POP, 255)),
-    CODE("ledcAttachPin",DU p  = POP; ledcAttachPin(p, POP)),
-    CODE("ledcSetup",    DU ch = POP; DU freq=POP; ledcSetup(ch, freq, POP)),
-    CODE("ledcWriteTone",DU ch = POP; ledcWriteTone(ch, POP)),
+    CODE("analogWrite",  DU v = POP; analogWrite(POP, v, 255)),
+    CODE("ledcAttachPin",DU v = POP; ledcAttachPin(POP, v)),
+    CODE("ledcSetup",    DU v = POP; DU freq=POP; ledcSetup(POP, freq, v)),
+    CODE("ledcWriteTone",DU v = POP; ledcWriteTone(POP, v)),
 #else
     /// for debugging
-    CODE("pinMode",      DU p = POP; DU m = POP),
+    CODE("pinMode",      DU m = POP; DU p = POP),
     CODE("digitalRead",  DU p = POP; PUSH(t.IP)),
-    CODE("digitalWrite", DU p = POP; DU v = POP),
+    CODE("digitalWrite", DU v = POP; DU p = POP),
     CODE("analogRead",   DU p = POP; PUSH(t.IP)),
-    CODE("analogWrite",  DU p  = POP; DU v = POP),
-    CODE("ledcAttachPin",DU p  = POP; DU v = POP),
-    CODE("ledcSetup",    DU ch = POP; DU freq=POP; DU v = POP),
-    CODE("ledcWriteTone",DU ch = POP; DU v = POP)
+    CODE("analogWrite",  DU v = POP; DU p = POP),
+    CODE("ledcAttachPin",DU v = POP; DU p = POP),
+    CODE("ledcSetup",    DU v = POP; DU freq=POP; DU p = POP),
+    CODE("ledcWriteTone",DU v = POP; DU p = POP)
 #endif // ARDUINO
     /// @}
 };
