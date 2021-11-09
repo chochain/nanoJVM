@@ -59,10 +59,10 @@
 ///
 #define OFF           (t.wide ? t.fetch4() : t.fetch2())
 #define OFF8          (t.fetch())
-#define GetI_S(n)     PushI(t.gl[(n)])
-#define PutI_S(n,v)   (t.gl[(n)]=(v))
-#define GetI_F(o,n)   PushI(t.gl[(n)])
-#define PutI_F(o,n,v) (t.gl[(n)]=(v))
+#define GetI_S(n)     PushI(*t.cls_var(n))
+#define PutI_S(n,v)   (*t.cls_var(n)=(v))
+#define GetI_F(o,n)   PushI(*t.inst_var(n))
+#define PutI_F(o,n,v) (*t.inst_var(n)=(v))
 
 #define UCODE(s, g) { s, [](Thread &t){ g; }, 0 }
 ///
