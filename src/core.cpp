@@ -19,6 +19,16 @@ extern void  ss_dump(Thread &t);
 #define jStrRef(i,s) J.getStr(i, s, true)
 #define jStr(i,s)    J.getStr(i, s, false)
 ///
+/// class and instance variable access
+///   Note: TODO: use global variable for now
+///
+DU *Thread::cls_var(U16 j) {
+	return &gl[j];
+}
+DU *Thread::inst_var(U16 j) {
+	return &gl[j];
+}
+///
 /// VM Execution Unit
 ///
 void Thread::dispatch(IU midx) {

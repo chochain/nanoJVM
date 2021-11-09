@@ -24,6 +24,11 @@ struct Thread {
 
     void init(U8 *mem, IU cidx) { M0 = mem; cls = cidx; }
     ///
+    /// class and instance variable access
+    ///
+    DU   *cls_var(U16 j);
+    DU   *inst_var(U16 j);
+    ///
     /// VM Execution Unit
     ///
     void dispatch(IU midx); /// instruction dispatcher dispatch
@@ -92,6 +97,7 @@ struct Method {
 #define CLS_VT          4
 #define CLS_CVSZ        6
 #define CLS_IVSZ        8
+#define CLS_CV          10
 struct Word {                /// 4-byte header
     IU  lfa;                 /// link field to previous word
     U8  len;                 /// name of method
