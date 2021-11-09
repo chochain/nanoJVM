@@ -10,7 +10,6 @@ struct Pool {
     List<U8, PMEM_SZ>   pmem;     /// parameter memory
     List<IU, LOOKUP_SZ> lookup;	  /// cached opcode->pmem lookup
     List<DU, RS_SZ>     rs;		  /// global return stack
-    List<DU, CONST_SZ>  cnst;     /// constant pool
 
     IU cls_root = 0;              /// Forth::context
     IU jvm_root = 0;              /// Java object class
@@ -23,9 +22,6 @@ struct Pool {
     IU   add_method(const char *m_name, U32 m_idx, U8 flag, IU &root);
     IU   add_class(const char *name, const char *supr, IU m_root, U16 cvsz, U16 ivsz);
     void register_class(const char *name, int sz, Method *vt, const char *supr = 0);
-
-    template <typename T>
-    int add_const(T *v) { return cnst.push(*(DU*)v); }
     ///
     /// compiler methods
     ///
