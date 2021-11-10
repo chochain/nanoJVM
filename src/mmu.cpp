@@ -83,6 +83,21 @@ void Pool::register_class(const char *name, int sz, Method *vt, const char *supr
     }
     if (sz) add_class(name, supr, m_root, 0, 0);
 }
+///
+/// new object instance
+///
+IU Pool::add_obj(IU ci) {
+    Word *w   = (Word*)&pmem[ci];
+    U16  ivsz = *(U16*)w->pfa(CLS_IVSZ);
+    IU   oid  = gPool.obj_root;
+    add_iu(obj_root);				/// add object onto linked list
+    add_u8(0);						/// len=0, unused
+    add_u8(0);						/// type=0, unused
+    for (int i=0; i<ivsz; i++) {
+    	add_du(0);
+    }
+    return obj_root = oid;			/// return object id
+}
 
 void Pool::build_lookup() {
 	static const char *wlist[LOOKUP_SZ] = {

@@ -1,6 +1,11 @@
 #ifndef NANOJVM_MMU_H
 #define NANOJVM_MMU_H
 #include "core.h"
+
+struct KV {
+	IU key;
+	IU ref;
+};
 ///
 /// Memory Pool Manager
 /// Note:
@@ -10,18 +15,27 @@ struct Pool {
     List<U8, PMEM_SZ>   pmem;     /// parameter memory
     List<IU, LOOKUP_SZ> lookup;	  /// cached opcode->pmem lookup
     List<DU, RS_SZ>     rs;		  /// global return stack
+    List<KV, CV_SZ>     cv;       /// class variable reference
+    List<KV, IV_SZ>     iv;       /// instance variable reference
 
-    IU cls_root = 0;              /// Forth::context
-    IU jvm_root = 0;              /// Java object class
+    IU jvm_root = 0;              /// JVM methods linked list
+    IU cls_root = 0;              /// Class linked list
+    IU obj_root = 0;              /// Object linked list
 
     IU   find(const char *m_name, IU root);
     IU   get_class(const char *cls_name);
     IU   get_method(const char *m_name, IU cls_id=0, bool supr=true);
-
+    ///
+    /// dictionary builder
+    ///
     IU   add_method(Method &vt, IU &root);
     IU   add_method(const char *m_name, U32 m_idx, U8 flag, IU &root);
     IU   add_class(const char *name, const char *supr, IU m_root, U16 cvsz, U16 ivsz);
     void register_class(const char *name, int sz, Method *vt, const char *supr = 0);
+    ///
+    /// new object instance
+    ///
+    IU   add_obj(IU ci);
     ///
     /// compiler methods
     ///
