@@ -19,16 +19,6 @@ extern void  ss_dump(Thread &t);
 #define jStrRef(i,s) J.getStr(i, s, true)
 #define jStr(i,s)    J.getStr(i, s, false)
 ///
-/// class and instance variable access
-///   Note: TODO: use global variable for now
-///
-DU *Thread::cls_var(U16 j) {
-	return &gl[j];
-}
-DU *Thread::inst_var(U16 j) {
-	return &gl[j];
-}
-///
 /// VM Execution Unit
 ///
 void Thread::dispatch(IU midx) {
@@ -60,17 +50,18 @@ void Thread::dispatch(IU midx) {
 /// Java core
 ///
 void Thread::java_new()  {
-    IU jdx = fetch2();              /// class index
-    char buf[128];
-    LOG(" "); LOG(jStrRef(jdx, buf));
-    /// TODO: allocate space for the object instance
-    push(jdx);                      /// save object on stack, fake now
+    IU cid = fetch2();              /// class index
+    char cls[128];
+    LOG(" "); LOG(jStrRef(cid, cls));
+    IU ci  = gPool.get_class(cls);
+    IU oid = gPool.add_obj(ci);
+    push(oid);		                /// save object onto stack
 }
-void Thread::java_call(IU jdx) {	/// Java inner interpreter
-	U16 nlv = jU16(jdx - 6);        /// local variable counts, TODO: handle types other than integer
+void Thread::java_call(IU j) {	    /// Java inner interpreter
+	U16 nlv = jU16(j - 6);          /// local variable counts, TODO: handle types other than integer
     frame -= nlv;                   /// allocate local variables
     gPool.rs.push(IP);
-    IP = jdx;                       /// pointer to class file
+    IP = j;                         /// pointer to class file
     while (IP) {
         ss_dump(*this);
         U8 op = fetch();            /// fetch JVM opcode
@@ -82,19 +73,49 @@ void Thread::java_call(IU jdx) {	/// Java inner interpreter
     frame += nlv;                   /// pop off local variables
 }
 void Thread::invoke(U16 itype, IU oid) { /// invoke type: 0:virtual, 1:special, 2:static, 3:interface, 4:dynamic
-    IU jdx   = fetch2();            /// 2 - method index in pool
+    IU j   = fetch2();              /// 2 - method index in pool
     if (itype>2) IP += 2;           /// extra 2 for interface and dynamic
-    IU c_m   = jOff(jdx);           /// [02]000f:a=>[12,13]  [class_idx, method_idx]
-    IU cid   = jU16(c_m + 1);       /// 12
-    IU mid   = jU16(c_m + 3);       /// 13
-    IU mrf   = jOff(mid);           /// [13]008f:c=>[15,16]  [method_name, type_name]
+    IU c_m = jOff(j);               /// [02]000f:a=>[12,13]  [class_idx, method_idx]
+    IU cid = jU16(c_m + 1);         /// 12
+    IU mid = jU16(c_m + 3);         /// 13
+    IU mrf = jOff(mid);             /// [13]008f:c=>[15,16]  [method_name, type_name]
 
     char cls[128], mn[128], t[16];
     LOG(" "); LOG(jStrRef(cid, cls)); LOG("::"); LOG(jStr(jU16(mrf + 1), mn));
     LOG(jStr(jU16(mrf + 3), t));
 
-    IU c = gPool.get_class(cls);
-    IU m = gPool.get_method(mn, c, itype!=1); /// special does not go up to supr class
-    if (m > 0) dispatch(m);
-    else       LOG(" **NA**");
+    IU ci = gPool.get_class(cls);
+    IU mi = gPool.get_method(mn, ci, itype!=1);   /// special does not go up to supr class
+    if (mi > 0) dispatch(mi);
+    else        LOG(" **NA**");
+}
+///
+/// class and instance variable access
+///   Note: use gPool.vref is a bit wasteful but avoid the runtime search. TODO:
+///
+DU *Thread::cls_var(U16 j) {
+    for (int i=0; i<gPool.cv.idx; i++) {
+    	if (gPool.cv[i].key == j) {
+    		return (DU*)&gPool.pmem[gPool.cv[i].ref];
+    	}
+    }
+    IU c_m = jOff(j);                 /// [02]000f:a=>[12,13]  [class_idx, method_idx]
+    IU cid = jU16(c_m + 1);
+    char cls[128]; jStrRef(cid, cls); /// get class name
+    IU ci = gPool.get_class(cls);     /// map to for class index in pmem
+    Word *w = (Word*)&gPool.pmem[ci];
+    DU   *d = (DU*)w->pfa(CLS_CV) + gPool.cv.idx;
+    gPool.cv.push({ j, (IU)((U8*)d - M0) });
+	return d;
+}
+DU *Thread::inst_var(U16 o, U16 j) {
+	Word *obj = (Word*)&gPool.pmem[o];
+	for (int i=0; i<gPool.iv.idx; i++) {
+    	if (gPool.iv[i].key == j) {
+    		return (DU*)obj->pfa() + gPool.iv[i].ref;
+    	}
+    }
+	IU idx = gPool.iv.idx;
+    gPool.iv.push({ j, idx });
+    return (DU*)obj->pfa() + idx;
 }

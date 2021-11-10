@@ -24,11 +24,6 @@ struct Thread {
 
     void init(U8 *mem, IU cidx) { M0 = mem; cls = cidx; }
     ///
-    /// class and instance variable access
-    ///
-    DU   *cls_var(U16 j);
-    DU   *inst_var(U16 j);
-    ///
     /// VM Execution Unit
     ///
     void dispatch(IU midx); /// instruction dispatcher dispatch
@@ -36,8 +31,13 @@ struct Thread {
     /// Java core
     ///
     void java_new();           		 /// instantiate Java object
-    void java_call(IU jdx);   		 /// execute Java method
+    void java_call(IU j);   		 /// execute Java method
     void invoke(U16 itype, IU oid);  /// invoke type: 0:virtual, 1:special, 2:static, 3:interface, 4:dynamic
+    ///
+    /// class and instance variable access
+    ///
+    DU   *cls_var(U16 j);
+    DU   *inst_var(U16 o, U16 j);
     ///
     /// Java class file byte fetcher
     ///

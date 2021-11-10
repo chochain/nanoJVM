@@ -61,8 +61,8 @@
 #define OFF8          (t.fetch())
 #define GetI_S(n)     PushI(*t.cls_var(n))
 #define PutI_S(n,v)   (*t.cls_var(n)=(v))
-#define GetI_F(o,n)   PushI(*t.inst_var(n))
-#define PutI_F(o,n,v) (*t.inst_var(n)=(v))
+#define GetI_F(o,n)   PushI(*t.inst_var(o, n))
+#define PutI_F(o,n,v) (*t.inst_var(o, n)=(v))
 
 #define UCODE(s, g) { s, [](Thread &t){ g; }, 0 }
 ///
