@@ -153,7 +153,7 @@ static Method _java[] = {
     /*48*/  UCODE("dstore_1", StorF(1)),
     /*49*/  UCODE("dstore_2", StorF(2)),
     /*4A*/  UCODE("dstore_3", StorF(3)),
-    /*4B*/  UCODE("astore_0", StorA(0)),	// store reference
+    /*4B*/  UCODE("astore_0", StorA(0)),	// store object reference
     /*4C*/  UCODE("astore_1", StorA(1)),
     /*4D*/  UCODE("astore_2", StorA(2)),
     /*4E*/  UCODE("astore_3", StorA(3)),

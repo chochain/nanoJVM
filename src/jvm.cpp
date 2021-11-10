@@ -151,7 +151,7 @@ int jvm_setup(const char *fname) {
     gPool.register_class("java/lang/Object", sizeof(_obj)/sizeof(Method), _obj, "Ucode");
     gPool.register_class("ej32/Forth", uForth.vtsz, uForth.vt, "java/lang/Object");
     gPool.register_class("ej32/ESP32", uESP32.vtsz, uESP32.vt, "ej32/Forth");
-    gPool.build_lookup();
+    gPool.build_op_lookup();
     ///
     /// instantiate Java class loader
     ///

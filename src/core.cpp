@@ -95,7 +95,7 @@ void Thread::invoke(U16 itype, IU oid) { /// invoke type: 0:virtual, 1:special, 
 ///
 DU *Thread::cls_var(U16 j) {
     for (int i=0; i<gPool.cv.idx; i++) {
-    	if (gPool.cv[i].key == j) {
+    	if (gPool.cv[i].key == j) {   /// cache search static variable ref
     		return (DU*)&gPool.pmem[gPool.cv[i].ref];
     	}
     }
@@ -105,17 +105,17 @@ DU *Thread::cls_var(U16 j) {
     IU ci = gPool.get_class(cls);     /// map to for class index in pmem
     Word *w = (Word*)&gPool.pmem[ci];
     DU   *d = (DU*)w->pfa(CLS_CV) + gPool.cv.idx;
-    gPool.cv.push({ j, (IU)((U8*)d - M0) });
+    gPool.cv.push({ j, (IU)((U8*)d - M0) });  /// create new cache entry
 	return d;
 }
 DU *Thread::inst_var(U16 o, U16 j) {
-	Word *obj = (Word*)&gPool.pmem[o];
+	Word *obj = (Word*)&gPool.heap[o];
 	for (int i=0; i<gPool.iv.idx; i++) {
-    	if (gPool.iv[i].key == j) {
+    	if (gPool.iv[i].key == j) {   /// cache search instance variable ref
     		return (DU*)obj->pfa() + gPool.iv[i].ref;
     	}
     }
 	IU idx = gPool.iv.idx;
-    gPool.iv.push({ j, idx });
+    gPool.iv.push({ j, idx });        /// create new cache entry
     return (DU*)obj->pfa() + idx;
 }
