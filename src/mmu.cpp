@@ -25,52 +25,52 @@ IU Pool::get_class(const char *cls_name) {
 ///
 IU Pool::get_method(const char *m_name, IU cls_id, bool supr) {
     Word *cls = (Word*)&pmem[cls_id ? cls_id : cls_root];
-    IU m_idx = 0;
+    IU mx = 0;
     while (cls) {
-        m_idx = find(m_name, *(IU*)cls->pfa(CLS_VT));
-        if (m_idx || !supr) break;
+        mx = find(m_name, *(IU*)cls->pfa(CLS_VT));
+        if (mx || !supr) break;
         cls = cls->lfa ? (Word*)&pmem[cls->lfa] : 0;
     }
-    return m_idx;
+    return mx;
 }
 ///
 /// method constructor
 ///
 IU Pool::add_method(Method &vt, IU &m_root) {
-    IU mid = pmem.idx;              /// store current method idx
-    add_iu(m_root);                 /// link to previous method
-    add_u8(STRLEN(vt.name));        /// method name length
-    add_u8((U8)vt.flag);            /// method access control
-    add_str(vt.name);               /// enscribe method name
-    add_pu((PU)vt.xt);              /// encode function pointer
-    return m_root = mid;            /// adjust method root
+    IU mx = pmem.idx;               /// store current method idx
+    mem_iu(m_root);                 /// link to previous method
+    mem_u8(STRLEN(vt.name));        /// method name length
+    mem_u8((U8)vt.flag);            /// method access control
+    mem_str(vt.name);               /// enscribe method name
+    mem_pu((PU)vt.xt);              /// encode function pointer
+    return m_root = mx;             /// adjust method root
 };
 IU Pool::add_method(const char *m_name, U32 m_idx, U8 flag, IU &m_root) {
-    IU mid = pmem.idx;              /// store current method idx
-    add_iu(m_root);                 /// link to previous method
-    add_u8(STRLEN(m_name));         /// method name length
-    add_u8(flag);                   /// method access control
-    add_str(m_name);                /// enscribe method name
-    add_du((DU)m_idx);              /// encode function pointer
-    return m_root = mid;            /// adjust method root
+    IU mx = pmem.idx;               /// store current method idx
+    mem_iu(m_root);                 /// link to previous method
+    mem_u8(STRLEN(m_name));         /// method name length
+    mem_u8(flag);                   /// method access control
+    mem_str(m_name);                /// enscribe method name
+    mem_du((DU)m_idx);              /// encode function pointer
+    return m_root = mx;             /// adjust method root
 };
 IU Pool::add_class(const char *name, const char *supr, IU m_root, U16 cvsz, U16 ivsz) {
     /// encode class
-    IU cid = pmem.idx;              /// preserve class link
-    add_iu(cls_root);               /// class linked list
-    add_u8(STRLEN(name));           /// class name string length
-    add_u8(0);                      /// public
-    add_str(name);                  /// class name string
-    add_iu(get_class(supr));        /// super class
-    add_iu(0);                      /// interface
-    add_iu(m_root);                 /// vt
-    add_iu(cvsz);                   /// cvsz
-    add_iu(cvsz);                   /// ivsz
+    IU cx = pmem.idx;               /// preserve class link
+    mem_iu(cls_root);               /// class linked list
+    mem_u8(STRLEN(name));           /// class name string length
+    mem_u8(0);                      /// public
+    mem_str(name);                  /// class name string
+    mem_iu(get_class(supr));        /// super class
+    mem_iu(0);                      /// interface
+    mem_iu(m_root);                 /// vt
+    mem_iu(cvsz);                   /// cvsz
+    mem_iu(ivsz);                   /// ivsz
     for (int i=0; i<cvsz; i+=sizeof(DU)) {	/// allocate static variables
-    	add_du(0);
+    	mem_du(0);
     }
-    if (!jvm_root) jvm_root = cid;  /// mark JVM ucode root
-    return cls_root = cid;
+    if (!jvm_root) jvm_root = cx;  /// mark JVM ucode root
+    return cls_root = cx;
 }
 ///
 /// class contructor
@@ -86,15 +86,14 @@ void Pool::register_class(const char *name, int sz, Method *vt, const char *supr
 ///
 /// new object instance
 ///
-IU Pool::add_obj(IU ci) {
-    Word *w   = (Word*)&pmem[ci];
+IU Pool::add_obj(IU cx) {
+    Word *w   = (Word*)&pmem[cx];	/// get object class pointer
     U16  ivsz = *(U16*)w->pfa(CLS_IVSZ);
     IU   oid  = heap.idx;
-    add_iu(obj_root);				/// add object onto linked list
-    add_u8(0);						/// len=0, unused
-    add_u8(0);						/// type=0, unused
-    for (int i=0; i<ivsz; i++) {
-    	add_du(0);
+    obj_iu(obj_root);				/// add object onto linked list
+    obj_iu(0);						/// reserved(for garbage collector)
+    for (int i=0; i<ivsz; i+=sizeof(DU)) {
+    	obj_du(0);
     }
     return obj_root = oid;			/// return object id
 }
@@ -103,7 +102,8 @@ void Pool::build_op_lookup() {
 	static const char *wlist[OP_LU_SZ] = {
 		"dovar", "dolit", "dostr", "unnest"
 	};
-	Word *cls = WORD(find("ej32/Forth", cls_root));
+	IU   mx   = find("ej32/Forth", cls_root);
+	Word *cls = (Word*)&pmem[mx];
 	IU   vt   = *(IU*)cls->pfa(CLS_VT);
 	for (int i=0; i<OP_LU_SZ; i++) {
 		IU w = find(wlist[i], vt);
@@ -116,10 +116,10 @@ void Pool::build_op_lookup() {
 void Pool::colon(Thread &t, const char *name) {
     Word *w  = (Word*)&pmem[t.cls];	/// get class word
     IU   *vt = (IU*)w->pfa(CLS_VT); /// pointer to method root
-    int  mid = pmem.idx;			/// keep current
-    add_iu(*vt);
-    add_u8(STRLEN(name));
-    add_u8(FLAG_FORTH);				/// a Forth word
-    add_str(name);
-    *vt = mid;
+    int  mx  = pmem.idx;			/// keep current
+    mem_iu(*vt);
+    mem_u8(STRLEN(name));
+    mem_u8(FLAG_FORTH);				/// a Forth word
+    mem_str(name);
+    *vt = mx;
 }

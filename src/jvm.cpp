@@ -92,8 +92,8 @@ int handle_number(Thread &t, const char *idiom) {
     }
     // is a number
     if (t.compile) {         /// * add literal when in compile mode
-        gPool.add_op(DOLIT); ///> dovar (+parameter field)
-        gPool.add_du(n);     ///> data storage (32-bit integer now)
+        gPool.mem_op(DOLIT); ///> dovar (+parameter field)
+        gPool.mem_du(n);     ///> data storage (32-bit integer now)
     }
     else t.push(n);          ///> or, add value onto data stack
     return 0;
@@ -114,7 +114,7 @@ void outer(Thread &t, const char *cmd, void(*callback)(int, const char*)) {
             Word *w = WORD(m);
             LOG(w->nfa()); LOG(" 0x"); LOX(m);
             if (t.compile && !w->immd) {     /// * in compile mode?
-                gPool.add_iu(m);             /// * add found word to new colon word
+                gPool.mem_iu(m);             /// * add found word to new colon word
             }
             else t.dispatch(m);              /// * execute method (either Java or Forth)
             continue;

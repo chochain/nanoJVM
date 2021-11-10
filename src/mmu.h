@@ -36,25 +36,28 @@ struct Pool {
     ///
     /// new object instance
     ///
-    IU   add_obj(IU ci);
+    IU   add_obj(IU cx);
+    void obj_iu(IU i) { heap.push((U8*)&i, sizeof(IU)); }
+    void obj_du(DU v) { heap.push((U8*)&v, sizeof(DU)); }
     ///
     /// compiler methods
     ///
     void build_op_lookup();
     void colon(Thread &t, const char *name);
 
-    void add_u8(U8 b) { pmem.push(b); }
-    void add_iu(IU i) { pmem.push((U8*)&i, sizeof(IU)); }
-    void add_du(DU v) { pmem.push((U8*)&v, sizeof(DU)); }
-    void add_pu(PU p) { pmem.push((U8*)&p, sizeof(PU)); }
-    void add_str(const char *s) { int sz = STRLEN(s); pmem.push((U8*)s,  sz); }
-    void add_op(IU i) { add_iu(op[i]); }
+    void mem_u8(U8 b) { pmem.push(b); }
+    void mem_iu(IU i) { pmem.push((U8*)&i, sizeof(IU)); }
+    void mem_du(DU v) { pmem.push((U8*)&v, sizeof(DU)); }
+    void mem_pu(PU p) { pmem.push((U8*)&p, sizeof(PU)); }
+    void mem_str(const char *s) { int sz = STRLEN(s); pmem.push((U8*)s,  sz); }
+    void mem_op(U16 i) { mem_iu(op[i]); }
 };
 extern Pool gPool;
 ///
 /// macros for parameter memory access
 ///
 #define WORD(a)((Word*)&gPool.pmem[a])
+#define OBJ(a) ((Word*)&gPool.heap[a])
 #define HERE   (gPool.pmem.idx)         /** current parameter memory index           */
 #endif // NANOJVM_MMU_H
 

@@ -20,22 +20,22 @@ static Method _word[] = {
     CODE("unnest", t.IP = 0),
     CODE("create",
          gPool.colon(t, next_word());
-         gPool.add_op(DOVAR)),
+         gPool.mem_op(DOVAR)),
     CODE("variable",
          gPool.colon(t, next_word());
          DU n = 0;
-         gPool.add_op(DOVAR);
-         gPool.add_du(n)),
+         gPool.mem_op(DOVAR);
+         gPool.mem_du(n)),
     CODE("constant",
          gPool.colon(t, next_word());
-         gPool.add_op(DOLIT);
-         gPool.add_du(POP)),
+         gPool.mem_op(DOLIT);
+         gPool.mem_du(POP)),
     CODE(":",     gPool.colon(t, next_word()); t.compile=true),
-    IMMD(";",     gPool.add_op(UNNEST); t.compile = false),
+    IMMD(";",     gPool.mem_op(UNNEST); t.compile = false),
     CODE("@",     IU w = POP; PUSH(CELL(w))),          // w -- n
     CODE("!",     IU w = POP; CELL(w) = POP;),       // n w --
-    CODE(",",     DU n = POP; gPool.add_du(n)),
-    CODE("allot", DU v = 0; for (IU n = POP, i = 0; i < n; i++) gPool.add_du(v)), // n --
+    CODE(",",     DU n = POP; gPool.mem_du(n)),
+    CODE("allot", DU v = 0; for (IU n = POP, i = 0; i < n; i++) gPool.mem_du(v)), // n --
     CODE("+!",    IU w = POP; CELL(w) += POP),       // n w --
     CODE("decimal", t.base = 10),
     CODE("hex",     t.base = 16),
