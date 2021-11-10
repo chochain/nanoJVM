@@ -26,7 +26,7 @@ struct Thread {
     ///
     /// VM Execution Unit
     ///
-    void dispatch(IU midx); /// instruction dispatcher dispatch
+    void dispatch(IU mx);   /// instruction dispatcher dispatch
     ///
     /// Java core
     ///
@@ -37,7 +37,7 @@ struct Thread {
     /// class and instance variable access
     ///
     DU   *cls_var(U16 j);
-    DU   *inst_var(U16 o, U16 j);
+    DU   *inst_var(IU ox, U16 j);
     ///
     /// Java class file byte fetcher
     ///

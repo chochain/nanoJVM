@@ -21,22 +21,22 @@ extern void  ss_dump(Thread &t);
 ///
 /// VM Execution Unit
 ///
-void Thread::dispatch(IU midx) {
-    Word *w  = WORD(midx);
+void Thread::dispatch(IU mx) {
+    Word *w  = WORD(mx);
     if (w->java) {                   /// call Java inner interpreter
         IU  addr = *(IU*)w->pfa();
     	java_call(addr);
     }
     else if (w->forth) {			 /// Forth core
         gPool.rs.push(IP);			 /// setup call frame
-        gPool.rs.push(WP = midx);
+        gPool.rs.push(WP = mx);
         IP = (IU)(w->pfa() - M0);	 /// get new IP
         while (IP) {				 /// Forth inner interpreter
-        	IU midx1 = *(IU*)(M0 + IP); /// fetch next instruction
-            LOG("\nm"); LOX4(IP-1); LOG(":"); LOX4(midx1);
-            LOG(" "); LOG(WORD(midx1)->nfa());
+        	mx = *(IU*)(M0 + IP);    /// fetch next instruction
+            LOG("\nm"); LOX4(IP-1); LOG(":"); LOX4(mx);
+            LOG(" "); LOG(WORD(mx)->nfa());
             IP += sizeof(IU);        /// too bad, we cannot do IP++
-            dispatch(midx1);		 /// recursively call
+            dispatch(mx);		     /// recursively call
         }
         WP = (IU)gPool.rs.pop();     /// restore call frame
         IP = gPool.rs.pop();
@@ -50,12 +50,12 @@ void Thread::dispatch(IU midx) {
 /// Java core
 ///
 void Thread::java_new()  {
-    IU cid = fetch2();              /// class index
+    IU j = fetch2();                /// class index
     char cls[128];
-    LOG(" "); LOG(jStrRef(cid, cls));
-    IU ci  = gPool.get_class(cls);
-    IU oid = gPool.add_obj(ci);
-    push(oid);		                /// save object onto stack
+    LOG(" "); LOG(jStrRef(j, cls));
+    IU cx = gPool.get_class(cls);
+    IU ox = gPool.add_obj(cx);
+    push(ox);		                /// save object onto stack
 }
 void Thread::java_call(IU j) {	    /// Java inner interpreter
 	U16 nlv = jU16(j - 6);          /// local variable counts, TODO: handle types other than integer
@@ -76,17 +76,17 @@ void Thread::invoke(U16 itype, IU oid) { /// invoke type: 0:virtual, 1:special, 
     IU j   = fetch2();              /// 2 - method index in pool
     if (itype>2) IP += 2;           /// extra 2 for interface and dynamic
     IU c_m = jOff(j);               /// [02]000f:a=>[12,13]  [class_idx, method_idx]
-    IU cid = jU16(c_m + 1);         /// 12
-    IU mid = jU16(c_m + 3);         /// 13
-    IU mrf = jOff(mid);             /// [13]008f:c=>[15,16]  [method_name, type_name]
+    IU cj  = jU16(c_m + 1);         /// 12
+    IU mj  = jU16(c_m + 3);         /// 13
+    IU mrf = jOff(mj);              /// [13]008f:c=>[15,16]  [method_name, type_name]
 
     char cls[128], mn[128], t[16];
-    LOG(" "); LOG(jStrRef(cid, cls)); LOG("::"); LOG(jStr(jU16(mrf + 1), mn));
+    LOG(" "); LOG(jStrRef(cj, cls)); LOG("::"); LOG(jStr(jU16(mrf + 1), mn));
     LOG(jStr(jU16(mrf + 3), t));
 
-    IU ci = gPool.get_class(cls);
-    IU mi = gPool.get_method(mn, ci, itype!=1);   /// special does not go up to supr class
-    if (mi > 0) dispatch(mi);
+    IU cx = gPool.get_class(cls);
+    IU mx = gPool.get_method(mn, cx, itype!=1);   /// special does not go up to supr class
+    if (mx > 0) dispatch(mx);
     else        LOG(" **NA**");
 }
 ///
@@ -100,22 +100,23 @@ DU *Thread::cls_var(U16 j) {
     	}
     }
     IU c_m = jOff(j);                 /// [02]000f:a=>[12,13]  [class_idx, method_idx]
-    IU cid = jU16(c_m + 1);
-    char cls[128]; jStrRef(cid, cls); /// get class name
-    IU ci = gPool.get_class(cls);     /// map to for class index in pmem
-    Word *w = (Word*)&gPool.pmem[ci];
-    DU   *d = (DU*)w->pfa(CLS_CV) + gPool.cv.idx;
-    gPool.cv.push({ j, (IU)((U8*)d - M0) });  /// create new cache entry
-	return d;
+    IU cj  = jU16(c_m + 1);
+    char cls[128]; jStrRef(cj, cls);  /// get class name
+    IU cx  = gPool.get_class(cls);    /// map to for class index in pmem
+
+    Word *w  = WORD(cx);
+    DU   *cv = (DU*)w->pfa(CLS_CV) + gPool.cv.idx;
+    gPool.cv.push({ j, (IU)((U8*)cv - M0) });  /// create new cache entry
+	return cv;
 }
-DU *Thread::inst_var(U16 o, U16 j) {
-	Word *obj = (Word*)&gPool.heap[o];
+DU *Thread::inst_var(IU ox, U16 j) {
+	DU *iv = (DU*)OBJ(ox)->pfa();
 	for (int i=0; i<gPool.iv.idx; i++) {
     	if (gPool.iv[i].key == j) {   /// cache search instance variable ref
-    		return (DU*)obj->pfa() + gPool.iv[i].ref;
+    		return iv + gPool.iv[i].ref;
     	}
     }
 	IU idx = gPool.iv.idx;
     gPool.iv.push({ j, idx });        /// create new cache entry
-    return (DU*)obj->pfa() + idx;
+    return iv + idx;
 }
