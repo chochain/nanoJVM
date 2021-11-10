@@ -89,7 +89,7 @@ void Pool::register_class(const char *name, int sz, Method *vt, const char *supr
 IU Pool::add_obj(IU ci) {
     Word *w   = (Word*)&pmem[ci];
     U16  ivsz = *(U16*)w->pfa(CLS_IVSZ);
-    IU   oid  = gPool.obj_root;
+    IU   oid  = heap.idx;
     add_iu(obj_root);				/// add object onto linked list
     add_u8(0);						/// len=0, unused
     add_u8(0);						/// type=0, unused
@@ -99,15 +99,15 @@ IU Pool::add_obj(IU ci) {
     return obj_root = oid;			/// return object id
 }
 
-void Pool::build_lookup() {
-	static const char *wlist[LOOKUP_SZ] = {
+void Pool::build_op_lookup() {
+	static const char *wlist[OP_LU_SZ] = {
 		"dovar", "dolit", "dostr", "unnest"
 	};
 	Word *cls = WORD(find("ej32/Forth", cls_root));
 	IU   vt   = *(IU*)cls->pfa(CLS_VT);
-	for (int i=0; i<LOOKUP_SZ; i++) {
+	for (int i=0; i<OP_LU_SZ; i++) {
 		IU w = find(wlist[i], vt);
-		lookup[i] = w;
+		op[i] = w;
 	}
 }
 ///

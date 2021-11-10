@@ -15,13 +15,14 @@ using namespace std;
 ///
 /// memory block size setting
 ///
-#define PMEM_SZ         1024*48     /** global parameter space     */
+#define PMEM_SZ         1024*16     /** parameter space            */
+#define HEAP_SZ         1024*16     /** object space               */
 #define RS_SZ           128         /** return stack size per VM   */
 #define SS_SZ           256         /** data stack size per thread */
 #define CONST_SZ        128         /** constant pool size         */
-#define LOOKUP_SZ       4			/** Forth lookup table         */
-#define CV_SZ           16          /** max class variables        */
-#define IV_SZ           16          /** max instance variables     */
+#define OP_LU_SZ        4			/** Forth lookup table         */
+#define CV_LU_SZ        16          /** max class variables        */
+#define IV_LU_SZ        16          /** max instance variables     */
 ///
 /// Arduino support macros
 ///

@@ -13,10 +13,11 @@ struct KV {
 ///
 struct Pool {
     List<U8, PMEM_SZ>   pmem;     /// parameter memory
-    List<IU, LOOKUP_SZ> lookup;	  /// cached opcode->pmem lookup
+    List<U8, HEAP_SZ>   heap;	  /// object space
     List<DU, RS_SZ>     rs;		  /// global return stack
-    List<KV, CV_SZ>     cv;       /// class variable reference
-    List<KV, IV_SZ>     iv;       /// instance variable reference
+    List<IU, OP_LU_SZ>  op;  	  /// cached opcode->pmem lookup
+    List<KV, CV_LU_SZ>  cv;       /// class variable lookup
+    List<KV, IV_LU_SZ>  iv;       /// instance variable lookup
 
     IU jvm_root = 0;              /// JVM methods linked list
     IU cls_root = 0;              /// Class linked list
@@ -39,7 +40,7 @@ struct Pool {
     ///
     /// compiler methods
     ///
-    void build_lookup();
+    void build_op_lookup();
     void colon(Thread &t, const char *name);
 
     void add_u8(U8 b) { pmem.push(b); }
@@ -47,7 +48,7 @@ struct Pool {
     void add_du(DU v) { pmem.push((U8*)&v, sizeof(DU)); }
     void add_pu(PU p) { pmem.push((U8*)&p, sizeof(PU)); }
     void add_str(const char *s) { int sz = STRLEN(s); pmem.push((U8*)s,  sz); }
-    void add_op(IU i) { add_iu(lookup[i]); }
+    void add_op(IU i) { add_iu(op[i]); }
 };
 extern Pool gPool;
 ///
