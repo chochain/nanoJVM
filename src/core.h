@@ -7,11 +7,10 @@
 ///
 struct Thread {
     List<DU, SS_SZ>  ss;    /// data stack
-    DU     gl[16];          /// DEBUG: class variable (static)
     Loader &J;              /// Java class loader
     U8     *M0    = NULL;   /// cached base address of memory pool
 
-    U16   frame   = SS_SZ-1;/// local stack index
+    U16   frame   = 2;      /// local stack index
     bool  compile = false;  /// compile flag
     bool  wide    = false;  /// wide flag
     DU    base    = 10;     /// radix
@@ -20,9 +19,9 @@ struct Thread {
     IU    WP      = 0;      /// method index
     IU    IP      = 0;      /// instruction pointer (program counter)
 
-    Thread(Loader &ld) : J(ld) {}
+    Thread(Loader &ldr) : J(ldr) {}
 
-    void init(U8 *mem, IU cidx) { M0 = mem; cls = cidx; }
+    void init(U8 *mem, IU cx) { M0 = mem; cls = cx; }
     ///
     /// VM Execution Unit
     ///
@@ -30,9 +29,9 @@ struct Thread {
     ///
     /// Java core
     ///
-    void java_new();           		 /// instantiate Java object
-    void java_call(IU j);   		 /// execute Java method
-    void invoke(U16 itype, IU oid);  /// invoke type: 0:virtual, 1:special, 2:static, 3:interface, 4:dynamic
+    void java_new();        /// instantiate Java object
+    void java_call(IU j);   /// execute Java method
+    void invoke(U16 itype); /// invoke type: 0:virtual, 1:special, 2:static, 3:interface, 4:dynamic
     ///
     /// class and instance variable access
     ///

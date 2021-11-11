@@ -22,7 +22,7 @@ extern void  ss_dump(Thread &t);
 /// VM Execution Unit
 ///
 void Thread::dispatch(IU mx) {
-    Word *w  = WORD(mx);
+    Word *w = WORD(mx);
     if (w->java) {                   /// call Java inner interpreter
         IU  addr = *(IU*)w->pfa();
     	java_call(addr);
@@ -59,7 +59,7 @@ void Thread::java_new()  {
 }
 void Thread::java_call(IU j) {	    /// Java inner interpreter
 	U16 nlv = jU16(j - 6);          /// local variable counts, TODO: handle types other than integer
-    frame -= nlv;                   /// allocate local variables
+	frame += nlv;
     gPool.rs.push(IP);
     IP = j;                         /// pointer to class file
     while (IP) {
@@ -69,10 +69,10 @@ void Thread::java_call(IU j) {	    /// Java inner interpreter
         LOG(" "); LOG(uCode.vt[op].name);
         uCode.exec(*this, op);      /// execute JVM opcode (in microcode ROM)
     }
+    frame -= nlv;
     IP = gPool.rs.pop();            /// restore stack frame
-    frame += nlv;                   /// pop off local variables
 }
-void Thread::invoke(U16 itype, IU oid) { /// invoke type: 0:virtual, 1:special, 2:static, 3:interface, 4:dynamic
+void Thread::invoke(U16 itype) {    /// invoke type: 0:virtual, 1:special, 2:static, 3:interface, 4:dynamic
     IU j   = fetch2();              /// 2 - method index in pool
     if (itype>2) IP += 2;           /// extra 2 for interface and dynamic
     IU c_m = jOff(j);               /// [02]000f:a=>[12,13]  [class_idx, method_idx]
@@ -83,9 +83,17 @@ void Thread::invoke(U16 itype, IU oid) { /// invoke type: 0:virtual, 1:special, 
     char cls[128], mn[128], t[16];
     LOG(" "); LOG(jStrRef(cj, cls)); LOG("::"); LOG(jStr(jU16(mrf + 1), mn));
     LOG(jStr(jU16(mrf + 3), t));
-
-    IU cx = gPool.get_class(cls);
-    IU mx = gPool.get_method(mn, cx, itype!=1);   /// special does not go up to supr class
+#if 0
+    char *p = t+1;
+    while (*p++ != ')') {
+    	IU v = pop();
+    }
+    switch (itype) {
+    case 0: case 1: case 3: store(0, pop()); break;	/// fetch object reference
+    }
+#endif
+    IU cx = gPool.get_class(cls);					/// class ref
+    IU mx = gPool.get_method(mn, cx, itype!=1);   	/// special does not go up to supr class
     if (mx > 0) dispatch(mx);
     else        LOG(" **NA**");
 }

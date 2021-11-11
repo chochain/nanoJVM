@@ -294,11 +294,11 @@ static Method _java[] = {
     /// @}
     /// @definegroup Method/Interface Invokation ops
     /// @{
-    /*B6*/  UCODE("invokevirtual",   t.invoke(0, PopI())),
-    /*B7*/  UCODE("invokespecial",   t.invoke(1, PopI())),
-	/*B8*/  UCODE("invokestatic",    t.invoke(2, 0)),
-    /*B9*/  UCODE("invokeinterface", t.invoke(3, PopI())),
-    /*BA*/  UCODE("invokedynamic",   t.invoke(4, 0)),
+    /*B6*/  UCODE("invokevirtual",   t.invoke(0)),
+    /*B7*/  UCODE("invokespecial",   t.invoke(1)),
+	/*B8*/  UCODE("invokestatic",    t.invoke(2)),
+    /*B9*/  UCODE("invokeinterface", t.invoke(3)),
+    /*BA*/  UCODE("invokedynamic",   t.invoke(4)),
     /// @}
     /// @definegroup New and Array ops
     /// @{
