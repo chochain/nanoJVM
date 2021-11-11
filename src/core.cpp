@@ -21,11 +21,11 @@ extern void  ss_dump(Thread &t);
 ///
 /// VM Execution Unit
 ///
-void Thread::dispatch(IU mx) {
+void Thread::dispatch(IU mx, U16 nparm) {
     Word *w = WORD(mx);
     if (w->java) {                   /// call Java inner interpreter
         IU  addr = *(IU*)w->pfa();
-    	java_call(addr);
+    	java_call(addr, nparm);
     }
     else if (w->forth) {			 /// Forth core
         gPool.rs.push(IP);			 /// setup call frame
@@ -57,10 +57,12 @@ void Thread::java_new()  {
     IU ox = gPool.add_obj(cx);
     push(ox);		                /// save object onto stack
 }
-void Thread::java_call(IU j) {	    /// Java inner interpreter
-	U16 nlv = jU16(j - 6);          /// local variable counts, TODO: handle types other than integer
-	frame += nlv;
-    gPool.rs.push(IP);
+void Thread::java_call(IU j, U16 nparm) {	    /// Java inner interpreter
+	gPool.rs.push(SP);				/// keep caller stack frame
+	SP = ss.idx - nparm + 1;        /// adjust local variable base, TODO: handle types
+	U16 n = ss.idx + jU16(j - 6) - nparm;       /// allocate for local variables
+	while (ss.idx < n) push(0);	    /// setup local variables, TODO: change ss.idx only
+    gPool.rs.push(IP);              /// save caller instruction pointer
     IP = j;                         /// pointer to class file
     while (IP) {
         ss_dump(*this);
@@ -69,12 +71,18 @@ void Thread::java_call(IU j) {	    /// Java inner interpreter
         LOG(" "); LOG(uCode.vt[op].name);
         uCode.exec(*this, op);      /// execute JVM opcode (in microcode ROM)
     }
-    frame -= nlv;
-    IP = gPool.rs.pop();            /// restore stack frame
+    IP = gPool.rs.pop();            /// restore to caller IP
+    while (ss.idx >= SP) pop();	    /// clean up parameters, TODO: change ss.idx only
+    SP = gPool.rs.pop();            /// restore caller stack frame
 }
 void Thread::invoke(U16 itype) {    /// invoke type: 0:virtual, 1:special, 2:static, 3:interface, 4:dynamic
-    IU j   = fetch2();              /// 2 - method index in pool
+    IU j = fetch2();                /// 2 - method index in pool
     if (itype>2) IP += 2;           /// extra 2 for interface and dynamic
+    IU mi = gPool.lookup(gPool.vt, j);
+    if (mi != 0xffff) {
+    	dispatch(gPool.vt[mi].ref, gPool.vt[mi].nparm);
+    	return;
+    }
     IU c_m = jOff(j);               /// [02]000f:a=>[12,13]  [class_idx, method_idx]
     IU cj  = jU16(c_m + 1);         /// 12
     IU mj  = jU16(c_m + 3);         /// 13
@@ -83,18 +91,14 @@ void Thread::invoke(U16 itype) {    /// invoke type: 0:virtual, 1:special, 2:sta
     char cls[128], mn[128], t[16];
     LOG(" "); LOG(jStrRef(cj, cls)); LOG("::"); LOG(jStr(jU16(mrf + 1), mn));
     LOG(jStr(jU16(mrf + 3), t));
-#if 0
     char *p = t+1;
-    while (*p++ != ')') {
-    	IU v = pop();
-    }
-    switch (itype) {
-    case 0: case 1: case 3: store(0, pop()); break;	/// fetch object reference
-    }
-#endif
+    U16  nparm = itype==2 ? 0 : 1;
+    while (*p++ != ')') nparm++;
+
     IU cx = gPool.get_class(cls);					/// class ref
     IU mx = gPool.get_method(mn, cx, itype!=1);   	/// special does not go up to supr class
-    if (mx > 0) dispatch(mx);
+    gPool.vt.push({j, mx, nparm});
+    if (mx > 0) dispatch(mx, nparm);
     else        LOG(" **NA**");
 }
 ///
@@ -102,11 +106,9 @@ void Thread::invoke(U16 itype) {    /// invoke type: 0:virtual, 1:special, 2:sta
 ///   Note: use gPool.vref is a bit wasteful but avoid the runtime search. TODO:
 ///
 DU *Thread::cls_var(U16 j) {
-    for (int i=0; i<gPool.cv.idx; i++) {
-    	if (gPool.cv[i].key == j) {   /// cache search static variable ref
-    		return (DU*)&gPool.pmem[gPool.cv[i].ref];
-    	}
-    }
+	IU i = gPool.lookup(gPool.cv, j);
+	if (i != 0xffff) return (DU*)&gPool.pmem[gPool.cv[i].ref];
+
     IU c_m = jOff(j);                 /// [02]000f:a=>[12,13]  [class_idx, method_idx]
     IU cj  = jU16(c_m + 1);
     char cls[128]; jStrRef(cj, cls);  /// get class name
@@ -119,11 +121,9 @@ DU *Thread::cls_var(U16 j) {
 }
 DU *Thread::inst_var(IU ox, U16 j) {
 	DU *iv = (DU*)OBJ(ox)->pfa();
-	for (int i=0; i<gPool.iv.idx; i++) {
-    	if (gPool.iv[i].key == j) {   /// cache search instance variable ref
-    		return iv + gPool.iv[i].ref;
-    	}
-    }
+	IU i   = gPool.lookup(gPool.iv, j);
+	if (i != 0xffff) return iv + gPool.iv[i].ref;
+
 	IU idx = gPool.iv.idx;
     gPool.iv.push({ j, idx });        /// create new cache entry
     return iv + idx;

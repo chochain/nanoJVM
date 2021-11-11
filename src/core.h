@@ -10,7 +10,6 @@ struct Thread {
     Loader &J;              /// Java class loader
     U8     *M0    = NULL;   /// cached base address of memory pool
 
-    U16   frame   = 2;      /// local stack index
     bool  compile = false;  /// compile flag
     bool  wide    = false;  /// wide flag
     DU    base    = 10;     /// radix
@@ -18,6 +17,7 @@ struct Thread {
     IU    cls     = 0;		/// current class, =~ Forth context
     IU    WP      = 0;      /// method index
     IU    IP      = 0;      /// instruction pointer (program counter)
+    U16   SP      = 0;      /// local stack frame index
 
     Thread(Loader &ldr) : J(ldr) {}
 
@@ -25,13 +25,13 @@ struct Thread {
     ///
     /// VM Execution Unit
     ///
-    void dispatch(IU mx);   /// instruction dispatcher dispatch
+    void dispatch(IU mx, U16 nparm=0);   /// instruction dispatcher dispatch
     ///
     /// Java core
     ///
-    void java_new();        /// instantiate Java object
-    void java_call(IU j);   /// execute Java method
-    void invoke(U16 itype); /// invoke type: 0:virtual, 1:special, 2:static, 3:interface, 4:dynamic
+    void java_new();                     /// instantiate Java object
+    void java_call(IU j, U16 nparm=0);   /// execute Java method
+    void invoke(U16 itype);              /// invoke type: 0:virtual, 1:special, 2:static, 3:interface, 4:dynamic
     ///
     /// class and instance variable access
     ///
@@ -57,11 +57,11 @@ struct Thread {
     ///
     /// local variable access
     ///
-    void iinc(U8 i, S8 v)  { ss[frame + i] += v; }
+    void iinc(U8 i, S8 v)  { ss[SP + i] += v; }
     template<typename T>
-    T    load(U32 i, T n)  { return *(T*)&ss[frame + i]; }
+    T    load(U16 i, T n)  { return *(T*)&ss[SP + i]; }
     template<typename T>
-    void store(U32 i, T n) { *(T*)&ss[frame + i] = n; }
+    void store(U16 i, T n) { *(T*)&ss[SP + i] = n; }
 };
 typedef void (*fop)(Thread&); /// opcode function pointer
 ///
