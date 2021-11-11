@@ -5,6 +5,7 @@
 struct KV {
 	IU key;
 	IU ref;
+	IU nparm;
 };
 ///
 /// Memory Pool Manager
@@ -15,10 +16,22 @@ struct Pool {
     List<U8, PMEM_SZ>   pmem;     /// parameter memory
     List<U8, HEAP_SZ>   heap;	  /// object space
     List<DU, RS_SZ>     rs;		  /// global return stack
+    ///
+    /// JIT lookup tables
+    ///
     List<IU, OP_LU_SZ>  op;  	  /// cached opcode->pmem lookup
+    List<KV, VT_LU_SZ>  vt;       /// java method lookup
     List<KV, CV_LU_SZ>  cv;       /// class variable lookup
     List<KV, IV_LU_SZ>  iv;       /// instance variable lookup
 
+    template<typename T>
+    IU  lookup(T &a, IU j) {
+    	for (IU i=0; i<a.idx; i++) if (a[i].key == j) return i;
+    	return 0xffff;
+    }
+    ///
+    /// core objects
+    ///
     IU jvm_root = 0;              /// JVM methods linked list
     IU cls_root = 0;              /// Class linked list
     IU obj_root = 0;              /// Object linked list

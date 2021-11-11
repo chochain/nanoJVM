@@ -20,7 +20,8 @@ using namespace std;
 #define RS_SZ           128         /** return stack size per VM   */
 #define SS_SZ           256         /** data stack size per thread */
 #define CONST_SZ        128         /** constant pool size         */
-#define OP_LU_SZ        4			/** Forth lookup table         */
+#define OP_LU_SZ        4			/** Forth opcode lookup table  */
+#define VT_LU_SZ        64          /** Java method lookup table   */
 #define CV_LU_SZ        16          /** max class variables        */
 #define IV_LU_SZ        16          /** max instance variables     */
 ///
