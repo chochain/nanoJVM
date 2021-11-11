@@ -25,16 +25,16 @@
 #define PopD2T()    (0)
 #define PopA2T()    ((P32)t.pop())
 #define PopR2T()    ((P32)t.pop())
-#define LoadI(i)    PushI((S32)t.load((U32)i, (S32)0))
-#define LoadL(i)    PushL((S64)t.load((U32)i, (S64)0))
+#define LoadI(i)    PushI((S32)t.load((U16)i, (S32)0))
+#define LoadL(i)    PushL((S64)t.load((U16)i, (S64)0))
 #define LoadF(i)    (0)
 #define LoadD(i)    (0)
-#define LoadA(i)    PushI((P32)t.load((U32)i, (P32)0))
-#define StorI(i)    (t.store((U32)i, PopI()))
-#define StorL(i)    (t.store((U32)i, PopL()))
+#define LoadA(i)    PushI((P32)t.load((U16)i, (P32)0))
+#define StorI(i)    (t.store((U16)i, PopI()))
+#define StorL(i)    (t.store((U16)i, PopL()))
 #define StorF(i)    (0)
 #define StorD(i)    (0)
-#define StorA(i)    (t.store((U32)i, PopA()))
+#define StorA(i)    (t.store((U16)i, PopA()))
 ///
 /// array access macros (CC: TODO)
 ///
@@ -58,7 +58,7 @@
 /// Class method, field access macros
 ///
 #define OFF           (t.wide ? t.fetch4() : t.fetch2())
-#define OFF8          (t.fetch())
+#define OFF8          ((U16)t.fetch())
 #define GetI_S(n)     PushI(*t.cls_var(n))
 #define PutI_S(n,v)   (*t.cls_var(n)=(v))
 #define GetI_F(o,n)   PushI(*t.inst_var(o, n))
@@ -138,7 +138,7 @@ static Method _java[] = {
     /*39*/  UCODE("dstore",   {}),
     /*3A*/  UCODE("astore",   {}),
     /*3B*/  UCODE("istore_0", StorI(0)),	/// save to local (auto)
-    /*3C*/  UCODE("istore_1", StorI(1)),
+    /*3B*/  UCODE("istore_1", StorI(1)),
     /*3D*/  UCODE("istore_2", StorI(2)),
     /*3E*/  UCODE("istore_3", StorI(3)),
     /*3F*/  UCODE("lstore_0", StorL(0)),
