@@ -141,7 +141,7 @@ void forth_interpreter(Thread &t) {
 }
 
 int jvm_setup(const char *fname) {
-	Method _obj[] = { {"<init>", [](Thread &t){}, false} };
+	Method _obj[] = { {"<init>", [](Thread &t){ t.pop(); }, false} };
     setvbuf(stdout, NULL, _IONBF, 0);
     fout_cb = send_to_con;
     ///
@@ -157,10 +157,10 @@ int jvm_setup(const char *fname) {
     ///
     if (gLoader.init(fname)) return -1;
     
-    U16 cidx = gLoader.load_class();
-    if (!cidx) return -2;
-    
-    gT0.init(&gPool.pmem[0], cidx);
+    IU cx = gLoader.load_class();
+    if (!cx) return -2;
+
+    gT0.init(&gPool.pmem[0], cx);
     return 0;
 }
 
@@ -197,9 +197,9 @@ void jvm_run() {
     /// instantiate main thread (TODO: single thread for now)
     ///
     LOG("\nmain()");
-    IU midx  = gPool.get_method("main");
+    IU mx = gPool.get_method("main");
     
-    gT0.dispatch(midx);
+    gT0.dispatch(mx);
 }
 #endif // ARDUINO
 
