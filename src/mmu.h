@@ -29,14 +29,15 @@ struct Pool {
     ///
     /// dictionary builder
     ///
-    IU   add_method(Method &vt, IU &root);
-    IU   add_method(const char *m_name, U32 m_idx, U8 flag, IU &root);
+    IU   add_ucode(Method &vt, IU &root);
+    IU   add_method(const char *m_name, IU mj, IU &root);
     IU   add_class(const char *name, const char *supr, IU m_root, U16 cvsz, U16 ivsz);
     void register_class(const char *name, int sz, Method *vt, const char *supr = 0);
     ///
     /// new object instance
     ///
     IU   add_obj(IU cx);
+    void obj_u8(U8 b) { heap.push(b); }
     void obj_iu(IU i) { heap.push((U8*)&i, sizeof(IU)); }
     void obj_du(DU v) { heap.push((U8*)&v, sizeof(DU)); }
     ///

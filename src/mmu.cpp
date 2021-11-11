@@ -36,7 +36,7 @@ IU Pool::get_method(const char *m_name, IU cls_id, bool supr) {
 ///
 /// method constructor
 ///
-IU Pool::add_method(Method &vt, IU &m_root) {
+IU Pool::add_ucode(Method &vt, IU &m_root) {
     IU mx = pmem.idx;               /// store current method idx
     mem_iu(m_root);                 /// link to previous method
     mem_u8(STRLEN(vt.name));        /// method name length
@@ -45,13 +45,13 @@ IU Pool::add_method(Method &vt, IU &m_root) {
     mem_pu((PU)vt.xt);              /// encode function pointer
     return m_root = mx;             /// adjust method root
 };
-IU Pool::add_method(const char *m_name, U32 m_idx, U8 flag, IU &m_root) {
+IU Pool::add_method(const char *m_name, IU mj, IU &m_root) {
     IU mx = pmem.idx;               /// store current method idx
     mem_iu(m_root);                 /// link to previous method
     mem_u8(STRLEN(m_name));         /// method name length
-    mem_u8(flag);                   /// method access control
+    mem_u8(FLAG_JAVA);              /// method access control
     mem_str(m_name);                /// enscribe method name
-    mem_du((DU)m_idx);              /// encode function pointer
+    mem_du((DU)mj);                 /// encode function pointer
     return m_root = mx;             /// adjust method root
 };
 IU Pool::add_class(const char *name, const char *supr, IU m_root, U16 cvsz, U16 ivsz) {
@@ -79,7 +79,7 @@ void Pool::register_class(const char *name, int sz, Method *vt, const char *supr
     /// encode vtable
     IU m_root = 0;
     for (int i=0; i<sz; i++) {
-        add_method(vt[i], m_root);
+        add_ucode(vt[i], m_root);
     }
     if (sz) add_class(name, supr, m_root, 0, 0);
 }
@@ -89,13 +89,16 @@ void Pool::register_class(const char *name, int sz, Method *vt, const char *supr
 IU Pool::add_obj(IU cx) {
     Word *w   = (Word*)&pmem[cx];	/// get object class pointer
     U16  ivsz = *(U16*)w->pfa(CLS_IVSZ);
-    IU   oid  = heap.idx;
+
+    if (heap.idx==0) obj_du(0);		/// reserve a null header
+    IU oid  = heap.idx;             /// keep object index
     obj_iu(obj_root);				/// add object onto linked list
-    obj_iu(0);						/// reserved(for garbage collector)
+    obj_u8(cx);                     /// class reference
+    obj_u8(0);						/// reserved(for garbage collector)
     for (int i=0; i<ivsz; i+=sizeof(DU)) {
     	obj_du(0);
     }
-    return obj_root = oid;			/// return object id
+    return obj_root = oid;			/// link to previous object and return object id
 }
 
 void Pool::build_op_lookup() {

@@ -30,12 +30,12 @@ void Loader::create_method(IU &addr, IU &m_root) {
     U16 n_attr  = getU16(addr + 6);
     addr += 8;
 
-    IU  midx = addr + 14;
-    U32 len  = getU32(midx - 4);
+    IU  mj  = addr + 14;
+    U32 len = getU32(mj - 4);
     char name[128], parm[16];
     LOG("\n  ["); LOX2(i_name); LOG("]"); LOG(getStr(i_name, name));
     LOG(getStr(i_parm, parm)); LOG(" ("); LOX(len); LOG(" bytes)");
-    gPool.add_method(name, midx, FLAG_JAVA, m_root);
+    gPool.add_method(name, mj, m_root);
 
     while (n_attr--) addr += attr_size(addr);
 }
