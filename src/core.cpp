@@ -57,10 +57,10 @@ void Thread::java_new()  {
     IU ox = gPool.add_obj(cx);
     push(ox);		                /// save object onto stack
 }
-void Thread::java_call(IU j, U16 nparm) {	    /// Java inner interpreter
+void Thread::java_call(IU j, U16 nparm) {	/// Java inner interpreter
 	gPool.rs.push(SP);				/// keep caller stack frame
-	SP = ss.idx - nparm + 1;        /// adjust local variable base, TODO: handle types
-	U16 n = ss.idx + jU16(j - 6) - nparm;       /// allocate for local variables
+	SP = ss.idx - nparm + 1;        /// adjust local variable base, extra 1=obj ref, TODO: handle types
+	U16 n = ss.idx + jU16(j - 6) - nparm;   /// allocate for local variables
 	while (ss.idx < n) push(0);	    /// setup local variables, TODO: change ss.idx only
     gPool.rs.push(IP);              /// save caller instruction pointer
     IP = j;                         /// pointer to class file

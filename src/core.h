@@ -57,11 +57,28 @@ struct Thread {
     ///
     /// local variable access
     ///
-    void iinc(U8 i, S8 v)  { ss[SP + i] += v; }
+#if RANGE_CHECK
+    void iinc(U8 i, S8 v)  {
+    	if ((SP+i) > ss.idx) throw "ERR: iinc > ss.idx";
+    	((SP + i)==ss.idx) ? tos += v : ss[SP + i] += v;
+    }
     template<typename T>
-    T    load(U16 i, T n)  { return *(T*)&ss[SP + i]; }
+    T    load(U16 i, T n)  {
+    	if ((SP+i) > ss.idx) throw "ERR: load > ss.idx";
+    	return ((SP+i)==ss.idx) ? *(T*)&tos : *(T*)&ss[SP + i];
+    }
     template<typename T>
-    void store(U16 i, T n) { *(T*)&ss[SP + i] = n; }
+    void store(U16 i, T n) {
+    	if ((SP+i) > ss.idx) throw "ERR: store > ss.idx";
+    	((SP+i)==ss.idx) ? tos=n : *(T*)&ss[SP + i] = n;
+    }
+#else
+    void iinc(U8 i, S8 v)  { ((SP+i)==ss.idx) ? tos += v : ss[SP + i] += v; }
+    template<typename T>
+    T    load(U16 i, T n)  { return ((SP+i)==ss.idx) ? *(T*)&tos : *(T*)&ss[SP + i]; }
+    template<typename T>
+    void store(U16 i, T n) { ((SP+i)==ss.idx) ? tos=n : *(T*)&ss[SP + i] = n; }
+#endif // RANGE_CHECK
 };
 typedef void (*fop)(Thread&); /// opcode function pointer
 ///
