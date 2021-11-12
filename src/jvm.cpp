@@ -49,7 +49,9 @@ void words(Thread &t) {
 void ss_dump(Thread &t) {
     if (t.compile) return;
     fout << setbase(t.base) << " <";
-    for (int i=0; i<t.ss.idx; i++) { fout << t.ss[i] << " "; }
+    for (int i=0; i<t.ss.idx; i++) {
+    	fout << t.ss[i] << ((i+1)==t.SP ? "|" : " ");
+    }
     fout << t.tos << "> ok" << ENDL;
     yield();
 }
