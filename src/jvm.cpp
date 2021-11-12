@@ -52,7 +52,7 @@ void ss_dump(Thread &t) {
     for (int i=0; i<t.ss.idx; i++) {
     	fout << t.ss[i] << ((i+1)==t.SP ? "|" : " ");
     }
-    fout << t.tos << "> ok" << ENDL;
+    fout << t.TOS << "> ok" << ENDL;
     yield();
 }
 ///
@@ -143,16 +143,17 @@ void forth_interpreter(Thread &t) {
 }
 
 int jvm_setup(const char *fname) {
-	Method _obj[] = { {"<init>", [](Thread &t){ t.pop(); }, false} };
+	static Method uObj[] = { {"<init>", [](Thread &t){ t.pop(); }, false} };
+	static int uObj_vtsz = sizeof(uObj)/sizeof(Method);
     setvbuf(stdout, NULL, _IONBF, 0);
     fout_cb = send_to_con;
     ///
     /// populate memory pool
     ///
-    gPool.register_class("Ucode", uCode.vtsz, uCode.vt);
-    gPool.register_class("java/lang/Object", sizeof(_obj)/sizeof(Method), _obj, "Ucode");
-    gPool.register_class("ej32/Forth", uForth.vtsz, uForth.vt, "java/lang/Object");
-    gPool.register_class("ej32/ESP32", uESP32.vtsz, uESP32.vt, "ej32/Forth");
+    gPool.register_class("Ucode",            uCode.vtsz,  uCode.vt);
+    gPool.register_class("java/lang/Object", uObj_vtsz,   uObj,      "Ucode");
+    gPool.register_class("ej32/Forth",       uForth.vtsz, uForth.vt, "java/lang/Object");
+    gPool.register_class("ej32/ESP32",       uESP32.vtsz, uESP32.vt, "ej32/Forth");
     gPool.build_op_lookup();
     ///
     /// instantiate Java class loader
