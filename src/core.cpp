@@ -80,9 +80,12 @@ void Thread::invoke(U16 itype) {    /// invoke type: 0:virtual, 1:special, 2:sta
     if (itype>2) IP += 2;           /// extra 2 for interface and dynamic
     IU mi = gPool.lookup(gPool.vt, j);
     if (mi != 0xffff) {
+    	Word *w = WORD(gPool.vt[mi].ref);
+    	LOG(" "); LOG(w->nfa());
     	dispatch(gPool.vt[mi].ref, gPool.vt[mi].nparm);
     	return;
     }
+    /// cache missed, create new lookup entry
     IU c_m = jOff(j);               /// [02]000f:a=>[12,13]  [class_idx, method_idx]
     IU cj  = jU16(c_m + 1);         /// 12
     IU mj  = jU16(c_m + 3);         /// 13
@@ -97,6 +100,7 @@ void Thread::invoke(U16 itype) {    /// invoke type: 0:virtual, 1:special, 2:sta
 
     IU cx = gPool.get_class(cls);					/// class ref
     IU mx = gPool.get_method(mn, cx, itype!=1);   	/// special does not go up to supr class
+    LOG(" $"); LOX(gPool.vt.idx);
     gPool.vt.push({j, mx, nparm});
     if (mx > 0) dispatch(mx, nparm);
     else        LOG(" **NA**");
@@ -107,15 +111,24 @@ void Thread::invoke(U16 itype) {    /// invoke type: 0:virtual, 1:special, 2:sta
 ///
 DU *Thread::cls_var(U16 j) {
 	IU i = gPool.lookup(gPool.cv, j);
-	if (i != 0xffff) return (DU*)&gPool.pmem[gPool.cv[i].ref];
+	if (i != 0xffff) { return (DU*)&gPool.pmem[gPool.cv[i].ref]; }
+    /// cache missed, create new lookup entry
+    IU c_f = jOff(j);               /// [02]000f:a=>[12,13]  [class_idx, method_idx]
+    IU cj  = jU16(c_f + 1);
+    char cls[128]; jStrRef(cj, cls);/// get class name
+    IU cx  = gPool.get_class(cls);  /// map to for class index in pmem
 
-    IU c_m = jOff(j);                 /// [02]000f:a=>[12,13]  [class_idx, method_idx]
-    IU cj  = jU16(c_m + 1);
-    char cls[128]; jStrRef(cj, cls);  /// get class name
-    IU cx  = gPool.get_class(cls);    /// map to for class index in pmem
+#if ENABLE_DEBUG
+    IU fj  = jU16(c_f + 3);         /// 13
+    IU frf = jOff(fj);              /// [13]008f:c=>[15,16]  [method_name, type_name]
+    char fn[128], t[16];
+    LOG(" "); LOG(cls); LOG("::"); LOG(jStr(jU16(frf + 1), fn));
+    LOG(jStr(jU16(frf + 3), t));
+#endif // ENABLE_DEBUG
 
     Word *w  = WORD(cx);
     DU   *cv = (DU*)w->pfa(CLS_CV) + gPool.cv.idx;
+    LOG(" $"); LOX(gPool.cv.idx);
     gPool.cv.push({ j, (IU)((U8*)cv - M0) });  /// create new cache entry
 	return cv;
 }
@@ -124,7 +137,19 @@ DU *Thread::inst_var(IU ox, U16 j) {
 	IU i   = gPool.lookup(gPool.iv, j);
 	if (i != 0xffff) return iv + gPool.iv[i].ref;
 
-	IU idx = gPool.iv.idx;
+	// cache missed, create new lookup entry
+#if ENABLE_DEBUG
+    IU c_f = jOff(j);               /// [02]000f:a=>[12,13]  [class_idx, method_idx]
+    IU cj  = jU16(c_f + 1);         /// 12
+    IU fj  = jU16(c_f + 3);         /// 13
+    IU frf = jOff(fj);              /// [13]008f:c=>[15,16]  [method_name, type_name]
+    char cls[128], fn[128], t[16];
+    LOG(" "); LOG(jStrRef(cj, cls)); LOG("::"); LOG(jStr(jU16(frf + 1), fn));
+    LOG(jStr(jU16(frf + 3), t));
+#endif // ENABLE_DEBUG
+
+    IU idx = gPool.iv.idx;
+    LOG(" $"); LOX(idx);
     gPool.iv.push({ j, idx });        /// create new cache entry
     return iv + idx;
 }

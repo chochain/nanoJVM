@@ -72,33 +72,33 @@ char *Loader::getStr(IU idx, char *buf, bool ref) {
 ///
 /// calculate offset of an index in constant pool
 ///
-U16 Loader::offset(U16 idx, bool debug) {
+U16 Loader::offset(U16 jdx, bool debug) {
     IU addr = 10;
     ///
     /// loop over the constant pool to get the offset
     /// TODO: this is a very inefficient way of keeping indices
     ///
-    for (int i=0; i<idx; i++) {
+    for (int i=0; i<jdx; i++) {
         U8 t = getU8(addr);
         if (debug) {
-            LOG("\n["); LOX2(i+1); LOG("]"); LOX4(addr); LOG(":"); LOX2(t);
+        	LOG("\n["); LOX2(i+1); LOG("]"); LOX4(addr); LOG(":"); LOX2(t);
         }
         addr++;
         switch(t){
         case CONST_INT:
-            if (debug) { LOG("=>0x"); LOX(getU32(addr)); }
+        	if (debug) { LOG("=>0x"); LOX(getU32(addr)); }
             addr += 4; break;
         case CONST_UTF8:
-            if (debug) {
-                LOG("=>");
-                for (U16 i=0, n=getU16(addr); i<n; i++) {
-                    CHR(getU8(addr+2+i));
-                }
-            }
+        	if (debug) {
+        		LOG("=>");
+        		for (U16 i=0, n=getU16(addr); i<n; i++) {
+        			CHR(getU8(addr+2+i));
+        		}
+        	}
             addr += 2 + getU16(addr); break;
         case CONST_STRING:
         case CONST_CLASS:
-            if (debug) { LOG("=>"); LOX(getU16(addr)); }
+        	if (debug) { LOG("=>"); LOX(getU16(addr)); }
             addr += 2; break;
         case CONST_LONG:
         case CONST_DOUBLE:
@@ -106,10 +106,10 @@ U16 Loader::offset(U16 idx, bool debug) {
         case CONST_FIELD:
         case CONST_METHOD:
         case CONST_NAME_TYPE:
-            if (debug) {
-                LOG("=>["); LOX(getU16(addr));
-                LOG(",");   LOX(getU16(addr+2)); LOG("]");
-            }
+        	if (debug) {
+        		LOG("=>["); LOX(getU16(addr));
+        		LOG(",");   LOX(getU16(addr+2)); LOG("]");
+        	}
             addr += 4; break;
         default: addr += 4; break;
         }
@@ -161,7 +161,7 @@ attribute_info {
     u1 info[attribute_length];
 }
 */
-int Loader::init(const char *fname, bool debug) {
+int Loader::init(const char *fname) {
 #if ARDUINO
     if (!SPIFFS.begin()) { LOG("failed to open SPIFFS"); return -1; }
     f = SPIFFS.open(fname, "r");
@@ -171,7 +171,7 @@ int Loader::init(const char *fname, bool debug) {
     if (!f) { LOG("failed to open file: "); LOG(fname); return -2; }
 #endif
     LOG("\nJava class file: "); LOG(fname);
-    if (!debug) return 0;
+#if ENABLE_DEBUG
     ///
     /// dump Java class file content
     ///
@@ -188,6 +188,7 @@ int Loader::init(const char *fname, bool debug) {
         buf[16] = '\0';
         LOG(buf);
     }
+#endif // ENABLE_DEBUG
     return 0;
 }
 U16 Loader::load_class() {

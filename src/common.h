@@ -11,7 +11,7 @@ using namespace std;
 /// conditional compilation options
 ///
 #define RANGE_CHECK     1
-#define DEBUG           1
+#define ENABLE_DEBUG    1
 ///
 /// memory block size setting
 ///
@@ -57,7 +57,7 @@ struct List {
     List()  { v = new T[N]; }      /// dynamically allocate array memory
     ~List() { delete[] v;   }      /// free the memory
     T& operator[](int i)   { return i < 0 ? v[idx + i] : v[i]; }
-#ifdef RANGE_CHECK
+#if RANGE_CHECK
     T pop() {
         if (idx>0) return v[--idx];
         throw "ERR: List empty";

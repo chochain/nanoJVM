@@ -68,7 +68,7 @@ class Loader {
     void create_method(U16 &addr, U16 &m_root);
     
 public:
-    int  init(const char *fname, bool debug=true);
+    int  init(const char *fname);
     U16  load_class();
 
     U8   getU8(U16 addr);

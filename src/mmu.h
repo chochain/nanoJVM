@@ -26,7 +26,10 @@ struct Pool {
 
     template<typename T>
     IU  lookup(T &a, IU j) {
-    	for (IU i=0; i<a.idx; i++) if (a[i].key == j) return i;
+    	for (IU i=0; i<a.idx; i++) if (a[i].key == j) {
+    		LOG(" $"); LOX(i);
+    		return i;
+    	}
     	return 0xffff;
     }
     ///
