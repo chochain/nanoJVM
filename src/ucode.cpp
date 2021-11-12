@@ -2,19 +2,19 @@
 ///
 /// macros for reduce verbosity
 ///
-#define TopS32      (*(S32*)&t.tos)
-#define TopS64      (*(S64*)&t.tos)
-#define TopF32      (*(F32*)&t.tos)
-#define TopF64      (*(F64*)&t.tos)
-#define TopU32      (*(U32*)&t.tos)
-#define TopU64      (*(U64*)&t.tos)
-#define PushI(n)    (t.push((S32)n))        /** tos updated */
-#define PushL(n)    (t.push((S64)n))        /** tos updated */
+#define TopS32      (*(S32*)&t.TOS)
+#define TopS64      (*(S64*)&t.TOS)
+#define TopF32      (*(F32*)&t.TOS)
+#define TopF64      (*(F64*)&t.TOS)
+#define TopU32      (*(U32*)&t.TOS)
+#define TopU64      (*(U64*)&t.TOS)
+#define PushI(n)    (t.push((S32)n))        /** TOS updated */
+#define PushL(n)    (t.push((S64)n))        /** TOS updated */
 #define PushF(n)    (0)
 #define PushD(n)    (0)
 #define PushA(n)    (t.push((P32)n))
-#define PopI()      ((S32)t.pop())          /** tos updated */
-#define PopL()      ((S64)t.pop())          /** tos updated */
+#define PopI()      ((S32)t.pop())          /** TOS updated */
+#define PopL()      ((S64)t.pop())          /** TOS updated */
 #define PopF()      (0)
 #define PopD()      (0)
 #define PopA()      ((P32)t.pop())

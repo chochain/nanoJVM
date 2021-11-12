@@ -29,7 +29,6 @@ void Thread::dispatch(IU mx, U16 nparm) {
     }
     else if (w->forth) {			 /// Forth core
         gPool.rs.push(IP);			 /// setup call frame
-        gPool.rs.push(WP = mx);
         IP = (IU)(w->pfa() - M0);	 /// get new IP
         while (IP) {				 /// Forth inner interpreter
         	mx = *(IU*)(M0 + IP);    /// fetch next instruction
@@ -38,8 +37,7 @@ void Thread::dispatch(IU mx, U16 nparm) {
             IP += sizeof(IU);        /// too bad, we cannot do IP++
             dispatch(mx);		     /// recursively call
         }
-        WP = (IU)gPool.rs.pop();     /// restore call frame
-        IP = gPool.rs.pop();
+        IP = gPool.rs.pop();         /// restore call frame
     }
     else {
 		fop xt = *(fop*)w->pfa();	 /// Native method pointer

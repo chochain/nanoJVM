@@ -13,9 +13,8 @@ struct Thread {
     bool  compile = false;  /// compile flag
     bool  wide    = false;  /// wide flag
     DU    base    = 10;     /// radix
-    DU    tos     = -1;     /// top of stack
     IU    cls     = 0;		/// current class, =~ Forth context
-    IU    WP      = 0;      /// method index
+    DU    TOS     = -1;     /// top of stack
     IU    IP      = 0;      /// instruction pointer (program counter)
     U16   SP      = 0;      /// local stack frame index
 
@@ -52,32 +51,32 @@ struct Thread {
     ///
     /// stack ops
     ///
-    void push(DU v)     { ss.push(tos); tos = v; }
-    DU   pop()          { DU n = tos; tos = ss.pop(); return n; }
+    void push(DU v)     { ss.push(TOS); TOS = v; }
+    DU   pop()          { DU n = TOS; TOS = ss.pop(); return n; }
     ///
     /// local variable access
     ///
 #if RANGE_CHECK
     void iinc(U8 i, S8 v)  {
     	if ((SP+i) > ss.idx) throw "ERR: iinc > ss.idx";
-    	((SP + i)==ss.idx) ? tos += v : ss[SP + i] += v;
+    	((SP+i)==ss.idx) ? TOS += v : ss[SP + i] += v;
     }
     template<typename T>
     T    load(U16 i, T n)  {
     	if ((SP+i) > ss.idx) throw "ERR: load > ss.idx";
-    	return ((SP+i)==ss.idx) ? *(T*)&tos : *(T*)&ss[SP + i];
+    	return ((SP+i)==ss.idx) ? TOS : *(T*)&ss[SP + i];
     }
     template<typename T>
     void store(U16 i, T n) {
     	if ((SP+i) > ss.idx) throw "ERR: store > ss.idx";
-    	((SP+i)==ss.idx) ? tos=n : *(T*)&ss[SP + i] = n;
+    	((SP+i)==ss.idx) ? TOS = n : *(T*)&ss[SP + i] = n;
     }
 #else
-    void iinc(U8 i, S8 v)  { ((SP+i)==ss.idx) ? tos += v : ss[SP + i] += v; }
+    void iinc(U8 i, S8 v)  { ((SP+i)==ss.idx) ? TOS += v : ss[SP + i] += v; }
     template<typename T>
-    T    load(U16 i, T n)  { return ((SP+i)==ss.idx) ? *(T*)&tos : *(T*)&ss[SP + i]; }
+    T    load(U16 i, T n)  { return ((SP+i)==ss.idx) ? TOS : *(T*)&ss[SP + i]); }
     template<typename T>
-    void store(U16 i, T n) { ((SP+i)==ss.idx) ? tos=n : *(T*)&ss[SP + i] = n; }
+    void store(U16 i, T n) { ((SP+i)==ss.idx) ? TOS = n : *(T*)&ss[SP + i] = n; }
 #endif // RANGE_CHECK
 };
 typedef void (*fop)(Thread&); /// opcode function pointer
