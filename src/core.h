@@ -13,7 +13,7 @@ struct Thread {
     bool  compile = false;  /// compile flag
     bool  wide    = false;  /// wide flag
     DU    base    = 10;     /// radix
-    IU    cls     = 0;		/// current class, =~ Forth context
+    IU    cls     = 0;      /// current class, =~ Forth context
     DU    TOS     = -1;     /// top of stack
     IU    IP      = 0;      /// instruction pointer (program counter)
     U16   SP      = 0;      /// local stack frame index
@@ -41,7 +41,7 @@ struct Thread {
     ///
     U8   fetch()        { return J.getU8(IP++); }
     U16  fetch2()       { U16 n = J.getU16(IP); IP+=2; return n; }
-    U32  fetch4()       { U32 n = J.getU32(IP); IP+=4; return n; }
+    U16  fetch4()       { U32 n = J.getU32(IP); IP+=4; return n; }
     ///
     /// branching ops
     ///
@@ -58,18 +58,18 @@ struct Thread {
     ///
 #if RANGE_CHECK
     void iinc(U8 i, S8 v)  {
-    	if ((SP+i) > ss.idx) throw "ERR: iinc > ss.idx";
-    	((SP+i)==ss.idx) ? TOS += v : ss[SP + i] += v;
+        if ((SP+i) > ss.idx) throw "ERR: iinc > ss.idx";
+        ((SP+i)==ss.idx) ? TOS += v : ss[SP + i] += v;
     }
     template<typename T>
     T    load(U16 i, T n)  {
-    	if ((SP+i) > ss.idx) throw "ERR: load > ss.idx";
-    	return ((SP+i)==ss.idx) ? TOS : *(T*)&ss[SP + i];
+        if ((SP+i) > ss.idx) throw "ERR: load > ss.idx";
+        return ((SP+i)==ss.idx) ? TOS : *(T*)&ss[SP + i];
     }
     template<typename T>
     void store(U16 i, T n) {
-    	if ((SP+i) > ss.idx) throw "ERR: store > ss.idx";
-    	((SP+i)==ss.idx) ? TOS = n : *(T*)&ss[SP + i] = n;
+        if ((SP+i) > ss.idx) throw "ERR: store > ss.idx";
+        ((SP+i)==ss.idx) ? TOS = n : *(T*)&ss[SP + i] = n;
     }
 #else
     void iinc(U8 i, S8 v)  { ((SP+i)==ss.idx) ? TOS += v : ss[SP + i] += v; }
@@ -98,9 +98,10 @@ struct Method {
     };
 #else
     fop   xt   = 0;           /// function pointer (or decayed lambda)
-    U16   flag = 0;
+    U8    flag = 0;
+    U8    parm = 0;
 #endif
-    Method(const char *n, fop f, U32 im=0) : name(n), xt(f), flag(im) {}
+    Method(const char *n, fop f, U32 im=0, U32 pm=0) : name(n), xt(f), flag(im), parm(pm) {}
 };
 ///
 /// Word - shared struct for Class and Method
@@ -113,6 +114,7 @@ struct Method {
 #define CLS_CVSZ        6
 #define CLS_IVSZ        8
 #define CLS_CV          10
+#define MTH_PARM        sizeof(PU)
 struct Word {                /// 4-byte header
     IU  lfa;                 /// link field to previous word
     U8  len;                 /// name of method
