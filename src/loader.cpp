@@ -32,10 +32,10 @@ void Loader::create_method(IU &addr, IU &m_root) {
 
     IU  mj  = addr + 14;
     U32 len = getU32(mj - 4);
-    char name[128], parm[16];
+    char name[128], parm[32];
     LOG("\n  ["); LOX2(i_name); LOG("]"); LOG(getStr(i_name, name));
     LOG(getStr(i_parm, parm)); LOG(" ("); LOX(len); LOG(" bytes)");
-    gPool.add_method(name, mj, m_root);
+    gPool.add_method(name, parm, mj, m_root);
 
     while (n_attr--) addr += attr_size(addr);
 }
@@ -229,5 +229,5 @@ U16 Loader::load_class() {
     }
     LOG("\n} loaded.\n");
     
-    return gPool.add_class(cls, supr, m_root, sz_cv, sz_iv);
+    return gPool.add_class(cls, m_root, supr, sz_cv, sz_iv);
 }

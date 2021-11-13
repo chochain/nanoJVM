@@ -111,7 +111,7 @@ void outer(Thread &t, const char *cmd, void(*callback)(int, const char*)) {
     while (fin >> strbuf) {
         const char *idiom = strbuf.c_str();
         LOG(idiom); LOG("=>");
-        IU m = gPool.get_method(idiom, t.cls);    /// search for word in current context
+        IU m = gPool.get_method(idiom, 0, t.cls);    /// search for word in current context
         if (m > 0) {						 ///> if handle method found
             Word *w = WORD(m);
             LOG(w->nfa()); LOG(" 0x"); LOX(m);
@@ -141,20 +141,49 @@ void forth_interpreter(Thread &t) {
 		outer(t, line.c_str(), send_to_con);
 	}
 }
-
+///
+/// Java system IO function
+///
+void _print_s(Thread &t) {
+	IU j  = t.pop();  /// java constant pool object
+	IU ox = t.pop();  /// java system object, unused
+	char buf[128];
+	fout << " " << t.J.getStr(j, buf, true);
+}
+void _print_i(Thread &t) {
+	IU j  = t.pop();  /// java constant pool object
+	IU ox = t.pop();  /// java system object, unused
+	fout << " " << setbase(t.base) << j;
+}
+void _println_s(Thread &t) { _print_s(t); fout << ENDL; }
+void _println_i(Thread &t) { _print_i(t); fout << ENDL; }
+///
+/// JVM Core
+///
 int jvm_setup(const char *fname) {
 	static Method uObj[] = { {"<init>", [](Thread &t){ t.pop(); }, false} };
-	static int uObj_vtsz = sizeof(uObj)/sizeof(Method);
     setvbuf(stdout, NULL, _IONBF, 0);
     fout_cb = send_to_con;
     ///
     /// populate memory pool
     ///
-    gPool.register_class("Ucode",            uCode.vtsz,  uCode.vt);
-    gPool.register_class("java/lang/Object", uObj_vtsz,   uObj,      "Ucode");
-    gPool.register_class("ej32/Forth",       uForth.vtsz, uForth.vt, "java/lang/Object");
-    gPool.register_class("ej32/ESP32",       uESP32.vtsz, uESP32.vt, "ej32/Forth");
+    gPool.register_class("Ucode",            uCode.vt,  uCode.vtsz);
+    gPool.register_class("java/lang/Object", uObj,      sizeof(uObj)/sizeof(Method), "Ucode");
+    gPool.register_class("ej32/Forth",       uForth.vt, uForth.vtsz,                 "java/lang/Object");
+    gPool.register_class("ej32/ESP32",       uESP32.vt, uESP32.vtsz,                 "ej32/Forth");
     gPool.build_op_lookup();
+    ///
+    /// system IO classes
+    ///
+    static Method uSys[] = { { "<init>", [](Thread &t){}, false } };
+    static Method uPS[]  = {
+    	{ "print",   _print_s,   false, PARM_STR },
+    	{ "print",   _print_i,   false, PARM_INT },
+    	{ "println", _println_s, false, PARM_STR },
+    	{ "println", _println_i, false, PARM_INT }
+    };
+    gPool.register_class("java/lang/System",    uSys, sizeof(uSys)/sizeof(Method), "java/lang/Object", sizeof(DU)*3, 0);
+    gPool.register_class("java/io/PrintStream", uPS,  sizeof(uPS)/sizeof(Method),  "java/lang/Object");
     ///
     /// instantiate Java class loader
     ///
@@ -200,7 +229,7 @@ void jvm_run() {
     /// instantiate main thread (TODO: single thread for now)
     ///
     LOG("\nmain()");
-    IU mx = gPool.get_method("main");
+    IU mx = gPool.get_method("main", 0);
     
     gT0.dispatch(mx);
 }
