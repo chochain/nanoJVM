@@ -52,7 +52,7 @@ IU Pool::get_method(const char *m_name, const char *parm, IU cls_id, bool supr) 
 ///
 /// method constructor
 ///
-IU Pool::add_ucode(Method &vt, IU &m_root) {
+IU Pool::add_ucode(const Method &vt, IU &m_root) {
     IU mx = pmem.idx;               /// store current method idx
     mem_iu(m_root);                 /// link to previous method
     mem_u8(STRLEN(vt.name));        /// method name length
@@ -94,7 +94,7 @@ IU Pool::add_class(const char *name, IU m_root, const char *supr, U16 cvsz, U16 
 ///
 /// class contructor
 ///
-void Pool::register_class(const char *name, Method *vt, int vtsz, const char *supr, U16 cvsz, U16 ivsz) {
+void Pool::register_class(const char *name, const Method *vt, int vtsz, const char *supr, U16 cvsz, U16 ivsz) {
     /// encode vtable
     IU m_root = 0;
     for (int i=0; i<vtsz; i++) {
