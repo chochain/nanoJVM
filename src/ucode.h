@@ -2,7 +2,8 @@
 #define NANOJVM_UCODE_H
 #include "core.h"
 
-enum { DOVAR = 0x0, DOLIT, DOSTR, UNNEST };    /// Forth opcodes
+enum { DOVAR = 0, DOLIT, DOSTR, UNNEST };   /// Forth opcodes
+enum { PARM_NA = 0, PARM_STR, PARM_INT };   /// match to mmu.get_parm_idx
 
 struct Ucode {
     int     vtsz;

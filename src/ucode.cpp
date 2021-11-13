@@ -93,15 +93,15 @@ static Method _java[] = {
     /// @{
     /*10*/  UCODE("bipush",   PushI(OFF8)),
     /*11*/  UCODE("sipush",   PushI(OFF)),
-    /*12*/  UCODE("ldc",      U8  c = OFF8),    // load pool[U8] constant (cannot reach class file from here:TODO)
-    /*13*/  UCODE("ldcw",     U16 c = OFF),     // load pool[U16] constant
+    /*12*/  UCODE("ldc",      PushI(OFF8)),
+    /*13*/  UCODE("ldcw",     PushI(OFF)),
     /*14*/  UCODE("ldc2_w",   {}),
     /*15*/  UCODE("iload",    LoadI(OFF8)),
     /*16*/  UCODE("lload",    LoadL(OFF8)),
     /*17*/  UCODE("fload",    LoadF(OFF8)),
     /*18*/  UCODE("dload",    LoadD(OFF8)),
     /*19*/  UCODE("aload",    LoadA(OFF8)),
-    /*1A*/  UCODE("iload_0",  LoadI(0)),		// load from local (auto)
+    /*1A*/  UCODE("iload_0",  LoadI(0)),        // load from local (auto)
     /*1B*/  UCODE("iload_1",  LoadI(1)),
     /*1C*/  UCODE("iload_2",  LoadI(2)),
     /*1D*/  UCODE("iload_3",  LoadI(3)),
@@ -118,7 +118,7 @@ static Method _java[] = {
     /*28*/  UCODE("dload_2",  LoadD(2)),
     /*29*/  UCODE("dload_3",  LoadD(3)),
     /*2A*/  UCODE("aload_0",  LoadA(0)),
-    /*2B*/  UCODE("aload_1",  LoadA(1)),	    /// load ref from local (auto)
+    /*2B*/  UCODE("aload_1",  LoadA(1)),        /// load ref from local (auto)
     /*2C*/  UCODE("aload_2",  LoadA(2)),
     /*2D*/  UCODE("aload_3",  LoadA(3)),
     /*2E*/  UCODE("iaload",   GetI_A()),        /// n = PopI(); a = PopR(); GetI_A(a, n)
@@ -137,7 +137,7 @@ static Method _java[] = {
     /*38*/  UCODE("fstore",   {}),
     /*39*/  UCODE("dstore",   {}),
     /*3A*/  UCODE("astore",   {}),
-    /*3B*/  UCODE("istore_0", StorI(0)),	/// save to local (auto)
+    /*3B*/  UCODE("istore_0", StorI(0)),    /// save to local (auto)
     /*3B*/  UCODE("istore_1", StorI(1)),
     /*3D*/  UCODE("istore_2", StorI(2)),
     /*3E*/  UCODE("istore_3", StorI(3)),
@@ -153,7 +153,7 @@ static Method _java[] = {
     /*48*/  UCODE("dstore_1", StorF(1)),
     /*49*/  UCODE("dstore_2", StorF(2)),
     /*4A*/  UCODE("dstore_3", StorF(3)),
-    /*4B*/  UCODE("astore_0", StorA(0)),	// store object reference
+    /*4B*/  UCODE("astore_0", StorA(0)),    // store object reference
     /*4C*/  UCODE("astore_1", StorA(1)),
     /*4D*/  UCODE("astore_2", StorA(2)),
     /*4E*/  UCODE("astore_3", StorA(3)),
@@ -289,14 +289,14 @@ static Method _java[] = {
     /// @{
     /*B2*/  UCODE("getstatic", GetI_S(OFF)),                           /// fetch from class variable
     /*B3*/  UCODE("putstatic", PutI_S(OFF, PopI())),                   /// store into class variable
-    /*B4*/  UCODE("getfield",  IU o = PopI(); GetI_F(o, OFF)),		   /// fetch from instance variable
+    /*B4*/  UCODE("getfield",  IU o = PopI(); GetI_F(o, OFF)),         /// fetch from instance variable
     /*B5*/  UCODE("putfield",  S32 v = PopI(); IU o = PopI(); PutI_F(o, OFF, v)),/// store into instance variable
     /// @}
     /// @definegroup Method/Interface Invokation ops
     /// @{
     /*B6*/  UCODE("invokevirtual",   t.invoke(0)),
     /*B7*/  UCODE("invokespecial",   t.invoke(1)),
-	/*B8*/  UCODE("invokestatic",    t.invoke(2)),
+    /*B8*/  UCODE("invokestatic",    t.invoke(2)),
     /*B9*/  UCODE("invokeinterface", t.invoke(3)),
     /*BA*/  UCODE("invokedynamic",   t.invoke(4)),
     /// @}

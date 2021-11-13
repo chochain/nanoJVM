@@ -43,7 +43,7 @@ static Method _word[] = {
     CODE("words", words(t)),
     CODE("ss",    ss_dump(t)),
     CODE("dump",  DU n = POP; IU a = POP; mem_dump(t, a, n)),
-    CODE("tick",  IU w = gPool.get_method(next_word(), t.cls); PUSH(w)),
+    CODE("tick",  IU w = gPool.get_method(next_word(), 0, t.cls); PUSH(w)),
     CODE("clock", PUSH(millis())),
     CODE("delay", delay(POP)),
     CODE("interpreter", forth_interpreter(t)),
