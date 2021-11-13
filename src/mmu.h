@@ -39,16 +39,17 @@ struct Pool {
     IU cls_root = 0;              /// Class linked list
     IU obj_root = 0;              /// Object linked list
 
-    IU   find(const char *m_name, IU root);
+    IU   get_parm_idx(const char *parm);
+    IU   find(const char *m_name, const char *parm, IU root);
     IU   get_class(const char *cls_name);
-    IU   get_method(const char *m_name, IU cls_id=0, bool supr=true);
+    IU   get_method(const char *m_name, const char *parm, IU cls_id=0, bool supr=true);
     ///
     /// dictionary builder
     ///
     IU   add_ucode(Method &vt, IU &root);
-    IU   add_method(const char *m_name, IU mj, IU &root);
-    IU   add_class(const char *name, const char *supr, IU m_root, U16 cvsz, U16 ivsz);
-    void register_class(const char *name, int sz, Method *vt, const char *supr = 0);
+    IU   add_method(const char *m_name, const char *parm, IU mj, IU &root);
+    IU   add_class(const char *name, IU m_root, const char *supr, U16 cvsz, U16 ivsz);
+    void register_class(const char *name, Method *vt, int vtsz, const char *supr = 0, U16 cvsz=0, U16 ivsz=0);
     ///
     /// new object instance
     ///

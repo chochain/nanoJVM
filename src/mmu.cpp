@@ -5,11 +5,27 @@ Pool gPool;             /// global memory pool manager
 ///
 /// search for word following given linked list
 ///
-IU Pool::find(const char *s, IU idx) {
-    U8 len = STRLEN(s); // check length first, speed up matching
+IU Pool::get_parm_idx(const char *parm) {
+	const static char *_list[] = {
+		"()V",
+		"(Ljava/lang/String;)V",
+		"(I)V"
+	};
+	const static IU sz = sizeof(_list)/sizeof(char*);
+	IU i = 0;
+	for (; parm && i<sz && strcmp(parm, _list[i])!=0; i++);
+	return i < sz ? i : 0;
+}
+IU Pool::find(const char *name, const char *parm, IU root) {
+    IU idx = root;
+    U8 len = STRLEN(name); // check length first, speed up matching
+    IU pi  = get_parm_idx(parm);
     do {
         Word *w = (Word*)&pmem[idx];
-        if (w->len==len && strcmp(w->nfa(), s)==0) return idx;
+        if (w->len==len && strcmp(w->nfa(), name)==0) {
+        	U8 *px = w->pfa(MTH_PARM);
+        	if (!pi || (pi==*(IU*)w->pfa(MTH_PARM))) return idx;
+        }
         idx = w->lfa;
     } while (idx);
     return 0;
@@ -18,16 +34,16 @@ IU Pool::find(const char *s, IU idx) {
 /// return cls_obj if cls_name is NULL
 ///
 IU Pool::get_class(const char *cls_name) {
-    return cls_name ? find(cls_name, cls_root) : cls_root;
+    return cls_name ? find(cls_name, 0, cls_root) : cls_root;
 }
 ///
 /// return m_root if m_name is NULL
 ///
-IU Pool::get_method(const char *m_name, IU cls_id, bool supr) {
+IU Pool::get_method(const char *m_name, const char *parm, IU cls_id, bool supr) {
     Word *cls = (Word*)&pmem[cls_id ? cls_id : cls_root];
     IU mx = 0;
     while (cls) {
-        mx = find(m_name, *(IU*)cls->pfa(CLS_VT));
+        mx = find(m_name, parm, *(IU*)cls->pfa(CLS_VT));
         if (mx || !supr) break;
         cls = cls->lfa ? (Word*)&pmem[cls->lfa] : 0;
     }
@@ -43,18 +59,21 @@ IU Pool::add_ucode(Method &vt, IU &m_root) {
     mem_u8((U8)vt.flag);            /// method access control
     mem_str(vt.name);               /// enscribe method name
     mem_pu((PU)vt.xt);              /// encode function pointer
+    mem_iu(vt.parm);                /// parameter list
     return m_root = mx;             /// adjust method root
 };
-IU Pool::add_method(const char *m_name, IU mj, IU &m_root) {
+IU Pool::add_method(const char *m_name, const char *parm, IU mj, IU &m_root) {
     IU mx = pmem.idx;               /// store current method idx
     mem_iu(m_root);                 /// link to previous method
     mem_u8(STRLEN(m_name));         /// method name length
     mem_u8(FLAG_JAVA);              /// method access control
     mem_str(m_name);                /// enscribe method name
-    mem_du((DU)mj);                 /// encode function pointer
+    mem_iu(mj);                     /// encode function pointer
+    mem_iu(0);
+    mem_iu(get_parm_idx(parm));
     return m_root = mx;             /// adjust method root
 };
-IU Pool::add_class(const char *name, const char *supr, IU m_root, U16 cvsz, U16 ivsz) {
+IU Pool::add_class(const char *name, IU m_root, const char *supr, U16 cvsz, U16 ivsz) {
     /// encode class
     IU cx = pmem.idx;               /// preserve class link
     mem_iu(cls_root);               /// class linked list
@@ -75,13 +94,13 @@ IU Pool::add_class(const char *name, const char *supr, IU m_root, U16 cvsz, U16 
 ///
 /// class contructor
 ///
-void Pool::register_class(const char *name, int sz, Method *vt, const char *supr) {
+void Pool::register_class(const char *name, Method *vt, int vtsz, const char *supr, U16 cvsz, U16 ivsz) {
     /// encode vtable
     IU m_root = 0;
-    for (int i=0; i<sz; i++) {
+    for (int i=0; i<vtsz; i++) {
         add_ucode(vt[i], m_root);
     }
-    if (sz) add_class(name, supr, m_root, 0, 0);
+    if (vtsz) add_class(name, m_root, supr, cvsz, ivsz);
 }
 ///
 /// new object instance
@@ -105,11 +124,11 @@ void Pool::build_op_lookup() {
 	static const char *wlist[OP_LU_SZ] = {
 		"dovar", "dolit", "dostr", "unnest"
 	};
-	IU   mx   = find("ej32/Forth", cls_root);
+	IU   mx   = find("ej32/Forth", 0, cls_root);
 	Word *cls = (Word*)&pmem[mx];
 	IU   vt   = *(IU*)cls->pfa(CLS_VT);
 	for (int i=0; i<OP_LU_SZ; i++) {
-		IU w = find(wlist[i], vt);
+		IU w = find(wlist[i], 0, vt);
 		op[i] = w;
 	}
 }
