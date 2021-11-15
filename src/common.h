@@ -71,8 +71,8 @@ struct List {
     int push(T t) { v[max=idx] = t; return idx++; }
 #endif // RANGE_CHECK
     void push(T *a, int n)  { for (int i=0; i<n; i++) push(*(a+i)); }
-    void merge(List& a)     { for (int i=0; i<a.idx; i++) push(a[i]);}
-    void clear(int i=0)     { idx=i; }
+//    void merge(List& a)     { for (int i=0; i<a.idx; i++) push(a[i]);}
+//    void clear(int i=0)     { idx=i; }
 };
 ///
 /// universal types
