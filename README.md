@@ -25,12 +25,15 @@
 |ESP32Test|ESP pin interfacing|pinMode, digitalWrite|
 
 Use the following toolchain to produce bytecode (and analysis)
+#### ej32 subdirectories
+     * Forth - words/methods provided by Forth 
+     * ESP32 - words/methods provided by ESP32
 
-> javac -g:none Hello.java
+> javac -cp . -g:none InstVar.java
 
-> javap -c -p Hello.class
+> javap -c -p InstVar.class
 
-> od -A x -t x1z -v Hello.class
+> od -A x -t x1z -v InstVar.class
 
 Example:
 ```
