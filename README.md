@@ -18,18 +18,14 @@ Use the following toolchain to produce bytecode (and analysis)
 > od -A x -t x1z -v Hello.class
 |case|source|note|
 |---|---|---|
-|   |8-state, dedicated comparator|3-state, synthesizer gen comparators|
-|LUT|220 LUTS|182 LUTS|
-|src|<img src="./img/atoi_0_src.png">|<img src="./img/atoi_1_src.png">|
-|syn|<img src="./img/atoi_0_syn.png">|<img src="./img/atoi_1_syn.png">|
-|sim|<img src="./img/atoi_0_sim.png">|<img src="./img/atoi_1_sim.png">|
-|Hello|```
-    static int cls_v0;                  // global[05]
-    int inst_v0;
-    int inst_v1;
+|Hello|
+```
+static int cls_v0;                  // global[05]
+int inst_v0;
+int inst_v1;
     
-    public static void main()
-    {
+public static void main()
+{
         int main_v0;                    // ss[0]
         
         Forth.words();                  // b8 00 02
@@ -44,17 +40,17 @@ Use the following toolchain to produce bytecode (and analysis)
 ```||
 |IfElesThen|
 ```
-        int v0;                   // xs[0]
-        int v1 = 0;               // 18 03 3c
-        int v2;
-        int v3;
-        int v4 = 0x7fff;          // 11 7f ff 36 04 15 04
-        
-        if (v4 > v1) {            // 1b a4 00 0a
-            Forth.clock();        // b8 00 02 57 a7 00 06
-        }
-        else {
-            Forth.ss();           // b8 00 03
+int v0;                   // xs[0]
+int v1 = 0;               // 18 03 3c
+int v2;
+int v3;
+int v4 = 0x7fff;          // 11 7f ff 36 04 15 04
+
+if (v4 > v1) {            // 1b a4 00 0a
+    Forth.clock();        // b8 00 02 57 a7 00 06
+}
+else {
+    Forth.ss();           // b8 00 03
 }
 ```|
 |ForLoop||
