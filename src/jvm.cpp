@@ -3,7 +3,8 @@
 #include <iomanip>      // setbase
 #include <string>       // string class
 #include <stdlib.h>     // strtol
-#include "ucode.h"		// microcode managemer
+#include "ucode.h"		// microcode manager
+#include "thread.h"     // thread class
 #include "mmu.h"		// memory pool manager
 #include "jvm.h"		// virtual machine core
 

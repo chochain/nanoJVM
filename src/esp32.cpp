@@ -1,4 +1,5 @@
 #include "ucode.h"
+#include "thread.h"
 #include "mmu.h"
 
 #define CODE(s, g)  { s, [](Thread &t){ g; }, 0 }

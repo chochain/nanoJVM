@@ -1,4 +1,4 @@
-#include "common.h"
+#include "thread.h"     /// thread.cls
 #include "mmu.h"
 
 Pool gPool;             /// global memory pool manager
@@ -53,21 +53,21 @@ IU Pool::get_method(const char *m_name, const char *parm, IU cls_id, bool supr) 
 /// method constructor
 ///
 IU Pool::add_ucode(const Method &vt, IU &m_root) {
-    IU mx = pmem.idx;               /// store current method idx
+    IU mx = pmem.idx;               /// store current method index
     mem_iu(m_root);                 /// link to previous method
     mem_u8(STRLEN(vt.name));        /// method name length
     mem_u8((U8)vt.flag);            /// method access control
-    mem_str(vt.name);               /// enscribe method name
+    mem_str(vt.name);               /// inscribe method name
     mem_pu((PU)vt.xt);              /// encode function pointer
     mem_iu(vt.parm);                /// parameter list
     return m_root = mx;             /// adjust method root
 };
 IU Pool::add_method(const char *m_name, const char *parm, IU mj, IU &m_root) {
-    IU mx = pmem.idx;               /// store current method idx
+    IU mx = pmem.idx;               /// store current method index
     mem_iu(m_root);                 /// link to previous method
     mem_u8(STRLEN(m_name));         /// method name length
     mem_u8(FLAG_JAVA);              /// method access control
-    mem_str(m_name);                /// enscribe method name
+    mem_str(m_name);                /// inscribe method name
     mem_iu(mj);                     /// encode function pointer
     mem_iu(0);
     mem_iu(get_parm_idx(parm));
@@ -92,7 +92,7 @@ IU Pool::add_class(const char *name, IU m_root, const char *supr, U16 cvsz, U16 
     return cls_root = cx;
 }
 ///
-/// class contructor
+/// class constructor
 ///
 void Pool::register_class(const char *name, const Method *vt, int vtsz, const char *supr, U16 cvsz, U16 ivsz) {
     /// encode vtable

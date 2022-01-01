@@ -1,4 +1,5 @@
 #include "ucode.h"
+#include "thread.h"
 #include "mmu.h"
 #include "jvm.h"        // VM namespace
 
