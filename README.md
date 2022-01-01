@@ -13,53 +13,24 @@
 * main   - main module
 ### tests
 Use the following toolchain to produce bytecode (and analysis)
-> javac -g:none Hello.java
-> javap -c -p Hello.class
-> od -A x -t x1z -v Hello.class
-|case|source|note|
-|---|---|---|
-|Hello|
-```
-static int cls_v0;                  // global[05]
-int inst_v0;
-int inst_v1;
-    
-public static void main()
-{
-        int main_v0;                    // ss[0]
-        
-        Forth.words();                  // b8 00 02
-        main_v0 = Forth.clock();        // b8 00 03 3b
-        cls_v0  = Forth.here() - 0x100; // b8 00 04 11 01 00 64 b3 00 05
-        Forth.dump(cls_v0, 0x100);      // b2 00 05 11 01 00 b8 00 06
-        main_v0 -= Forth.clock();       // 1a b8 00 03 64 3b
-        cls_v0  = -main_v0;             // 1a 74 b3 00 05
-        Forth.ss();                     // b8 00 07
-//        main_v0 = Forth.tick("words");  // 12 08 b8 00 09 3b
-}                                   // b1
-```||
-|IfElesThen|
-```
-int v0;                   // xs[0]
-int v1 = 0;               // 18 03 3c
-int v2;
-int v3;
-int v4 = 0x7fff;          // 11 7f ff 36 04 15 04
 
-if (v4 > v1) {            // 1b a4 00 0a
-    Forth.clock();        // b8 00 02 57 a7 00 06
-}
-else {
-    Forth.ss();           // b8 00 03
-}
-```|
-|ForLoop||
-|InstVar||
-|NObj||
-|ObjMethod||
-|Outer||
-|Print||
-|ESP32Test||
+> javac -g:none Hello.java
+
+> javap -c -p Hello.class
+
+> od -A x -t x1z -v Hello.class
+
+|case|methods|note|
+|---|---|---|
+|Hello|basic function call (in main)|words, clock, here, -=, -, ss|
+|IfElesThen|conditional branch|if ( > ) else|
+|ForLoop|for loop and benchmark|for (int i=0; i<4; i++); clock|
+|InstVar|class static, instance vars|new, clock, here, delay|
+|NObj|create new objects with instance vars||
+|ObjMethod|calling object method|new, clock|
+|Outer|Forth outer interpreter loop|clock, dump, delay|
+|Print|System.out.print, println||
+|ESP32Test|ESP pin interfacing|pinMode, digitalWrite|
 Example:
 ```
 /home/gnii/devel/java/nanojvm/tests% ../Debug/nanojvm Hello.class
