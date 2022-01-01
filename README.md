@@ -4,13 +4,18 @@
 
 ### docs
 ### src
-* core   - thread class functions
-* forth  - forth dictionary
-* jvm    - java virtual machine
-* loader - bytecode loader 
-* mmu    - memory management unit
-* ucode  - microcode unit
-* main   - main module
+|module|desc.|structs|
+|---|---|---|
+|common.h|list and macros|List|
+|core.h||Method, Word|
+|thread|core thread functions|Thread|
+|esp32 |ESP32 words|uESP32|
+|forth |Forth words|uForth|
+|jvm   |java virtual machine||
+|loader|bytecode loader|Loader|
+|mmu   |memory management unit|KV, Pool|
+|ucode |JVM microcode unit|Ucode|
+|main  |main module||
 ### tests
 |case|methods|note|
 |---|---|---|

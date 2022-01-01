@@ -3,7 +3,6 @@
 #include "common.h"           /// common types and configuration
 #include "loader.h"           /// Java class loader
 #include "thread.h"           /// Java Thread class
-typedef void (*fop)(Thread&); /// opcode function pointer
 ///
 /// Method class
 ///
