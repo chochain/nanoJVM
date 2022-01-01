@@ -163,8 +163,9 @@ void _println_i(Thread &t) { _print_i(t); fout << ENDL; }
 ///
 int jvm_setup(const char *fname) {
 	const static Method uObj[] = {{ "<init>", [](Thread &t){ t.pop(); }, false }};
-    const static Method uSys[] = {{ "<init>", [](Thread &t){ t.pop(); }, false }};
-    const static Method uPS[]  = {
+    const static Method uStr[] = {{ "<init>", [](Thread &t){ t.pop(); }, false }};
+	const static Method uSys[] = {{ "<init>", [](Thread &t){ t.pop(); }, false }};
+    const static Method uPrs[] = {
     	{ "print",   _print_s,   false, PARM_STR },
     	{ "print",   _print_i,   false, PARM_INT },
     	{ "println", _println_s, false, PARM_STR },
@@ -177,8 +178,9 @@ int jvm_setup(const char *fname) {
     ///
     gPool.register_class("Ucode",              uCode.vt,  uCode.vtsz);
     gPool.register_class("java/lang/Object",   uObj, sizeof(uObj)/sizeof(Method), "Ucode");
+    gPool.register_class("java/lang/String",   uStr, sizeof(uStr)/sizeof(Method), "java/lang/Object", sizeof(DU)*3, 0);
     gPool.register_class("java/lang/System",   uSys, sizeof(uSys)/sizeof(Method), "java/lang/Object", sizeof(DU)*3, 0);
-    gPool.register_class("java/io/PrintStream",uPS,  sizeof(uPS)/sizeof(Method),  "java/lang/Object");
+    gPool.register_class("java/io/PrintStream",uPrs, sizeof(uPrs)/sizeof(Method), "java/lang/Object");
     ///
     /// Add Forth classes
     ///

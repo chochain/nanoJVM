@@ -292,7 +292,7 @@ static Method _java[] = {
     /*B4*/  UCODE("getfield",  IU o = PopI(); GetI_F(o, OFF)),         /// fetch from instance variable
     /*B5*/  UCODE("putfield",  S32 v = PopI(); IU o = PopI(); PutI_F(o, OFF, v)),/// store into instance variable
     /// @}
-    /// @definegroup Method/Interface Invokation ops
+    /// @definegroup Method/Interface Invocation ops
     /// @{
     /*B6*/  UCODE("invokevirtual",   t.invoke(0)),
     /*B7*/  UCODE("invokespecial",   t.invoke(1)),
