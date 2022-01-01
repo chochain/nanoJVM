@@ -6,7 +6,7 @@ class InstVar
     int iv0;                            // [09]
     int iv1;                            // [05]
     
-    public static void main()
+    public static void main(String[] av)
     {
         int v0;                         // ss[0]
         InstVar h = new InstVar();      // bb 00 02 59 b7 00 03 4c 2b

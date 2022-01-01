@@ -2,7 +2,7 @@ import ej32.Forth;
 
 class IfElseThen
 {
-    public static void main()
+    public static void main(String[] av)
     {
         int v0;                   // xs[0]
         int v1 = 0;               // 18 03 3c

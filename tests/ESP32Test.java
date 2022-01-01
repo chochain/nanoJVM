@@ -13,7 +13,7 @@ class ESP32Test
             Forth.delay(100);
         }
     }
-    public static void main()
+    public static void main(String[] av)
     {
         Forth.interpreter();
     }                                   // b1

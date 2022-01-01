@@ -10,7 +10,7 @@ class ObjMethod
         return iv0 = v0;                // 2a 1b 5a b5 00 03 ac
     }
     
-    public static void main() {
+    public static void main(String[] av) {
         ObjMethod o = new ObjMethod();  // bb 00 04 59 b7 00 05 4b
         o.iv0 = o.clock();              // 2a 2a b6 00 06 b5 00 03
         Forth.words();                  // b8 00 07

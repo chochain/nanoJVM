@@ -11,7 +11,7 @@ class NObj
         iv1 = j;                        // 2a 1c b5 00 03
     }                                   // b1
     
-    public static void main()
+    public static void main(String[] av)
     {
         NObj o0 = new NObj(1, 3);       // bb 00 04 59 04 06 b7 00 05 4b
         NObj o1 = new NObj(2, 3);       // bb 00 04 59 05 06 bb 00 05 4c 2a

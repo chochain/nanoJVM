@@ -12,7 +12,7 @@ class ForLoop
         v0 = Forth.clock() - v0;        // b8 00 02 1a 64 3b
     }                                   // b1
     
-    public static void main() {
+    public static void main(String[] av) {
         int m0 = 1;
         Forth.interpreter();            // b8 00 04
     }                                   // b1

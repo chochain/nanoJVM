@@ -14,7 +14,7 @@ class Outer
         cv0  = Forth.clock() - cv0;     // b8 00 04 b2 00 05 64 b3 00 05
     }                                   // b1
     
-    public static void main() {
+    public static void main(String[] av) {
         Forth.interpreter();            // b8 00 07
     }                                   // b1
 }

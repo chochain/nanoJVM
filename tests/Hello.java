@@ -6,7 +6,7 @@ class Hello
     int inst_v0;
     int inst_v1;
     
-    public static void main()
+    public static void main(String[] av)
     {
         int main_v0;                    // ss[0]
         
