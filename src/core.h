@@ -1,8 +1,9 @@
 #ifndef NANOJVM_CORE_H
 #define NANOJVM_CORE_H
-#include "common.h"           /// common types and configuration
-#include "loader.h"           /// Java class loader
-#include "thread.h"           /// Java Thread class
+#include "common.h"
+
+struct Thread;
+typedef void (*fop)(Thread&); /// opcode function pointer
 ///
 /// Method class
 ///
@@ -46,7 +47,7 @@ struct Word {                /// 4-byte header
     U8  forth:  1;           /// 0:native, 1:composite
     U8  java:   1;           /// Java method
     U8  access: 2;           /// public, private, protected
-    U8  ftype:  3;           /// static, finall, virtual, synchronized
+    U8  ftype:  3;           /// static, final, virtual, synchronized
 
     U8  data[];              /// name field + parameter field
 
