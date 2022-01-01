@@ -1,6 +1,6 @@
 #ifndef NANOJVM_THREAD_H
 #define NANOJVM_THREAD_H
-#include "common.h"         /// common types and configuration
+#include "loader.h"         /// loader and common types
 ///
 /// Thread class
 ///
@@ -78,5 +78,4 @@ struct Thread {
     void store(U16 i, T n) { ((SP+i)==ss.idx) ? TOS = n : *(T*)&ss[SP + i] = n; }
 #endif // RANGE_CHECK
 };
-typedef void (*fop)(Thread&); /// opcode function pointer
 #endif // NANOJVM_THREAD_H
