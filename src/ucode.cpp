@@ -39,22 +39,22 @@
 ///
 /// array access macros (CC: TODO)
 ///
-#define GetI_A(a,i)   PushI(*t.iaload(a, i))
+#define GetI_A(a,i)   PushI(*t.aload(a,i))
 #define GetL_A(i)     PushL((S64)0)
 #define GetF_A(i)     PushF((F32)0)
 #define GetD_A(i)     PushD((F64)0)
-#define GetA_A(i)     PushA((P32)0)
+#define GetA_A(a,i)   PushA(*t.aload(a,i))
 #define GetB_A(i)     PushI((U8)0)
 #define GetC_A(i)     PushI((U16)0)
 #define GetS_A(i)     PushI((S16)0)
-#define PutI_A(a,i,v) (t.astore(a, i, v))
-#define PutL_A(i)     (0)
-#define PutF_A(i)     (0)
-#define PutD_A(i)     (0)
-#define PutA_A(i)     (0)
-#define PutB_A(i)     (0)
-#define PutC_A(i)     (0)
-#define PutS_A(i)     (0)
+#define PutI_A(a,i,v) (t.astore(a,i,v))
+#define PutL_A(i)     (t.na())
+#define PutF_A(i)     (t.na())
+#define PutD_A(i)     (t.na())
+#define PutA_A(a,i,r) (t.astore(a,i,r))
+#define PutB_A(i)     (t.na())
+#define PutC_A(i)     (t.na())
+#define PutS_A(i)     (t.na())
 ///
 /// Class method, field access macros
 ///
@@ -126,7 +126,7 @@ static Method _java[] = {
     /*2F*/  UCODE("faload",   GetF_A()),
     /*30*/  UCODE("laload",   GetL_A()),
     /*31*/  UCODE("daload",   GetD_A()),
-    /*32*/  UCODE("aaload",   GetA_A()),
+    /*32*/  UCODE("aaload",   IU i = PopI(); IU a = PopI(); GetA_A(a, i)),  /// fetch ref from array
     /*33*/  UCODE("baload",   GetB_A()),
     /*34*/  UCODE("caload",   GetC_A()),
     /*35*/  UCODE("saload",   GetS_A()),
@@ -162,7 +162,7 @@ static Method _java[] = {
     /*50*/  UCODE("lastore",  PutL_A()),
     /*51*/  UCODE("fastore",  PutF_A()),
     /*52*/  UCODE("dastore",  PutD_A()),
-    /*53*/  UCODE("aastore",  PutA_A()),
+    /*53*/  UCODE("aastore",  DU r = PopI(); IU i = PopI(); IU a = PopI(); PutA_A(a, i, r)),
     /*54*/  UCODE("bastore",  PutB_A()),
     /*55*/  UCODE("castore",  PutC_A()),
     /*56*/  UCODE("sastore",  PutS_A()),
@@ -305,7 +305,7 @@ static Method _java[] = {
     /// @{
     /*BB*/  UCODE("new",          t.java_new()),
     /*BC*/  UCODE("newarray",     t.java_newarray(PopI())),
-    /*BD*/  UCODE("anewarray",    {}),
+    /*BD*/  UCODE("anewarray",    t.java_anewarray(PopI())),
     /*BE*/  UCODE("arraylength",  PushI(t.arraylen(PopI()))),
     /*BF*/  UCODE("athrow",       {}),
     /// @}
