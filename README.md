@@ -10,14 +10,17 @@
 |---|---|---|
 |common.h|setting and macros||
 |core.h|common classes|List, Method, Word|
-|thread|core thread (i.e. task) class|Thread|
-|esp32 |ESP32 words|uESP32|
-|forth |Forth words|uForth|
-|jvm   |java virtual machine||
-|loader|bytecode loader|Loader|
-|mmu   |memory pool managemer|KV, Pool|
-|ucode |JVM microcode unit|Ucode|
-|main  |main module||
+|thread.*|core thread (i.e. task) class|Thread|
+|mmu.*|memory pool managemer|KV, Pool|
+|ucode.*|JVM microcode unit|Ucode|
+|.|.|.|
+|forth_io.*|Forth IO functions| |
+|forth.cpp|Forth words|uForth|
+|esp32.cpp|ESP32 words|uESP32|
+|.|.|.|
+|loader.*|bytecode loader|Loader|
+|jvm.*|java virtual machine| |
+|main.cpp|main module| |
 ### tests
 |case|methods|note|
 |---|---|---|
