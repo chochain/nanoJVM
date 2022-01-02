@@ -3,11 +3,13 @@
 * work in progress
 
 ### docs
+<img src="./img/common_incl.png">
+
 ### src
 |module|desc.|structs|
 |---|---|---|
-|common.h|list and macros|List|
-|core.h||Method, Word|
+|common.h|setting and macros||
+|core.h|common classes|List, Method, Word|
 |thread|core thread functions|Thread|
 |esp32 |ESP32 words|uESP32|
 |forth |Forth words|uForth|
