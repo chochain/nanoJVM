@@ -7,13 +7,14 @@
 #include "forth_io.h"	// Forth IO interface
 
 using namespace std;    // default to C++ standard template library
+void send_to_con(int len, const char *msg) { LOG(msg); }
 ///
 /// JVM streaming IO
 ///
 istringstream   fin;                    /// forth_in
 ostringstream   fout;                   /// forth_out
 string          tib;                    /// terminal input buffer
-void (*fout_cb)(int, const char*);      /// forth output callback function
+void (*fout_cb)(int, const char*) = send_to_con;      /// forth output callback function
 
 #define ENDL    endl; fout_cb(fout.str().length(), fout.str().c_str()); fout.str("")
 ///
@@ -95,10 +96,9 @@ int handle_number(Thread &t, const char *idiom) {
 ///
 /// outer interpreter
 ///
-void outer(Thread &t, const char *cmd, void(*callback)(int, const char*)) {
+void outer(Thread &t, const char *cmd) {
     fin.clear();                             /// clear input stream error bit if any
     fin.str(cmd);                            /// feed user command into input stream
-    fout_cb = callback;
     fout.str("");                            /// clean output buffer, ready for next
     while (fin >> tib) {
         const char *idiom = tib.c_str();
@@ -125,12 +125,11 @@ void outer(Thread &t, const char *cmd, void(*callback)(int, const char*)) {
     ss_dump(t);
 }
 
-void send_to_con(int len, const char *msg) { LOG(msg); }
 void forth_interpreter(Thread &t) {
 	cout << endl;
 	string line;
 	while (getline(cin, line)) {             /// fetch line from user console input
-		outer(t, line.c_str(), send_to_con);
+		outer(t, line.c_str());
 	}
 }
 
