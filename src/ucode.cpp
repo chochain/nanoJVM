@@ -3,58 +3,58 @@
 ///
 /// macros for reduce verbosity
 ///
-#define TopS32      (*(S32*)&t.TOS)
-#define TopS64      (*(S64*)&t.TOS)
-#define TopF32      (*(F32*)&t.TOS)
-#define TopF64      (*(F64*)&t.TOS)
-#define TopU32      (*(U32*)&t.TOS)
-#define TopU64      (*(U64*)&t.TOS)
-#define PushI(n)    (t.push((S32)n))        /** TOS updated */
-#define PushL(n)    (t.push((S64)n))        /** TOS updated */
-#define PushF(n)    (0)
-#define PushD(n)    (0)
-#define PushA(n)    (t.push((P32)n))
-#define PopI()      ((S32)t.pop())          /** TOS updated */
-#define PopL()      ((S64)t.pop())          /** TOS updated */
-#define PopF()      (0)
-#define PopD()      (0)
-#define PopA()      ((P32)t.pop())
-#define PopR()      ((P32)t.pop())
-#define PopI2T()    ((S32)t.pop())
-#define PopL2T()    ((S64)t.pop())
-#define PopF2T()    (0)
-#define PopD2T()    (0)
-#define PopA2T()    ((P32)t.pop())
-#define PopR2T()    ((P32)t.pop())
-#define LoadI(i)    PushI((S32)t.load((U16)i, (S32)0))
-#define LoadL(i)    PushL((S64)t.load((U16)i, (S64)0))
-#define LoadF(i)    (0)
-#define LoadD(i)    (0)
-#define LoadA(i)    PushI((P32)t.load((U16)i, (P32)0))
-#define StorI(i)    (t.store((U16)i, PopI()))
-#define StorL(i)    (t.store((U16)i, PopL()))
-#define StorF(i)    (0)
-#define StorD(i)    (0)
-#define StorA(i)    (t.store((U16)i, PopA()))
+#define TopS32        (*(S32*)&t.TOS)
+#define TopS64        (*(S64*)&t.TOS)
+#define TopF32        (*(F32*)&t.TOS)
+#define TopF64        (*(F64*)&t.TOS)
+#define TopU32        (*(U32*)&t.TOS)
+#define TopU64        (*(U64*)&t.TOS)
+#define PushI(n)      (t.push((S32)n))        /** TOS updated */
+#define PushL(n)      (t.push((S64)n))        /** TOS updated */
+#define PushF(n)      (t.na())
+#define PushD(n)      (t.na())
+#define PushA(n)      (t.push((P32)n))
+#define PopI()        ((S32)t.pop())          /** TOS updated */
+#define PopL()        ((S64)t.pop())          /** TOS updated */
+#define PopF()        (t.na())
+#define PopD()        (t.na())
+#define PopA()        ((P32)t.pop())
+#define PopR()        ((P32)t.pop())
+#define PopI2T()      ((S32)t.pop())
+#define PopL2T()      ((S64)t.pop())
+#define PopF2T()      (t.na())
+#define PopD2T()      (t.na())
+#define PopA2T()      ((P32)t.pop())
+#define PopR2T()      ((P32)t.pop())
+#define LoadI(i)      PushI((S32)t.load((U16)i, (S32)0))
+#define LoadL(i)      PushL((S64)t.load((U16)i, (S64)0))
+#define LoadF(i)      (t.na())
+#define LoadD(i)      (t.na())
+#define LoadA(i)      PushI((P32)t.load((U16)i, (P32)0))
+#define StorI(i)      (t.store((U16)i, PopI()))
+#define StorL(i)      (t.store((U16)i, PopL()))
+#define StorF(i)      (t.na())
+#define StorD(i)      (t.na())
+#define StorA(i)      (t.store((U16)i, PopA()))
 ///
 /// array access macros (CC: TODO)
 ///
-#define GetI_A(i)   PushI((S32)0)
-#define GetL_A(i)   PushL((S64)0)
-#define GetF_A(i)   PushF((F32)0)
-#define GetD_A(i)   PushD((F64)0)
-#define GetA_A(i)   PushA((P32)0)
-#define GetB_A(i)   PushI((U8)0)
-#define GetC_A(i)   PushI((U16)0)
-#define GetS_A(i)   PushI((S16)0)
-#define PutI_A(i)   (0)
-#define PutL_A(i)   (0)
-#define PutF_A(i)   (0)
-#define PutD_A(i)   (0)
-#define PutA_A(i)   (0)
-#define PutB_A(i)   (0)
-#define PutC_A(i)   (0)
-#define PutS_A(i)   (0)
+#define GetI_A(a,i)   PushI(*t.iaload(a, i))
+#define GetL_A(i)     PushL((S64)0)
+#define GetF_A(i)     PushF((F32)0)
+#define GetD_A(i)     PushD((F64)0)
+#define GetA_A(i)     PushA((P32)0)
+#define GetB_A(i)     PushI((U8)0)
+#define GetC_A(i)     PushI((U16)0)
+#define GetS_A(i)     PushI((S16)0)
+#define PutI_A(a,i,v) (t.astore(a, i, v))
+#define PutL_A(i)     (0)
+#define PutF_A(i)     (0)
+#define PutD_A(i)     (0)
+#define PutA_A(i)     (0)
+#define PutB_A(i)     (0)
+#define PutC_A(i)     (0)
+#define PutS_A(i)     (0)
 ///
 /// Class method, field access macros
 ///
@@ -119,10 +119,10 @@ static Method _java[] = {
     /*28*/  UCODE("dload_2",  LoadD(2)),
     /*29*/  UCODE("dload_3",  LoadD(3)),
     /*2A*/  UCODE("aload_0",  LoadA(0)),
-    /*2B*/  UCODE("aload_1",  LoadA(1)),        /// load ref from local (auto)
+    /*2B*/  UCODE("aload_1",  LoadA(1)),        /// load ref from auto (local)
     /*2C*/  UCODE("aload_2",  LoadA(2)),
     /*2D*/  UCODE("aload_3",  LoadA(3)),
-    /*2E*/  UCODE("iaload",   GetI_A()),        /// n = PopI(); a = PopR(); GetI_A(a, n)
+    /*2E*/  UCODE("iaload",   IU i = PopI(); IU a = PopI(); GetI_A(a, i)),  /// fetch integer from arrayref
     /*2F*/  UCODE("faload",   GetF_A()),
     /*30*/  UCODE("laload",   GetL_A()),
     /*31*/  UCODE("daload",   GetD_A()),
@@ -133,12 +133,12 @@ static Method _java[] = {
     /// @}
     /// @definegroup Store ops (CC: TODO)
     /// @{
-    /*36*/  UCODE("istore",   StorI(OFF8)),
+    /*36*/  UCODE("istore",   StorI(OFF8)),  // store int to variable[index]
     /*37*/  UCODE("lstore",   {}),
     /*38*/  UCODE("fstore",   {}),
     /*39*/  UCODE("dstore",   {}),
-    /*3A*/  UCODE("astore",   {}),
-    /*3B*/  UCODE("istore_0", StorI(0)),    /// save to local (auto)
+    /*3A*/  UCODE("astore",   StorI(OFF8)),  // store a arrayref to variable[index]
+    /*3B*/  UCODE("istore_0", StorI(0)),     // store int to variable[0]
     /*3B*/  UCODE("istore_1", StorI(1)),
     /*3D*/  UCODE("istore_2", StorI(2)),
     /*3E*/  UCODE("istore_3", StorI(3)),
@@ -154,11 +154,11 @@ static Method _java[] = {
     /*48*/  UCODE("dstore_1", StorF(1)),
     /*49*/  UCODE("dstore_2", StorF(2)),
     /*4A*/  UCODE("dstore_3", StorF(3)),
-    /*4B*/  UCODE("astore_0", StorA(0)),    // store object reference
+    /*4B*/  UCODE("astore_0", StorA(0)),    // store object reference to auto[0]
     /*4C*/  UCODE("astore_1", StorA(1)),
     /*4D*/  UCODE("astore_2", StorA(2)),
     /*4E*/  UCODE("astore_3", StorA(3)),
-    /*4F*/  UCODE("iastore",  PutI_A()),    // v = PopI(); n = PopI(); a = PopR(); PutI_A(a, n, v)
+    /*4F*/  UCODE("iastore",  DU v = PopI(); IU i = PopI(); IU a = PopI(); PutI_A(a, i, v)),    // (arrayref,index,value) store int into array[index]
     /*50*/  UCODE("lastore",  PutL_A()),
     /*51*/  UCODE("fastore",  PutF_A()),
     /*52*/  UCODE("dastore",  PutD_A()),
@@ -304,9 +304,9 @@ static Method _java[] = {
     /// @definegroup New and Array ops
     /// @{
     /*BB*/  UCODE("new",          t.java_new()),
-    /*BC*/  UCODE("newarray",     {}),
+    /*BC*/  UCODE("newarray",     t.java_newarray(PopI())),
     /*BD*/  UCODE("anewarray",    {}),
-    /*BE*/  UCODE("arraylength",  {}),
+    /*BE*/  UCODE("arraylength",  PushI(t.arraylen(PopI()))),
     /*BF*/  UCODE("athrow",       {}),
     /// @}
     /// @definegroup Misc ops

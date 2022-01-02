@@ -24,6 +24,7 @@ struct Thread {
     ///
     /// VM Execution Unit
     ///
+    void na();                           /// not supported
     void dispatch(IU mx, U16 nparm=0);   /// instruction dispatcher dispatch
     ///
     /// Java core
@@ -36,6 +37,13 @@ struct Thread {
     ///
     DU   *cls_var(U16 j);
     DU   *inst_var(IU ox, U16 j);
+    ///
+    /// array access
+    ///
+    void java_newarray(IU n);            /// instantiate Java array
+    IU   arraylen(IU ax);                /// return array length
+    void astore(IU ax, IU idx, DU v);    /// store v into aref[idx]
+    DU   *iaload(IU ax, IU idx);         /// fetch v from aref[idx]
     ///
     /// Java class file byte fetcher
     ///

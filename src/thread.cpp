@@ -22,6 +22,7 @@ extern void  ss_dump(Thread &t);
 ///
 /// VM Execution Unit
 ///
+void Thread::na() { LOG(" **NA**"); }/// feature not supported yet
 void Thread::dispatch(IU mx, U16 nparm) {
     Word *w = WORD(mx);
     if (w->java) {                   /// call Java inner interpreter
@@ -49,10 +50,10 @@ void Thread::dispatch(IU mx, U16 nparm) {
 /// Java core
 ///
 void Thread::java_new()  {
-    IU j = fetch2();                /// class index
-    char cls[128];
-    LOG(" "); LOG(jStrRef(j, cls));
-    IU cx = gPool.get_class(cls);
+	IU j = fetch2();                /// class index
+	char cls[128];
+	LOG(" "); LOG(jStrRef(j, cls));
+	IU cx = gPool.get_class(cls);
     IU ox = gPool.add_obj(cx);
     push(ox);                       /// save object onto stack
 }
@@ -104,7 +105,7 @@ void Thread::invoke(U16 itype) {    /// invoke type: 0:virtual, 1:special, 2:sta
     LOG(" $"); LOX(gPool.vt.idx);
     gPool.vt.push({j, mx, nparm});
     if (mx > 0) dispatch(mx, nparm);
-    else        LOG(" **NA**");
+    else        na();
 }
 ///
 /// class and instance variable access
@@ -154,4 +155,27 @@ DU *Thread::inst_var(IU ox, U16 j) {
     LOG(" $"); LOX(idx);
     gPool.iv.push({ j, idx });        /// create new cache entry
     return iv + idx;
+}
+///
+/// array support
+///   Note: use gPool.heap for array storage linked list obj_root
+///
+void Thread::java_newarray(IU n) {
+	U8 j  = fetch();                /// fetch atype value
+    IU ax = gPool.add_array(j, n);
+
+    if (ax==0) na();                /// data type not supported
+    push(ax);
+}
+IU   Thread::arraylen(IU ax) {
+    IU *p = (IU*)OBJ(ax);
+    return *(p + 1);
+}
+void Thread::astore(IU ax, IU idx, DU v) {
+    DU *a0 = (DU*)OBJ(ax)->pfa();
+    *(a0 + idx) = v;
+}
+DU *Thread::iaload(IU ax, IU idx) {
+    DU *a0 = (DU*)OBJ(ax)->pfa();
+    return a0 + idx;
 }
