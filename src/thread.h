@@ -1,5 +1,6 @@
 #ifndef NANOJVM_THREAD_H
 #define NANOJVM_THREAD_H
+#include "core.h"           /// List
 #include "loader.h"         /// loader and common types
 ///
 /// Thread class
