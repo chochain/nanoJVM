@@ -1,7 +1,42 @@
 #ifndef NANOJVM_CORE_H
 #define NANOJVM_CORE_H
 #include "common.h"
+///
+/// array class template (so we don't have dependency on C++ STL)
+/// Note:
+///   * using decorator pattern
+///   * this is similar to vector class but much simplified
+///   * v array is dynamically allocated due to ESP32 has a 96K hard limit
+///
+template<class T, int N>
+struct List {
+    T   *v;             /// fixed-size array storage
+    int idx = 0;        /// current index of array
+    int max = 0;        /// high watermark for debugging
 
+    List()  { v = new T[N]; }      /// dynamically allocate array memory
+    ~List() { delete[] v;   }      /// free the memory
+    T& operator[](int i)   { return i < 0 ? v[idx + i] : v[i]; }
+#if RANGE_CHECK
+    T pop() {
+        if (idx>0) return v[--idx];
+        throw "ERR: List empty";
+    }
+    int push(T t) {
+        if (idx<N) { v[max=idx] = t; return idx++; }
+        throw "ERR: List full";
+    }
+#else
+    T   pop()     { return v[--idx]; }
+    int push(T t) { v[max=idx] = t; return idx++; }
+#endif // RANGE_CHECK
+    void push(T *a, int n)  { for (int i=0; i<n; i++) push(*(a+i)); }
+//    void merge(List& a)     { for (int i=0; i<a.idx; i++) push(a[i]);}
+//    void clear(int i=0)     { idx=i; }
+};
+///
+/// thread class forward declaration
+///
 struct Thread;
 typedef void (*fop)(Thread&); /// opcode function pointer
 ///
