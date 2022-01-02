@@ -13,11 +13,9 @@
 |thread.*|core thread (i.e. task) class|Thread|
 |mmu.*|memory pool managemer|KV, Pool|
 |ucode.*|JVM microcode unit|Ucode|
-|.|.|.|
 |forth_io.*|Forth IO functions| |
 |forth.cpp|Forth words|uForth|
 |esp32.cpp|ESP32 words|uESP32|
-|.|.|.|
 |loader.*|bytecode loader|Loader|
 |jvm.*|java virtual machine| |
 |main.cpp|main module| |
@@ -33,6 +31,7 @@
 |Outer|Forth outer interpreter loop|clock, dump, delay|
 |Print|System.out.print, println||
 |ESP32Test|ESP pin interfacing|pinMode, digitalWrite|
+|Array01|Java array|a[], a.length|
 
 Use the following toolchain to produce bytecode (and analysis)
 #### ej32 subdirectories
