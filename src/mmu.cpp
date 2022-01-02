@@ -120,7 +120,7 @@ IU Pool::add_obj(IU cx) {
 /// new Array storage
 ///
 IU Pool::add_array(U8 atype, IU n) {///
-	if (atype!='I') return 0;
+	if (atype != 0xa) return 0;     /// integer only, TODO:
 
 	IU oid  = heap.idx;             /// keep object index
     obj_iu(obj_root);				/// add array onto linked list
