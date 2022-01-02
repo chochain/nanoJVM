@@ -113,10 +113,21 @@ IU Pool::add_obj(IU cx) {
     obj_iu(obj_root);				/// add object onto linked list
     obj_u8(cx);                     /// class reference
     obj_u8(0);						/// reserved(for garbage collector)
-    for (int i=0; i<ivsz; i+=sizeof(DU)) {
-    	obj_du(0);
-    }
+    obj_allot(ivsz);
     return obj_root = oid;			/// link to previous object and return object id
+}
+///
+/// new Array storage
+///
+IU Pool::add_array(U8 atype, IU n) {///
+	if (atype!='I') return 0;
+
+	IU oid  = heap.idx;             /// keep object index
+    obj_iu(obj_root);				/// add array onto linked list
+    obj_u8(n & 0xff);               /// array length (max 64K)
+    obj_u8(n >> 8);                 ///
+    obj_allot(n);
+    return obj_root = oid;
 }
 
 void Pool::build_op_lookup() {

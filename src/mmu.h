@@ -51,12 +51,14 @@ struct Pool {
     IU   add_class(const char *name, IU m_root, const char *supr, U16 cvsz, U16 ivsz);
     void register_class(const char *name, const Method *vt, int vtsz, const char *supr = 0, U16 cvsz=0, U16 ivsz=0);
     ///
-    /// new object instance
+    /// new object and array instance
     ///
     IU   add_obj(IU cx);
-    void obj_u8(U8 b) { heap.push(b); }
-    void obj_iu(IU i) { heap.push((U8*)&i, sizeof(IU)); }
-    void obj_du(DU v) { heap.push((U8*)&v, sizeof(DU)); }
+    IU   add_array(U8 atype, IU n);
+    void obj_u8(U8 b)    { heap.push(b); }
+    void obj_iu(IU i)    { heap.push((U8*)&i, sizeof(IU)); }
+    void obj_du(DU v)    { heap.push((U8*)&v, sizeof(DU)); }
+    void obj_allot(IU n) { for (int i=0; i<n; i+=sizeof(DU)) obj_du(0); }
     ///
     /// compiler methods
     ///
