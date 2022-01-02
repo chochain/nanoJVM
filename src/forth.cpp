@@ -1,7 +1,6 @@
-#include "ucode.h"
-#include "thread.h"
-#include "mmu.h"
-#include "jvm.h"        // VM namespace
+#include "mmu.h"             // memory pool manager
+#include "ucode.h"           // microcode list
+#include "forth_io.h"        // Forth outer interpreter and IO interface
 
 #define CELL(a)     (*(DU*)(t.M0 + a))   /** fetch a cell from parameter memory */
 #define CODE(s, g)  { s, [](Thread &t){ g; }, 0 }
@@ -20,18 +19,18 @@ static Method _word[] = {
          PUSH(t.IP); t.IP += STRLEN(s)),
     CODE("unnest", t.IP = 0),
     CODE("create",
-         gPool.colon(t, next_word());
+         gPool.colon(t.cls, next_word());
          gPool.mem_op(DOVAR)),
     CODE("variable",
-         gPool.colon(t, next_word());
+         gPool.colon(t.cls, next_word());
          DU n = 0;
          gPool.mem_op(DOVAR);
          gPool.mem_du(n)),
     CODE("constant",
-         gPool.colon(t, next_word());
+         gPool.colon(t.cls, next_word());
          gPool.mem_op(DOLIT);
          gPool.mem_du(POP)),
-    CODE(":",     gPool.colon(t, next_word()); t.compile=true),
+    CODE(":",     gPool.colon(t.cls, next_word()); t.compile=true),
     IMMD(";",     gPool.mem_op(UNNEST); t.compile = false),
     CODE("@",     IU w = POP; PUSH(CELL(w))),          // w -- n
     CODE("!",     IU w = POP; CELL(w) = POP;),       // n w --
@@ -55,5 +54,3 @@ static Method _word[] = {
 /// Forth built-in word in ROM, use extern by main program
 ///
 Ucode uForth(sizeof(_word)/sizeof(Method), _word);
-
-

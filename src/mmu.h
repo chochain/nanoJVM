@@ -61,7 +61,7 @@ struct Pool {
     /// compiler methods
     ///
     void build_op_lookup();
-    void colon(Thread &t, const char *name);
+    void colon(IU cls, const char *name);
 
     void mem_u8(U8 b) { pmem.push(b); }
     void mem_iu(IU i) { pmem.push((U8*)&i, sizeof(IU)); }

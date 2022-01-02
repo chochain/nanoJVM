@@ -1,4 +1,3 @@
-#include "thread.h"     /// thread.cls
 #include "mmu.h"
 
 Pool gPool;             /// global memory pool manager
@@ -135,8 +134,8 @@ void Pool::build_op_lookup() {
 ///
 /// word constructor
 ///
-void Pool::colon(Thread &t, const char *name) {
-    Word *w  = (Word*)&pmem[t.cls];	/// get class word
+void Pool::colon(IU cls, const char *name) {
+    Word *w  = (Word*)&pmem[cls];	/// get class word
     IU   *vt = (IU*)w->pfa(CLS_VT); /// pointer to method root
     int  mx  = pmem.idx;			/// keep current
     mem_iu(*vt);
