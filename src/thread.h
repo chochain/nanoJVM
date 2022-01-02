@@ -41,9 +41,10 @@ struct Thread {
     /// array access
     ///
     void java_newarray(IU n);            /// instantiate Java array
+    void java_anewarray(IU n);           /// create multi-dimention array
     IU   arraylen(IU ax);                /// return array length
-    void astore(IU ax, IU idx, DU v);    /// store v into aref[idx]
-    DU   *iaload(IU ax, IU idx);         /// fetch v from aref[idx]
+    void astore(IU ax, IU idx, DU v);    /// store v into array[idx]
+    DU   *aload(IU ax, IU idx);          /// fetch v from array[idx]
     ///
     /// Java class file byte fetcher
     ///

@@ -162,10 +162,19 @@ DU *Thread::inst_var(IU ox, U16 j) {
 ///
 void Thread::java_newarray(IU n) {
 	U8 j  = fetch();                /// fetch atype value
-    IU ax = gPool.add_array(j, n);
-
-    if (ax==0) na();                /// data type not supported
-    push(ax);
+    if (j != 0xa) na();             /// support only integer, TODO: more types
+    else {
+        IU ax = gPool.add_array(j, n);
+        push(ax);
+    }
+}
+void Thread::java_anewarray(IU n) {
+	U16 j = fetch2();               /// fetch 2-dim value
+    if ((j & 0xff) != 0xa) na();    /// support only integer, TODO: more types
+    else {
+        IU ax = gPool.add_array(j >> 8, n);  /// Note: using DU for ref (IU) is a bit wasteful, but...
+        push(ax);
+    }
 }
 IU   Thread::arraylen(IU ax) {
     IU *p = (IU*)OBJ(ax);
@@ -175,7 +184,7 @@ void Thread::astore(IU ax, IU idx, DU v) {
     DU *a0 = (DU*)OBJ(ax)->data;
     *(a0 + idx) = v;
 }
-DU *Thread::iaload(IU ax, IU idx) {
+DU *Thread::aload(IU ax, IU idx) {
     DU *a0 = (DU*)OBJ(ax)->data;
     return a0 + idx;
 }
