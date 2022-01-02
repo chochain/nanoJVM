@@ -1,3 +1,4 @@
+#include <cstdio>
 #include "jvm.h"
 
 int main(int ac, char* av[]) {
