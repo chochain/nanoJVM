@@ -172,10 +172,10 @@ IU   Thread::arraylen(IU ax) {
     return *(p + 1);
 }
 void Thread::astore(IU ax, IU idx, DU v) {
-    DU *a0 = (DU*)OBJ(ax)->pfa();
+    DU *a0 = (DU*)OBJ(ax)->data;
     *(a0 + idx) = v;
 }
 DU *Thread::iaload(IU ax, IU idx) {
-    DU *a0 = (DU*)OBJ(ax)->pfa();
+    DU *a0 = (DU*)OBJ(ax)->data;
     return a0 + idx;
 }
