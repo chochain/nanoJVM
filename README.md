@@ -10,12 +10,12 @@
 |---|---|---|
 |common.h|setting and macros||
 |core.h|common classes|List, Method, Word|
-|thread|core thread functions|Thread|
+|thread|core thread (i.e. task) class|Thread|
 |esp32 |ESP32 words|uESP32|
 |forth |Forth words|uForth|
 |jvm   |java virtual machine||
 |loader|bytecode loader|Loader|
-|mmu   |memory management unit|KV, Pool|
+|mmu   |memory pool managemer|KV, Pool|
 |ucode |JVM microcode unit|Ucode|
 |main  |main module||
 ### tests
