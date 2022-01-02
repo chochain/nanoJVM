@@ -2,8 +2,9 @@
 #include <iostream>     // cin, cout
 #include <iomanip>      // setbase
 #include "ucode.h"		// microcode manager
-#include "thread.h"     // thread class
 #include "mmu.h"		// memory pool manager
+#include "thread.h"     // thread/task interface
+#include "loader.h"     // bytecode loader
 #include "jvm.h"		// virtual machine core
 
 using namespace std;    // default to C++ standard template library
@@ -81,7 +82,7 @@ int  jvm_setup(const char *fname) {
 }
 
 #if ARDUINO
-void mem_stat(Thread &t) {
+void mem_stat() {
     LOG("Core:");           LOX(xPortGetCoreID());
     LOG(" heap[maxblk=");   LOX(heap_caps_get_largest_free_block(MALLOC_CAP_8BIT));
     LOG(", avail=");        LOX(heap_caps_get_free_size(MALLOC_CAP_8BIT));
@@ -107,7 +108,7 @@ void jvm_run() {
     }
 }
 #else 
-void mem_stat(Thread &t) {}
+void mem_stat() {}
 void jvm_run() {
     ///
     /// instantiate main thread (TODO: single thread for now)
