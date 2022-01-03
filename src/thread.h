@@ -66,7 +66,9 @@ struct Thread {
     /// local variable access
     ///
 #if RANGE_CHECK
-    void iinc(U8 i, S8 v)  {
+    void iinc() {
+    	U8 i = fetch();
+    	U8 v = fetch();
         if ((SP+i) > ss.idx) throw "ERR: iinc > ss.idx";
         ((SP+i)==ss.idx) ? TOS += v : ss[SP + i] += v;
     }
