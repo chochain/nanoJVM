@@ -63,6 +63,7 @@ int  jvm_setup(const char *fname) {
     gPool.register_class("java/lang/String",   uStr, sizeof(uStr)/sizeof(Method), "java/lang/Object", sizeof(DU)*3, 0);
     gPool.register_class("java/lang/System",   uSys, sizeof(uSys)/sizeof(Method), "java/lang/Object", sizeof(DU)*3, 0);
     gPool.register_class("java/io/PrintStream",uPrs, sizeof(uPrs)/sizeof(Method), "java/lang/Object");
+    gPool.jvm_root = gPool.cls_root;
     ///
     /// Add Forth classes
     ///

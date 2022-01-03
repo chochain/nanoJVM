@@ -89,7 +89,6 @@ IU Pool::add_class(const char *name, IU m_root, const char *supr, U16 cvsz, U16 
     for (int i=0; i<cvsz; i+=sizeof(DU)) {	/// allocate static variables
     	mem_du(0);
     }
-    if (jvm_root == DATA_NA) jvm_root = cx;  /// mark JVM ucode root
     return cls_root = cx;
 }
 ///
