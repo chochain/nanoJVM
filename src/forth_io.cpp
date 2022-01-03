@@ -2,7 +2,7 @@
 #include <iostream>     // cin, cout
 #include <iomanip>      // setbase
 #include <string>       // string class (for TIB)
-#include "forth_io.h"	// Forth IO interface (include mmu.h, ucode.h, thread.h)
+#include "forth.h"	    // Forth IO interface (include mmu.h, ucode.h, thread.h)
 
 using namespace std;    // default to C++ standard template library
 void send_to_con(int len, const char *msg) { LOG(msg); }
