@@ -27,8 +27,8 @@ void words(Thread &t) {
         Word *cls = WORD(cid);
         IU    sid = *(IU*)cls->pfa(PFA_CLS_SUPR);
         IU    mid = *(IU*)cls->pfa(PFA_CLS_VT);
-        fout << "\n" << cls->nfa() << " : "
-             << (sid == DATA_NA ? "-" : WORD(sid)->nfa()) << " " << cid;
+        fout << "\n" << cls->nfa() << " " << cid << " << "
+             << (sid == DATA_NA ? "-" : WORD(sid)->nfa());
         int i = 0;
         do {
             Word *w = WORD(mid);
