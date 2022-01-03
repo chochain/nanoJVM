@@ -79,7 +79,7 @@ void Thread::invoke(U16 itype) {    /// invoke type: 0:virtual, 1:special, 2:sta
     IU j = fetch2();                /// 2 - method index in pool
     if (itype>2) IP += 2;           /// extra 2 for interface and dynamic
     IU mi = gPool.lookup(gPool.vt, j);
-    if (mi != 0xffff) {
+    if (mi != DATA_NA) {
         Word *w = WORD(gPool.vt[mi].ref);
         LOG(" "); LOG(w->nfa());
         dispatch(gPool.vt[mi].ref, gPool.vt[mi].nparm);
@@ -101,11 +101,11 @@ void Thread::invoke(U16 itype) {    /// invoke type: 0:virtual, 1:special, 2:sta
         nparm++;
     }
     IU cx = gPool.get_class(cls);                   /// class ref
-    IU mx = gPool.get_method(nm, t, cx, itype!=1);  /// special does not go up to supr class
+    IU mx = gPool.get_method(nm, t, cx, itype!=1);  /// special does not go up to super class
     LOG(" $"); LOX(gPool.vt.idx);
     gPool.vt.push({j, mx, nparm});
-    if (mx > 0) dispatch(mx, nparm);
-    else        na();
+    if (mx != DATA_NA) dispatch(mx, nparm);
+    else               na();
 }
 ///
 /// class and instance variable access
@@ -113,7 +113,7 @@ void Thread::invoke(U16 itype) {    /// invoke type: 0:virtual, 1:special, 2:sta
 ///
 DU *Thread::cls_var(U16 j) {
     IU i = gPool.lookup(gPool.cv, j);
-    if (i != 0xffff) { return (DU*)&gPool.pmem[gPool.cv[i].ref]; }
+    if (i != DATA_NA) { return (DU*)&gPool.pmem[gPool.cv[i].ref]; }
     /// cache missed, create new lookup entry
     IU c_f = jOff(j);               /// [02]000f:a=>[12,13]  [class_idx, field_idx]
     IU cj  = jU16(c_f + 1);
@@ -130,7 +130,7 @@ DU *Thread::cls_var(U16 j) {
 
     IU   cx  = gPool.get_class(cls);/// map to for class index in pmem
     Word *w  = WORD(cx);
-    DU   *cv = (DU*)w->pfa(CLS_CV) + gPool.cv.idx;
+    DU   *cv = (DU*)w->pfa(PFA_CLS_CV) + gPool.cv.idx;
     LOG(" $"); LOX(gPool.cv.idx);
     gPool.cv.push({ j, (IU)((U8*)cv - M0) });  /// create new cache entry
     return cv;
@@ -138,7 +138,7 @@ DU *Thread::cls_var(U16 j) {
 DU *Thread::inst_var(IU ox, U16 j) {
     DU *iv = (DU*)OBJ(ox)->pfa();
     IU i   = gPool.lookup(gPool.iv, j);
-    if (i != 0xffff) return iv + gPool.iv[i].ref;
+    if (i != DATA_NA) return iv + gPool.iv[i].ref;
 
     // cache missed, create new lookup entry
 #if ENABLE_DEBUG
@@ -169,12 +169,11 @@ void Thread::java_newarray(IU n) {
     }
 }
 void Thread::java_anewarray(IU n) {
-	U16 j = fetch2();               /// fetch 2-dim value
-    if ((j & 0xff) != 0xa) na();    /// support only integer, TODO: more types
-    else {
-        IU ax = gPool.add_array(j >> 8, n);  /// Note: using DU for ref (IU) is a bit wasteful, but...
-        push(ax);
-    }
+	U16 j   = fetch2();                      /// fetch 2-dim atype, ignore now, TODO: check type
+    IU  c_f = jOff(j);                       /// [02]000f:a=>[12,13]  [class_idx, field_idx]
+    IU  t2  = jU16(c_f);
+    IU  ax  = gPool.add_array(t2 >> 8, n);   /// Note: using DU for ref (IU) is a bit wasteful, but...
+    push(ax);
 }
 IU   Thread::arraylen(IU ax) {
     IU *p = (IU*)OBJ(ax);
