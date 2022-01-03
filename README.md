@@ -32,6 +32,7 @@
 |Print|System.out.print, println||
 |ESP32Test|ESP pin interfacing|pinMode, digitalWrite|
 |Array01|Java array|a[], a.length|
+|Array02|Java 2-d array|a[][], 2-deep loops|
 
 Use the following toolchain to produce bytecode (and analysis)
 #### ej32 subdirectories
@@ -43,6 +44,8 @@ Use the following toolchain to produce bytecode (and analysis)
 > javap -c -p InstVar.class
 
 > od -A x -t x1z -v InstVar.class
+
+> java -cp . InstVar
 
 Example:
 ```
