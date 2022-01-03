@@ -22,34 +22,37 @@ IU Pool::find(const char *name, const char *parm, IU root) {
     do {
         Word *w = (Word*)&pmem[idx];
         if (w->len==len && strcmp(w->nfa(), name)==0) {
-        	U8 *px = w->pfa(MTH_PARM);
-        	if (!pi || (pi==*(IU*)w->pfa(MTH_PARM))) return idx;
+        	U8 *px = w->pfa(PFA_MTH_PARM);
+        	if (!pi || (pi==*(IU*)w->pfa(PFA_MTH_PARM))) return idx;
         }
         idx = w->lfa;
-    } while (idx);
-    return 0;
+    } while (idx != DATA_NA);
+    return idx;
 }
 ///
 /// return cls_obj if cls_name is NULL
 ///
 IU Pool::get_class(const char *cls_name) {
-    return cls_name ? find(cls_name, 0, cls_root) : cls_root;
+    return cls_name ? find(cls_name, 0, cls_root) : jvm_root;
 }
 ///
 /// return m_root if m_name is NULL
 ///
 IU Pool::get_method(const char *m_name, const char *parm, IU cls_id, bool supr) {
     Word *cls = (Word*)&pmem[cls_id ? cls_id : cls_root];
-    IU mx = 0;
+    IU mx = DATA_NA;
     while (cls) {
-        mx = find(m_name, parm, *(IU*)cls->pfa(CLS_VT));
-        if (mx || !supr) break;
-        cls = cls->lfa ? (Word*)&pmem[cls->lfa] : 0;
+        mx = find(m_name, parm, *(IU*)cls->pfa(PFA_CLS_VT));
+        if (mx != DATA_NA || !supr) break;
+        cls = (cls->lfa == DATA_NA) ? 0 : (Word*)&pmem[cls->lfa];
     }
     return mx;
 }
 ///
 /// method constructor
+/// Format:
+///     | 16b  |8b  | 8b | len  | 64/32b | 16b  |
+///     | LFA  |len |flag| name | xt     | parm |
 ///
 IU Pool::add_ucode(const Method &vt, IU &m_root) {
     IU mx = pmem.idx;               /// store current method index
@@ -67,8 +70,7 @@ IU Pool::add_method(const char *m_name, const char *parm, IU mj, IU &m_root) {
     mem_u8(STRLEN(m_name));         /// method name length
     mem_u8(FLAG_JAVA);              /// method access control
     mem_str(m_name);                /// inscribe method name
-    mem_iu(mj);                     /// encode function pointer
-    mem_iu(0);
+    mem_pu((PU)mj);                 /// encode function pointer
     mem_iu(get_parm_idx(parm));
     return m_root = mx;             /// adjust method root
 };
@@ -87,7 +89,7 @@ IU Pool::add_class(const char *name, IU m_root, const char *supr, U16 cvsz, U16 
     for (int i=0; i<cvsz; i+=sizeof(DU)) {	/// allocate static variables
     	mem_du(0);
     }
-    if (!jvm_root) jvm_root = cx;  /// mark JVM ucode root
+    if (jvm_root == DATA_NA) jvm_root = cx;  /// mark JVM ucode root
     return cls_root = cx;
 }
 ///
@@ -95,7 +97,7 @@ IU Pool::add_class(const char *name, IU m_root, const char *supr, U16 cvsz, U16 
 ///
 void Pool::register_class(const char *name, const Method *vt, int vtsz, const char *supr, U16 cvsz, U16 ivsz) {
     /// encode vtable
-    IU m_root = 0;
+    IU m_root = DATA_NA;
     for (int i=0; i<vtsz; i++) {
         add_ucode(vt[i], m_root);
     }
@@ -106,7 +108,7 @@ void Pool::register_class(const char *name, const Method *vt, int vtsz, const ch
 ///
 IU Pool::add_obj(IU cx) {
     Word *w   = (Word*)&pmem[cx];	/// get object class pointer
-    U16  ivsz = *(U16*)w->pfa(CLS_IVSZ);
+    U16  ivsz = *(U16*)w->pfa(PFA_CLS_IVSZ);
 
     if (heap.idx==0) obj_du(0);		/// reserve a null header
     IU oid  = heap.idx;             /// keep object index
@@ -134,7 +136,7 @@ void Pool::build_op_lookup() {
 	};
 	IU   mx   = find("ej32/Forth", 0, cls_root);
 	Word *cls = (Word*)&pmem[mx];
-	IU   vt   = *(IU*)cls->pfa(CLS_VT);
+	IU   vt   = *(IU*)cls->pfa(PFA_CLS_VT);
 	for (int i=0; i<OP_LU_SZ; i++) {
 		IU w = find(wlist[i], 0, vt);
 		op[i] = w;
@@ -144,12 +146,12 @@ void Pool::build_op_lookup() {
 /// word constructor
 ///
 void Pool::colon(IU cls, const char *name) {
-    Word *w  = (Word*)&pmem[cls];	/// get class word
-    IU   *vt = (IU*)w->pfa(CLS_VT); /// pointer to method root
-    int  mx  = pmem.idx;			/// keep current
+    Word *w  = (Word*)&pmem[cls];	    /// get class word
+    IU   *vt = (IU*)w->pfa(PFA_CLS_VT); /// pointer to method root
+    int  mx  = pmem.idx;			    /// keep current
     mem_iu(*vt);
     mem_u8(STRLEN(name));
-    mem_u8(FLAG_FORTH);				/// a Forth word
+    mem_u8(FLAG_FORTH);				    /// a Forth word
     mem_str(name);
     *vt = mx;
 }

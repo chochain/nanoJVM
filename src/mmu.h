@@ -30,14 +30,14 @@ struct Pool {
     		LOG(" $"); LOX(i);
     		return i;
     	}
-    	return 0xffff;
+    	return DATA_NA;
     }
     ///
     /// core objects
     ///
-    IU jvm_root = 0;              /// JVM methods linked list
-    IU cls_root = 0;              /// Class linked list
-    IU obj_root = 0;              /// Object linked list
+    IU jvm_root = DATA_NA;        /// JVM methods linked list
+    IU cls_root = DATA_NA;        /// Class linked list
+    IU obj_root = DATA_NA;        /// Object linked list
 
     IU   get_parm_idx(const char *parm);
     IU   find(const char *m_name, const char *parm, IU root);
@@ -76,8 +76,8 @@ extern Pool gPool;
 ///
 /// macros for parameter memory access
 ///
-#define WORD(a)((Word*)&gPool.pmem[a])
-#define OBJ(a) ((Word*)&gPool.heap[a])
-#define HERE   (gPool.pmem.idx)         /** current parameter memory index           */
+#define WORD(a)   ((Word*)&gPool.pmem[a])
+#define OBJ(a)    ((Word*)&gPool.heap[a])
+#define HERE      (gPool.pmem.idx)         /** current parameter memory index           */
 #endif // NANOJVM_MMU_H
 
