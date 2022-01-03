@@ -19,6 +19,7 @@ extern void  ss_dump(Thread &t);
 #define jU16(a)      J.getU16(a)
 #define jStrRef(j,s) J.getStr(j, s, true)
 #define jStr(j,s)    J.getStr(j, s, false)
+#define J16          wide ? fetch4() : fetch2()
 ///
 /// VM Execution Unit
 ///
@@ -111,8 +112,9 @@ void Thread::invoke(U16 itype) {    /// invoke type: 0:virtual, 1:special, 2:sta
 /// class and instance variable access
 ///   Note: use gPool.vref is a bit wasteful but avoid the runtime search. TODO:
 ///
-DU *Thread::cls_var(U16 j) {
-    IU i = gPool.lookup(gPool.cv, j);
+DU *Thread::cls_var() {
+	U16 j = J16;
+    IU  i = gPool.lookup(gPool.cv, j);
     if (i != DATA_NA) { return (DU*)&gPool.pmem[gPool.cv[i].ref]; }
     /// cache missed, create new lookup entry
     IU c_f = jOff(j);               /// [02]000f:a=>[12,13]  [class_idx, field_idx]
@@ -135,9 +137,10 @@ DU *Thread::cls_var(U16 j) {
     gPool.cv.push({ j, (IU)((U8*)cv - M0) });  /// create new cache entry
     return cv;
 }
-DU *Thread::inst_var(IU ox, U16 j) {
-    DU *iv = (DU*)OBJ(ox)->pfa();
-    IU i   = gPool.lookup(gPool.iv, j);
+DU *Thread::inst_var(IU ox) {
+    DU  *iv = (DU*)OBJ(ox)->pfa();
+	U16 j   = J16;
+    IU  i   = gPool.lookup(gPool.iv, j);
     if (i != DATA_NA) return iv + gPool.iv[i].ref;
 
     // cache missed, create new lookup entry

@@ -35,8 +35,8 @@ struct Thread {
     ///
     /// class and instance variable access
     ///
-    DU   *cls_var(U16 j);
-    DU   *inst_var(IU ox, U16 j);
+    DU   *cls_var();
+    DU   *inst_var(IU ox);
     ///
     /// array access
     ///

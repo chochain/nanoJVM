@@ -283,10 +283,10 @@ static Method _java[] = {
     /// @}
     /// @definegroup Field Fetch ops
     /// @{
-    /*B2*/  UCODE("getstatic", PushI(*t.cls_var(J16))),                     /// fetch from class variable
-    /*B3*/  UCODE("putstatic", *t.cls_var(J16) = PopI()),                   /// store into class variable
-    /*B4*/  UCODE("getfield",  PushI(*t.inst_var(PopI(), J16))),            /// fetch from instance variable
-    /*B5*/  UCODE("putfield",  S32 v = PopI(); *t.inst_var(PopI(), J16)=v), /// store into instance variable
+    /*B2*/  UCODE("getstatic", PushI(*t.cls_var())),                   /// fetch from class variable
+    /*B3*/  UCODE("putstatic", *t.cls_var() = PopI()),                 /// store into class variable
+    /*B4*/  UCODE("getfield",  PushI(*t.inst_var(PopI()))),            /// fetch from instance variable
+    /*B5*/  UCODE("putfield",  S32 v = PopI(); *t.inst_var(PopI())=v), /// store into instance variable
     /// @}
     /// @definegroup Method/Interface Invocation ops
     /// @{
