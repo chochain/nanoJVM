@@ -4,8 +4,6 @@
 #ifndef NANOJVM_FORTH_H
 #define NANOJVM_FORTH_H
 #include "ucode.h"
-#include "thread.h"
-#include "mmu.h"
 
 char *next_word();
 char *scan(char c);

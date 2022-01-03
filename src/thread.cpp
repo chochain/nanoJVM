@@ -3,8 +3,6 @@
 #include <string>       // string class
 #include <stdlib.h>     // strtol
 #include "ucode.h"
-#include "thread.h"
-#include "mmu.h"
 
 extern Ucode uCode;
 extern void  ss_dump(Thread &t);

@@ -1,9 +1,7 @@
 #include <sstream>      // stringstream
 #include <iostream>     // cin, cout
 #include <iomanip>      // setbase
-#include "ucode.h"		// microcode manager
-#include "mmu.h"		// memory pool manager
-#include "thread.h"     // thread/task interface (include loader.h)
+#include "ucode.h"		// microcode manager (include mmu.h, thread.h, loader.h)
 #include "jvm.h"		// virtual machine core
 
 using namespace std;    // default to C++ standard template library
