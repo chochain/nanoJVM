@@ -223,7 +223,7 @@ U16 Loader::load_class() {
     U16 n_method = getU16(addr);                // number of methods
     IU  p_method = (addr += 2);                 // pointer to methods
     LOG("\n  n_method="); LOX(n_method); LOG(", p_method="); LOX(p_method);
-    IU  m_root = 0;
+    IU  m_root = DATA_NA;
     while (n_method--) {
     	create_method(addr, m_root);
     }

@@ -24,6 +24,7 @@ using namespace std;
 #define VT_LU_SZ        64          /** Java method lookup table   */
 #define CV_LU_SZ        16          /** max class variables        */
 #define IV_LU_SZ        16          /** max instance variables     */
+#define DATA_NA         0xffff      /** memory pool negate index   */
 ///
 /// Arduino support macros
 ///

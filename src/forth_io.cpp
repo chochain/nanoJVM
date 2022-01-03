@@ -25,18 +25,19 @@ void words(Thread &t) {
     IU cid = gPool.cls_root;
     do {
         Word *cls = WORD(cid);
-        Word *supr= WORD(*(IU*)cls->pfa(CLS_SUPR));
-        fout << "\n" << cls->nfa() << " : " << supr->nfa() << " " << cid;
-        IU mid = *(IU*)cls->pfa(CLS_VT);
+        IU    sid = *(IU*)cls->pfa(PFA_CLS_SUPR);
+        IU    mid = *(IU*)cls->pfa(PFA_CLS_VT);
+        fout << "\n" << cls->nfa() << " : "
+             << (sid == DATA_NA ? "-" : WORD(sid)->nfa()) << " " << cid;
         int i = 0;
         do {
             Word *w = WORD(mid);
             if ((i++%10)==0) { fout << ENDL; fout << "\t"; yield(); }
             fout << w->nfa() << " " << mid << " ";
             mid = w->lfa;
-        } while (mid);
+        } while (mid != DATA_NA);
         cid = cls->lfa;
-    } while (cid && cid != gPool.jvm_root);
+    } while (cid != DATA_NA && cid != gPool.jvm_root);
     fout << setbase(t.base) << ENDL;
 }
 void ss_dump(Thread &t) {
@@ -104,7 +105,7 @@ void outer(Thread &t, const char *cmd) {
         const char *idiom = tib.c_str();
         LOG(idiom); LOG("=>");
         IU m = gPool.get_method(idiom, 0, t.cls);    /// search for word in current context
-        if (m > 0) {						 ///> if handle method found
+        if (m != DATA_NA) {					 ///> if handle method found
             Word *w = WORD(m);
             LOG(w->nfa()); LOG(" 0x"); LOX(m);
             if (t.compile && !w->immd) {     /// * in compile mode?
@@ -114,7 +115,7 @@ void outer(Thread &t, const char *cmd) {
             continue;
         }
         m = gPool.get_class(idiom);			 ///> try as a class name (vocabulary)
-        if (m > 0) {                         ///
+        if (m != DATA_NA) {                  ///
             LOG("class 0x"); LOX(m); LOG("\n");
         	t.cls = m;					     /// * switch class (context)
         }
