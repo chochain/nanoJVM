@@ -58,14 +58,9 @@
 ///
 /// Class method, field access macros
 ///
-#define OFF           (t.wide ? t.fetch4() : t.fetch2())
-#define OFF8          ((U16)t.fetch())
-#define GetI_S(n)     PushI(*t.cls_var(n))
-#define PutI_S(n,v)   (*t.cls_var(n)=(v))
-#define GetI_F(o,n)   PushI(*t.inst_var(o, n))
-#define PutI_F(o,n,v) (*t.inst_var(o, n)=(v))
-
-#define UCODE(s, g) { s, [](Thread &t){ g; }, 0 }
+#define J16           (t.wide ? t.fetch4() : t.fetch2())
+#define J8            ((U16)t.fetch())
+#define UCODE(s, g)   { s, [](Thread &t){ g; }, 0 }
 ///
 /// micro-code (built-in methods)
 ///
@@ -92,16 +87,16 @@ static Method _java[] = {
     /// @}
     /// @definegroup Load ops (CC: TODO)
     /// @{
-    /*10*/  UCODE("bipush",   PushI(OFF8)),
-    /*11*/  UCODE("sipush",   PushI(OFF)),
-    /*12*/  UCODE("ldc",      PushI(OFF8)),
-    /*13*/  UCODE("ldcw",     PushI(OFF)),
+    /*10*/  UCODE("bipush",   PushI(J8)),
+    /*11*/  UCODE("sipush",   PushI(J16)),
+    /*12*/  UCODE("ldc",      PushI(J8)),
+    /*13*/  UCODE("ldcw",     PushI(J16)),
     /*14*/  UCODE("ldc2_w",   {}),
-    /*15*/  UCODE("iload",    LoadI(OFF8)),
-    /*16*/  UCODE("lload",    LoadL(OFF8)),
-    /*17*/  UCODE("fload",    LoadF(OFF8)),
-    /*18*/  UCODE("dload",    LoadD(OFF8)),
-    /*19*/  UCODE("aload",    LoadA(OFF8)),
+    /*15*/  UCODE("iload",    LoadI(J8)),
+    /*16*/  UCODE("lload",    LoadL(J8)),
+    /*17*/  UCODE("fload",    LoadF(J8)),
+    /*18*/  UCODE("dload",    LoadD(J8)),
+    /*19*/  UCODE("aload",    LoadA(J8)),
     /*1A*/  UCODE("iload_0",  LoadI(0)),        // load from local (auto)
     /*1B*/  UCODE("iload_1",  LoadI(1)),
     /*1C*/  UCODE("iload_2",  LoadI(2)),
@@ -133,11 +128,11 @@ static Method _java[] = {
     /// @}
     /// @definegroup Store ops (CC: TODO)
     /// @{
-    /*36*/  UCODE("istore",   StorI(OFF8)),  // store int to variable[index]
+    /*36*/  UCODE("istore",   StorI(J8)),    // store int to variable[index]
     /*37*/  UCODE("lstore",   {}),
     /*38*/  UCODE("fstore",   {}),
     /*39*/  UCODE("dstore",   {}),
-    /*3A*/  UCODE("astore",   StorI(OFF8)),  // store a arrayref to variable[index]
+    /*3A*/  UCODE("astore",   StorI(J8)),    // store a arrayref to variable[index]
     /*3B*/  UCODE("istore_0", StorI(0)),     // store int to variable[0]
     /*3B*/  UCODE("istore_1", StorI(1)),
     /*3D*/  UCODE("istore_2", StorI(2)),
@@ -220,7 +215,7 @@ static Method _java[] = {
     /*81*/  UCODE("lor",  {}),
     /*82*/  UCODE("ixor", TopU32 = t.ss.pop() ^ TopU32),
     /*83*/  UCODE("lxor", {}),
-    /*84*/  UCODE("iinc", U8 n = OFF8; S8 i = OFF8; t.iinc(n, i)),
+    /*84*/  UCODE("iinc", t.iinc()),
     /// @}
     /// @definegroup ALU Conversion ops
     /// @{
@@ -272,7 +267,7 @@ static Method _java[] = {
     /// @{
     /*A7*/  UCODE("goto",      t.jmp()),
     /*A8*/  UCODE("jsr",       PushI(t.IP + sizeof(U16)); t.jmp()),
-    /*A9*/  UCODE("ret",       t.IP = OFF),
+    /*A9*/  UCODE("ret",       t.IP = J16),
     /*AA*/  UCODE("tableswitch",  {}),
     /*AB*/  UCODE("lookupswitch", {}),
     /// @}
@@ -288,10 +283,10 @@ static Method _java[] = {
     /// @}
     /// @definegroup Field Fetch ops
     /// @{
-    /*B2*/  UCODE("getstatic", GetI_S(OFF)),                           /// fetch from class variable
-    /*B3*/  UCODE("putstatic", PutI_S(OFF, PopI())),                   /// store into class variable
-    /*B4*/  UCODE("getfield",  IU o = PopI(); GetI_F(o, OFF)),         /// fetch from instance variable
-    /*B5*/  UCODE("putfield",  S32 v = PopI(); IU o = PopI(); PutI_F(o, OFF, v)),/// store into instance variable
+    /*B2*/  UCODE("getstatic", PushI(*t.cls_var(J16))),                     /// fetch from class variable
+    /*B3*/  UCODE("putstatic", *t.cls_var(J16) = PopI()),                   /// store into class variable
+    /*B4*/  UCODE("getfield",  PushI(*t.inst_var(PopI(), J16))),            /// fetch from instance variable
+    /*B5*/  UCODE("putfield",  S32 v = PopI(); *t.inst_var(PopI(), J16)=v), /// store into instance variable
     /// @}
     /// @definegroup Method/Interface Invocation ops
     /// @{
