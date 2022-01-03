@@ -67,13 +67,13 @@ struct Method {
 ///   class list - linked list of words, dict[cls_root], pfa => next_class
 ///   vtable     - linked list of words, dict[class.pfa], pfa => next_method
 ///
-#define CLS_SUPR        0
-#define CLS_INTF        2
-#define CLS_VT          4
-#define CLS_CVSZ        6
-#define CLS_IVSZ        8
-#define CLS_CV          10
-#define MTH_PARM        sizeof(PU)
+#define PFA_CLS_SUPR    0
+#define PFA_CLS_INTF    2
+#define PFA_CLS_VT      4
+#define PFA_CLS_CVSZ    6
+#define PFA_CLS_IVSZ    8
+#define PFA_CLS_CV      10
+#define PFA_MTH_PARM    sizeof(PU)
 struct Word {                /// 4-byte header
     IU  lfa;                 /// link field to previous word
     U8  len;                 /// name of method
