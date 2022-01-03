@@ -1,6 +1,4 @@
-#include "mmu.h"             // memory pool manager
-#include "ucode.h"           // microcode list
-#include "forth_io.h"        // Forth outer interpreter and IO interface
+#include "forth_io.h"        // Forth outer interpreter (include mmu.h, ucode.h, thread.h)
 
 #define CELL(a)     (*(DU*)(t.M0 + a))   /** fetch a cell from parameter memory */
 #define CODE(s, g)  { s, [](Thread &t){ g; }, 0 }

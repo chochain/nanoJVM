@@ -3,8 +3,7 @@
 #include <iomanip>      // setbase
 #include "ucode.h"		// microcode manager
 #include "mmu.h"		// memory pool manager
-#include "thread.h"     // thread/task interface
-#include "loader.h"     // bytecode loader
+#include "thread.h"     // thread/task interface (include loader.h)
 #include "jvm.h"		// virtual machine core
 
 using namespace std;    // default to C++ standard template library
