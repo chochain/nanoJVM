@@ -56,24 +56,24 @@ IU Pool::get_method(const char *m_name, IU cls_id, IU parm, bool supr) {
 ///     | 16b  |8b  | 8b | len  | 64/32b | 16b  |
 ///     | LFA  |len |flag| name | xt     | parm |
 ///
-IU Pool::add_ucode(const Method &vt, IU &m_root) {
+IU Pool::add_ucode(const Method &vt, IU &m_root, IU pidx) {
     IU mx = pmem.idx;               /// store current method index
     mem_iu(m_root);                 /// link to previous method
     mem_u8(STRLEN(vt.name));        /// method name length
     mem_u8((U8)vt.flag);            /// method access control
     mem_str(vt.name);               /// inscribe method name
     mem_pu((PU)vt.xt);              /// encode function pointer
-    mem_iu(vt.parm);                /// parameter list
+    mem_iu(pidx);                   /// parameter list index
     return m_root = mx;             /// adjust method root
 };
-IU Pool::add_method(const char *m_name, IU &m_root, IU mjdx, IU parm) {
+IU Pool::add_method(const char *m_name, IU &m_root, IU pidx, IU mjdx) {
     IU mx = pmem.idx;               /// store current method index
     mem_iu(m_root);                 /// link to previous method
     mem_u8(STRLEN(m_name));         /// method name length
     mem_u8(FLAG_JAVA);              /// method access control
     mem_str(m_name);                /// inscribe method name
     mem_pu((PU)mjdx);               /// encode function pointer
-    mem_iu(parm);                   /// encode parameter list index
+    mem_iu(pidx);                   /// encode parameter list index
     return m_root = mx;             /// adjust method root
 };
 IU Pool::add_class(const char *name, IU m_root, const char *supr, U16 cvsz, U16 ivsz) {
@@ -100,7 +100,8 @@ void Pool::register_class(const char *name, const Method *vt, int vtsz, const ch
     /// encode vtable
     IU m_root = DATA_NA;
     for (int i=0; i<vtsz; i++) {
-        add_ucode(vt[i], m_root);
+    	IU pidx = get_parm_idx(vt[i].parm);
+        add_ucode(vt[i], m_root, pidx);
     }
     if (vtsz) add_class(name, m_root, supr, cvsz, ivsz);
 }

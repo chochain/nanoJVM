@@ -36,7 +36,7 @@ void Loader::create_method(IU &addr, IU &m_root) {
     LOG("\n  ["); LOX2(i_name); LOG("]"); LOG(getStr(i_name, name));
     LOG(getStr(i_parm, parm)); LOG(" ("); LOX(len); LOG(" bytes)");
     IU pidx = gPool.get_parm_idx(parm);
-    gPool.add_method(name, m_root, mjdx, pidx);
+    gPool.add_method(name, m_root, pidx, mjdx);
 
     while (n_attr--) addr += attr_size(addr);
 }
