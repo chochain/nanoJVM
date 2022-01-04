@@ -5,25 +5,27 @@ Pool gPool;             /// global memory pool manager
 /// search for word following given linked list
 ///
 IU Pool::get_parm_idx(const char *parm) {
-	const static char *_list[] = {
-		"()V",
-		"(Ljava/lang/String;)V",
-		"(I)V"
-	};
-	const static IU sz = sizeof(_list)/sizeof(char*);
-	IU i = 0;
-	for (; parm && i<sz && strcmp(parm, _list[i])!=0; i++);
-	return i < sz ? i : 0;
+	if (!parm) return DATA_NA;
+	IU pidx = find(parm, parm_root);
+	if (pidx != DATA_NA) return pidx;  /// no cached entry found
+
+    IU px = pmem.idx;                  /// store current param list index
+    mem_iu(parm_root);                 /// link to previous method
+    mem_u8(STRLEN(parm));              /// param list description length
+    mem_u8(0);                         /// no access control
+    mem_str(parm);                     /// inscribe param list description
+
+    return parm_root = px;             /// adjust method root
 }
-IU Pool::find(const char *name, const char *parm, IU root) {
+IU Pool::find(const char *name, IU root, IU parm) {
+	if (root==DATA_NA) return DATA_NA; /// no entry yet
     IU idx = root;
-    U8 len = STRLEN(name); // check length first, speed up matching
-    IU pi  = get_parm_idx(parm);
+    U8 len = STRLEN(name);             /// get length first, speed up matching
     do {
         Word *w = (Word*)&pmem[idx];
         if (w->len==len && strcmp(w->nfa(), name)==0) {
-        	U8 *px = w->pfa(PFA_MTH_PARM);
-        	if (!pi || (pi==*(IU*)w->pfa(PFA_MTH_PARM))) return idx;
+        	if (parm==DATA_NA || !w->java) return idx;
+        	if (parm==*(IU*)w->pfa(PFA_PARM_IDX)) return idx;
         }
         idx = w->lfa;
     } while (idx != DATA_NA);
@@ -33,16 +35,16 @@ IU Pool::find(const char *name, const char *parm, IU root) {
 /// return cls_obj if cls_name is NULL
 ///
 IU Pool::get_class(const char *cls_name) {
-    return cls_name ? find(cls_name, 0, cls_root) : jvm_root;
+    return cls_name ? find(cls_name, cls_root) : jvm_root;
 }
 ///
 /// return m_root if m_name is NULL
 ///
-IU Pool::get_method(const char *m_name, const char *parm, IU cls_id, bool supr) {
-    Word *cls = (Word*)&pmem[cls_id ? cls_id : cls_root];
+IU Pool::get_method(const char *m_name, IU cls_id, IU parm, bool supr) {
+    Word *cls = (Word*)&pmem[cls_id != DATA_NA ? cls_id : cls_root];
     IU mx = DATA_NA;
     while (cls) {
-        mx = find(m_name, parm, *(IU*)cls->pfa(PFA_CLS_VT));
+        mx = find(m_name, *(IU*)cls->pfa(PFA_CLS_VT), parm);
         if (mx != DATA_NA || !supr) break;
         cls = (cls->lfa == DATA_NA) ? 0 : (Word*)&pmem[cls->lfa];
     }
@@ -64,14 +66,14 @@ IU Pool::add_ucode(const Method &vt, IU &m_root) {
     mem_iu(vt.parm);                /// parameter list
     return m_root = mx;             /// adjust method root
 };
-IU Pool::add_method(const char *m_name, const char *parm, IU mj, IU &m_root) {
+IU Pool::add_method(const char *m_name, IU &m_root, IU mjdx, IU parm) {
     IU mx = pmem.idx;               /// store current method index
     mem_iu(m_root);                 /// link to previous method
     mem_u8(STRLEN(m_name));         /// method name length
     mem_u8(FLAG_JAVA);              /// method access control
     mem_str(m_name);                /// inscribe method name
-    mem_pu((PU)mj);                 /// encode function pointer
-    mem_iu(get_parm_idx(parm));
+    mem_pu((PU)mjdx);               /// encode function pointer
+    mem_iu(parm);                   /// encode parameter list index
     return m_root = mx;             /// adjust method root
 };
 IU Pool::add_class(const char *name, IU m_root, const char *supr, U16 cvsz, U16 ivsz) {
@@ -133,11 +135,11 @@ void Pool::build_op_lookup() {
 	static const char *wlist[OP_LU_SZ] = {
 		"dovar", "dolit", "dostr", "unnest"
 	};
-	IU   mx   = find("ej32/Forth", 0, cls_root);
+	IU   mx   = find("ej32/Forth", cls_root);
 	Word *cls = (Word*)&pmem[mx];
 	IU   vt   = *(IU*)cls->pfa(PFA_CLS_VT);
 	for (int i=0; i<OP_LU_SZ; i++) {
-		IU w = find(wlist[i], 0, vt);
+		IU w  = find(wlist[i], vt);
 		op[i] = w;
 	}
 }

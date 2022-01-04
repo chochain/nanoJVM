@@ -1,7 +1,7 @@
 #ifndef NANOJVM_UCODE_H
 #define NANOJVM_UCODE_H
-#include "thread.h"       // include "core.h
-#include "mmu.h"
+#include "thread.h"       // include core.h, loader.h
+#include "mmu.h"          // memory pool manager
 
 enum { DOVAR = 0, DOLIT, DOSTR, UNNEST };   /// Forth opcodes
 enum { PARM_NA = 0, PARM_STR, PARM_INT };   /// match to mmu.get_parm_idx

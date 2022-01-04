@@ -35,19 +35,20 @@ struct Pool {
     ///
     /// core objects
     ///
-    IU jvm_root = DATA_NA;        /// JVM methods linked list
-    IU cls_root = DATA_NA;        /// Class linked list
-    IU obj_root = DATA_NA;        /// Object linked list
+    IU parm_root = DATA_NA;       /// parameter type linked list
+    IU jvm_root  = DATA_NA;       /// JVM methods linked list
+    IU cls_root  = DATA_NA;       /// Class linked list
+    IU obj_root  = DATA_NA;       /// Object linked list
 
     IU   get_parm_idx(const char *parm);
-    IU   find(const char *m_name, const char *parm, IU root);
+    IU   find(const char *m_name, IU root, IU parm=DATA_NA);
     IU   get_class(const char *cls_name);
-    IU   get_method(const char *m_name, const char *parm, IU cls_id=0, bool supr=true);
+    IU   get_method(const char *m_name, IU cls_id=DATA_NA, IU parm=DATA_NA, bool supr=true);
     ///
     /// dictionary builder
     ///
     IU   add_ucode(const Method &vt, IU &root);
-    IU   add_method(const char *m_name, const char *parm, IU mj, IU &root);
+    IU   add_method(const char *m_name, IU &root, IU mjdx, IU parm);
     IU   add_class(const char *name, IU m_root, const char *supr, U16 cvsz, U16 ivsz);
     void register_class(const char *name, const Method *vt, int vtsz, const char *supr = 0, U16 cvsz=0, U16 ivsz=0);
     ///
