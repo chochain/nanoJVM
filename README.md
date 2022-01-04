@@ -25,6 +25,7 @@
 |Hello|basic function call (in main)|words, clock, here, -=, -, ss|
 |IfElesThen|conditional branch|if ( > ) else|
 |ForLoop|for loop and benchmark|for (int i=0; i<4; i++); clock|
+|ForLoop2|for loop (2-d) and benchmark|clock|
 |InstVar|class static, instance vars|new, clock, here, delay|
 |NObj|create new objects with instance vars||
 |ObjMethod|calling object method|new, clock|

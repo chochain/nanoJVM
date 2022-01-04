@@ -1,5 +1,3 @@
-import ej32.Forth;
-
 class Array01
 {
     public static void main(String[] av) {     // 2a b7 00 01 b1
