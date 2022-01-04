@@ -116,11 +116,11 @@ static Method _java[] = {
     /*2B*/  UCODE("aload_1",  LoadA(1)),        /// load ref from auto (local)
     /*2C*/  UCODE("aload_2",  LoadA(2)),
     /*2D*/  UCODE("aload_3",  LoadA(3)),
-    /*2E*/  UCODE("iaload",   IU i = PopI(); IU a = PopI(); GetI_A(a, i)),  /// fetch integer from arrayref
+    /*2E*/  UCODE("iaload",   IU i = PopI(); GetI_A(PopI(), i)),  /// fetch integer from arrayref
     /*2F*/  UCODE("faload",   GetF_A()),
     /*30*/  UCODE("laload",   GetL_A()),
     /*31*/  UCODE("daload",   GetD_A()),
-    /*32*/  UCODE("aaload",   IU i = PopI(); IU a = PopI(); GetA_A(a, i)),  /// fetch ref from array
+    /*32*/  UCODE("aaload",   IU i = PopI(); GetA_A(PopI(), i)),  /// fetch ref from array
     /*33*/  UCODE("baload",   GetB_A()),
     /*34*/  UCODE("caload",   GetC_A()),
     /*35*/  UCODE("saload",   GetS_A()),
@@ -152,11 +152,11 @@ static Method _java[] = {
     /*4C*/  UCODE("astore_1", StorA(1)),
     /*4D*/  UCODE("astore_2", StorA(2)),
     /*4E*/  UCODE("astore_3", StorA(3)),
-    /*4F*/  UCODE("iastore",  DU v = PopI(); IU i = PopI(); IU a = PopI(); PutI_A(a, i, v)),    // (arrayref,index,value) store int into array[index]
+    /*4F*/  UCODE("iastore",  DU v = PopI(); IU i = PopI(); PutI_A(PopI(), i, v)),    // (arrayref,index,value) store int into array[index]
     /*50*/  UCODE("lastore",  PutL_A()),
     /*51*/  UCODE("fastore",  PutF_A()),
     /*52*/  UCODE("dastore",  PutD_A()),
-    /*53*/  UCODE("aastore",  DU r = PopI(); IU i = PopI(); IU a = PopI(); PutA_A(a, i, r)),
+    /*53*/  UCODE("aastore",  DU r = PopI(); IU i = PopI(); PutA_A(PopI(), i, r)),
     /*54*/  UCODE("bastore",  PutB_A()),
     /*55*/  UCODE("castore",  PutC_A()),
     /*56*/  UCODE("sastore",  PutS_A()),
