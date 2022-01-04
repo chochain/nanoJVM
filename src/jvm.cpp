@@ -45,10 +45,10 @@ int  jvm_setup(const char *fname) {
     const static Method uStr[] = {{ "<init>", [](Thread &t){ t.pop(); }, false }};
 	const static Method uSys[] = {{ "<init>", [](Thread &t){ t.pop(); }, false }};
     const static Method uPrs[] = {
-    	{ "print",   _print_s,   false, PARM_STR },
-    	{ "print",   _print_i,   false, PARM_INT },
-    	{ "println", _println_s, false, PARM_STR },
-    	{ "println", _println_i, false, PARM_INT }
+    	{ "print",   _print_s,   false, "(Ljava/lang/String;)V" },
+    	{ "print",   _print_i,   false, "(I)V" },
+    	{ "println", _println_s, false, "(Ljava/lang/String;)V" },
+    	{ "println", _println_i, false, "(I)V" }
     };
     setvbuf(stdout, NULL, _IONBF, 0);
     jout_cb = jvm_to_con;
