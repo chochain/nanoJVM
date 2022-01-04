@@ -56,11 +56,11 @@ struct Method {
         };
     };
 #else
-    fop   xt   = 0;           /// function pointer (or decayed lambda)
-    U8    flag = 0;
-    U8    parm = 0;
+    fop         xt   = 0;     /// function pointer (or decayed lambda)
+    U8          flag = 0;
+    const char *parm = 0;
 #endif
-    Method(const char *n, fop f, U32 im=0, U32 pm=0) : name(n), xt(f), flag(im), parm(pm) {}
+    Method(const char *n, fop f, U32 im=0, const char *pm=0) : name(n), xt(f), flag(im), parm(pm) {}
 };
 ///
 /// Word - shared struct for Class and Method

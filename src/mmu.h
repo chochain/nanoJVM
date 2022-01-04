@@ -47,8 +47,8 @@ struct Pool {
     ///
     /// dictionary builder
     ///
-    IU   add_ucode(const Method &vt, IU &root);
-    IU   add_method(const char *m_name, IU &root, IU mjdx, IU parm);
+    IU   add_ucode(const Method &vt, IU &root, IU pidx);
+    IU   add_method(const char *m_name, IU &root, IU pidx, IU mjdx);
     IU   add_class(const char *name, IU m_root, const char *supr, U16 cvsz, U16 ivsz);
     void register_class(const char *name, const Method *vt, int vtsz, const char *supr = 0, U16 cvsz=0, U16 ivsz=0);
     ///
