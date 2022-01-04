@@ -73,7 +73,7 @@ struct Method {
 #define PFA_CLS_CVSZ    6
 #define PFA_CLS_IVSZ    8
 #define PFA_CLS_CV      10
-#define PFA_MTH_PARM    sizeof(PU)
+#define PFA_PARM_IDX    sizeof(PU)
 struct Word {                /// 4-byte header
     IU  lfa;                 /// link field to previous word
     U8  len;                 /// name of method
