@@ -112,7 +112,7 @@ void jvm_run() {
     /// instantiate main thread (TODO: single thread for now)
     ///
     LOG("\nmain()");
-    IU mx = gPool.get_method("main", 0);
+    IU mx = gPool.get_method("main");
     
     gT0.dispatch(mx);
 }

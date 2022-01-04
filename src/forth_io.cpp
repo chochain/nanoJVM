@@ -102,7 +102,7 @@ void outer(Thread &t, const char *cmd) {
     while (fin >> tib) {
         const char *idiom = tib.c_str();
         LOG(idiom); LOG("=>");
-        IU m = gPool.get_method(idiom, 0, t.cls);    /// search for word in current context
+        IU m = gPool.get_method(idiom, t.cls);    /// search for word in current context
         if (m != DATA_NA) {					 ///> if handle method found
             Word *w = WORD(m);
             LOG(w->nfa()); LOG(" 0x"); LOX(m);

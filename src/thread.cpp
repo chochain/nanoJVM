@@ -1,7 +1,6 @@
 #include <sstream>      // iostream, stringstream
 #include <iomanip>      // setbase
 #include <string>       // string class
-#include <stdlib.h>     // strtol
 #include "ucode.h"
 
 extern Ucode uCode;
@@ -17,7 +16,7 @@ extern void  ss_dump(Thread &t);
 #define jU16(a)      J.getU16(a)
 #define jStrRef(j,s) J.getStr(j, s, true)
 #define jStr(j,s)    J.getStr(j, s, false)
-#define J16          wide ? fetch4() : fetch2()
+#define J16          (wide ? fetch4() : fetch2())
 ///
 /// VM Execution Unit
 ///
@@ -77,7 +76,7 @@ void Thread::java_call(IU j, U16 nparm) {   /// Java inner interpreter
 void Thread::invoke(U16 itype) {    /// invoke type: 0:virtual, 1:special, 2:static, 3:interface, 4:dynamic
     IU j = fetch2();                /// 2 - method index in pool
     if (itype>2) IP += 2;           /// extra 2 for interface and dynamic
-    IU mi = gPool.lookup(gPool.vt, j);
+    IU mi = gPool.lookup(gPool.vt, j);  /// search cache first
     if (mi != DATA_NA) {
         Word *w = WORD(gPool.vt[mi].ref);
         LOG(" "); LOG(w->nfa());
@@ -90,17 +89,18 @@ void Thread::invoke(U16 itype) {    /// invoke type: 0:virtual, 1:special, 2:sta
     IU mj  = jU16(c_m + 3);         /// 13
     IU rf  = jOff(mj);              /// [13]008f:c=>[15,16]  [method_name, type_name]
 
-    char cls[128], nm[128], t[32];
+    char cls[128], nm[128], parm[32];
     LOG(" "); LOG(jStrRef(cj, cls)); LOG("."); LOG(jStr(jU16(rf + 1), nm));
-    LOG(":"); LOG(jStr(jU16(rf + 3), t));
-    char *p = t+1;
+    LOG(":"); LOG(jStr(jU16(rf + 3), parm));
+    char *p = parm+1;
     U16  nparm = itype==2 ? 0 : 1;  /// except static type, all have a object ref
     while (*p != ')') {             /// count number of parameters
-        if (*p++=='L') while (*p++ != ';');         /// (Ljava/lang/String;)
+        if (*p++=='L') while (*p++ != ';');           /// (Ljava/lang/String;)
         nparm++;
     }
-    IU cx = gPool.get_class(cls);                   /// class ref
-    IU mx = gPool.get_method(nm, t, cx, itype!=1);  /// special does not go up to super class
+    IU cx = gPool.get_class(cls);                     /// class ref
+    IU pi = gPool.get_parm_idx(parm);                 /// parameter list
+    IU mx = gPool.get_method(nm, cx, pi, itype!=1);   /// special does not go up to super class
     LOG(" $"); LOX(gPool.vt.idx);
     gPool.vt.push({j, mx, nparm});
     if (mx != DATA_NA) dispatch(mx, nparm);
