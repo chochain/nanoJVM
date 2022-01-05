@@ -41,9 +41,9 @@ struct Pool {
     IU obj_root  = DATA_NA;       /// Object linked list
 
     IU   get_parm_idx(const char *parm);
-    IU   find(const char *m_name, IU root, IU parm=DATA_NA);
+    IU   find(const char *m_name, IU root, IU pidx=DATA_NA);
     IU   get_class(const char *cls_name);
-    IU   get_method(const char *m_name, IU cls_id=DATA_NA, IU parm=DATA_NA, bool supr=true);
+    IU   get_method(const char *m_name, IU cls_id=DATA_NA, IU pidx=DATA_NA, bool supr=true);
     ///
     /// dictionary builder
     ///
