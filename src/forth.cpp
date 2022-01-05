@@ -1,8 +1,8 @@
 #include "forth.h"  // Forth outer interpreter (include mmu.h, ucode.h, thread.h)
 
 #define CELL(a)     (*(DU*)(t.M0 + a))   /** fetch a cell from parameter memory */
-#define CODE(s, g)  { s, [](Thread &t){ g; }, 0 }
-#define IMMD(s, g)  { s, [](Thread &t){ g; }, FLAG_IMMD }
+#define CODE(s, g)  { s, [](Thread &t){ g; }, ACL_BUILTIN }
+#define IMMD(s, g)  { s, [](Thread &t){ g; }, ACL_BUILTIN|IMMD_FLAG }
 #define POP         t.pop()
 #define PUSH(v)     t.push(v)
 
@@ -51,4 +51,4 @@ static Method _word[] = {
 ///
 /// Forth built-in word in ROM, use extern by main program
 ///
-Ucode uForth(sizeof(_word)/sizeof(Method), _word);
+Ucode uForth(VTSZ(_word), _word);

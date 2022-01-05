@@ -1,6 +1,6 @@
 #include "ucode.h"
 
-#define CODE(s, g)  { s, [](Thread &t){ g; }, 0 }
+#define CODE(s, g)  { s, [](Thread &t){ g; }, ACL_BUILTIN }
 #define POP         t.pop()
 #define PUSH(v)     t.push(v)
 #if ESP32
@@ -35,6 +35,6 @@ static Method _esp32[] = {
 ///
 /// ESP32 built-in word in ROM, use extern by main program
 ///
-Ucode uESP32(sizeof(_esp32)/sizeof(Method), _esp32);
+Ucode uESP32(VTSZ(_esp32), _esp32);
 
 
