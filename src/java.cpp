@@ -2,7 +2,7 @@
 #include <iostream>     // cin, cout
 #include <iomanip>      // setbase
 #include "ucode.h"		// microcode manager (include mmu.h, thread.h, loader.h)
-#include "jvm.h"		// virtual machine core
+#include "java.h"		// java front-end interface
 
 using namespace std;    // default to C++ standard template library
 ///
@@ -40,7 +40,7 @@ void _println_i(Thread &t) { _print_i(t); jout << ENDL; }
 ///
 /// JVM Core
 ///
-int  jvm_setup(const char *fname, void (*callback)(int, const char*)) {
+int  java_setup(const char *fname, void (*callback)(int, const char*)) {
 	const static Method uObj[] = {{ "<init>", [](Thread &t){ t.pop(); }, ACL_PUBLIC, "()V" }};
     const static Method uStr[] = {{ "<init>", [](Thread &t){ t.pop(); }, ACL_PUBLIC, "()V" }};
 	const static Method uSys[] = {{ "<init>", [](Thread &t){ t.pop(); }, ACL_PUBLIC, "()V" }};
@@ -96,7 +96,7 @@ void mem_stat() {
     }
 }
 String console_cmd;
-void jvm_run() {
+void java_run() {
     if (Serial.available()) {
         console_cmd = Serial.readString();
         LOG(console_cmd);
@@ -107,7 +107,7 @@ void jvm_run() {
 }
 #else 
 void mem_stat() {}
-void jvm_run() {
+void java_run() {
     ///
     /// instantiate main thread (TODO: single thread for now)
     ///
