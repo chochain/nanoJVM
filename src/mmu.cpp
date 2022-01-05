@@ -17,15 +17,15 @@ IU Pool::get_parm_idx(const char *parm) {
 
     return parm_root = px;             /// adjust method root
 }
-IU Pool::find(const char *name, IU root, IU parm) {
+IU Pool::find(const char *name, IU root, IU pidx) {
 	if (root==DATA_NA) return DATA_NA; /// no entry yet
     IU idx = root;
     U8 len = STRLEN(name);             /// get length first, speed up matching
     do {
         Word *w = (Word*)&pmem[idx];
         if (w->len==len && strcmp(w->nfa(), name)==0) {
-        	if (parm==DATA_NA || !w->java) return idx;
-        	if (parm==*(IU*)w->pfa(PFA_PARM_IDX)) return idx;
+        	if (pidx==DATA_NA || (w->access==ACL_BUILTIN)) return idx;
+        	if (pidx==*(IU*)w->pfa(PFA_PARM_IDX)) return idx;
         }
         idx = w->lfa;
     } while (idx != DATA_NA);
@@ -40,11 +40,11 @@ IU Pool::get_class(const char *cls_name) {
 ///
 /// return m_root if m_name is NULL
 ///
-IU Pool::get_method(const char *m_name, IU cls_id, IU parm, bool supr) {
+IU Pool::get_method(const char *m_name, IU cls_id, IU pidx, bool supr) {
     Word *cls = (Word*)&pmem[cls_id != DATA_NA ? cls_id : cls_root];
     IU mx = DATA_NA;
     while (cls) {
-        mx = find(m_name, *(IU*)cls->pfa(PFA_CLS_VT), parm);
+        mx = find(m_name, *(IU*)cls->pfa(PFA_CLS_VT), pidx);
         if (mx != DATA_NA || !supr) break;
         cls = (cls->lfa == DATA_NA) ? 0 : (Word*)&pmem[cls->lfa];
     }
@@ -70,7 +70,7 @@ IU Pool::add_method(const char *m_name, IU &m_root, IU pidx, IU mjdx) {
     IU mx = pmem.idx;               /// store current method index
     mem_iu(m_root);                 /// link to previous method
     mem_u8(STRLEN(m_name));         /// method name length
-    mem_u8(FLAG_JAVA);              /// method access control
+    mem_u8(JAVA_FUNC);              /// method access control
     mem_str(m_name);                /// inscribe method name
     mem_pu((PU)mjdx);               /// encode function pointer
     mem_iu(pidx);                   /// encode parameter list index
@@ -100,8 +100,8 @@ void Pool::register_class(const char *name, const Method *vt, int vtsz, const ch
     /// encode vtable
     IU m_root = DATA_NA;
     for (int i=0; i<vtsz; i++) {
-    	IU pidx = get_parm_idx(vt[i].parm);
-        add_ucode(vt[i], m_root, pidx);
+    	IU pidx = get_parm_idx(vt[i].parm);  /// cache parameter list string
+        add_ucode(vt[i], m_root, pidx);      /// create microcode, TODO: with ROM
     }
     if (vtsz) add_class(name, m_root, supr, cvsz, ivsz);
 }
@@ -153,7 +153,7 @@ void Pool::colon(IU cls, const char *name) {
     int  mx  = pmem.idx;			    /// keep current
     mem_iu(*vt);
     mem_u8(STRLEN(name));
-    mem_u8(FLAG_FORTH);				    /// a Forth word
+    mem_u8(FORTH_FUNC);				    /// a Forth word
     mem_str(name);
     *vt = mx;
 }
