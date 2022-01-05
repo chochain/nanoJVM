@@ -27,7 +27,7 @@ void Thread::dispatch(IU mx, U16 nparm) {
         IU  addr = *(IU*)w->pfa();
         java_call(addr, nparm);
     }
-    else if (w->forth) {             /// Forth core
+    else if (w->forth) {             /// user defined Forth word
         gPool.rs.push(IP);           /// setup call frame
         IP = (IU)(w->pfa() - M0);    /// get new IP
         while (IP) {                 /// Forth inner interpreter

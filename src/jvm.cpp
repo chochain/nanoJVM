@@ -8,8 +8,9 @@ using namespace std;    // default to C++ standard template library
 ///
 /// JVM streaming IO
 ///
-ostringstream   jout;                   /// JVM output stream
-void (*jout_cb)(int, const char*);      /// JVM output callback function
+ostringstream   jout;                         /// JVM output stream
+void null_con(int n, const char* msg) {};     /// null console
+void (*jout_cb)(int, const char*) = null_con; /// JVM output callback function
 
 #define ENDL    endl; jout_cb(jout.str().length(), jout.str().c_str()); jout.str("")
 ///
@@ -39,27 +40,26 @@ void _println_i(Thread &t) { _print_i(t); jout << ENDL; }
 ///
 /// JVM Core
 ///
-void jvm_to_con(int len, const char *msg) { LOG(msg); }
-int  jvm_setup(const char *fname) {
-	const static Method uObj[] = {{ "<init>", [](Thread &t){ t.pop(); }, false }};
-    const static Method uStr[] = {{ "<init>", [](Thread &t){ t.pop(); }, false }};
-	const static Method uSys[] = {{ "<init>", [](Thread &t){ t.pop(); }, false }};
+int  jvm_setup(const char *fname, void (*callback)(int, const char*)) {
+	const static Method uObj[] = {{ "<init>", [](Thread &t){ t.pop(); }, ACL_PUBLIC, "()V" }};
+    const static Method uStr[] = {{ "<init>", [](Thread &t){ t.pop(); }, ACL_PUBLIC, "()V" }};
+	const static Method uSys[] = {{ "<init>", [](Thread &t){ t.pop(); }, ACL_PUBLIC, "()V" }};
     const static Method uPrs[] = {
-    	{ "print",   _print_s,   false, "(Ljava/lang/String;)V" },
-    	{ "print",   _print_i,   false, "(I)V" },
-    	{ "println", _println_s, false, "(Ljava/lang/String;)V" },
-    	{ "println", _println_i, false, "(I)V" }
+    	{ "print",   _print_s,   ACL_PUBLIC, "(Ljava/lang/String;)V" },
+    	{ "print",   _print_i,   ACL_PUBLIC, "(I)V" },
+    	{ "println", _println_s, ACL_PUBLIC, "(Ljava/lang/String;)V" },
+    	{ "println", _println_i, ACL_PUBLIC, "(I)V" }
     };
     setvbuf(stdout, NULL, _IONBF, 0);
-    jout_cb = jvm_to_con;
+    if (callback) jout_cb = callback;
     ///
     /// populate Java classes
     ///
     gPool.register_class("Ucode",              uCode.vt,  uCode.vtsz);
-    gPool.register_class("java/lang/Object",   uObj, sizeof(uObj)/sizeof(Method), "Ucode");
-    gPool.register_class("java/lang/String",   uStr, sizeof(uStr)/sizeof(Method), "java/lang/Object", sizeof(DU)*3, 0);
-    gPool.register_class("java/lang/System",   uSys, sizeof(uSys)/sizeof(Method), "java/lang/Object", sizeof(DU)*3, 0);
-    gPool.register_class("java/io/PrintStream",uPrs, sizeof(uPrs)/sizeof(Method), "java/lang/Object");
+    gPool.register_class("java/lang/Object",   uObj,      VTSZ(uObj), "Ucode");
+    gPool.register_class("java/lang/String",   uStr,      VTSZ(uStr), "java/lang/Object", sizeof(DU)*3, 0);
+    gPool.register_class("java/lang/System",   uSys,      VTSZ(uSys), "java/lang/Object", sizeof(DU)*3, 0);
+    gPool.register_class("java/io/PrintStream",uPrs,      VTSZ(uPrs), "java/lang/Object");
     gPool.jvm_root = gPool.cls_root;
     ///
     /// Add Forth classes
