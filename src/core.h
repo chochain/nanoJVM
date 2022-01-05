@@ -42,9 +42,13 @@ typedef void (*fop)(Thread&); /// opcode function pointer
 ///
 /// Method class
 ///
-#define FLAG_IMMD   0x1
-#define FLAG_FORTH  0x2
-#define FLAG_JAVA   0x4
+#define ACL_PUBLIC  0x00
+#define ACL_PRIVATE 0x01
+#define ACL_PROTECT 0x02
+#define ACL_BUILTIN 0x03
+#define FORTH_FUNC  0x20
+#define JAVA_FUNC   0x40
+#define IMMD_FLAG   0x80
 struct Method {
     const char *name = 0;     /// for debugging, TODO (in const_pool)
 #if METHOD_PACKED
@@ -62,6 +66,7 @@ struct Method {
 #endif
     Method(const char *n, fop f, U32 im=0, const char *pm=0) : name(n), xt(f), flag(im), parm(pm) {}
 };
+#define VTSZ(vt)       (sizeof(vt)/sizeof(Method))
 ///
 /// Word - shared struct for Class and Method
 ///   class list - linked list of words, dict[cls_root], pfa => next_class
@@ -78,11 +83,11 @@ struct Word {                /// 4-byte header
     IU  lfa;                 /// link field to previous word
     U8  len;                 /// name of method
 
-    U8  immd:   1;           /// Forth immediate word
+    U8  access: 2;           /// public, private, protected, built-in
+    U8  ftype:  3;           /// static, final, virtual, synchronized
     U8  forth:  1;           /// 0:native, 1:composite
     U8  java:   1;           /// Java method
-    U8  access: 2;           /// public, private, protected
-    U8  ftype:  3;           /// static, final, virtual, synchronized
+    U8  immd:   1;           /// Forth immediate word
 
     U8  data[];              /// name field + parameter field
 
