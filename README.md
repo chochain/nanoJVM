@@ -12,12 +12,12 @@
 |core.h|common classes|List, Method, Word|
 |thread.*|core thread (i.e. task) class|Thread|
 |mmu.*|memory pool managemer|KV, Pool|
-|ucode.*|JVM microcode unit|Ucode|
-|forth_io.*|Forth IO functions| |
-|forth.cpp|Forth words|uForth|
-|esp32.cpp|ESP32 words|uESP32|
 |loader.*|bytecode loader|Loader|
-|jvm.*|java virtual machine| |
+|java.*|java virtual machine| |
+|forth.*|Forth words|uForth|
+|forth_io.cpp|Forth IO functions| |
+|ucode.*|JVM microcode unit|Ucode|
+|esp32.cpp|ESP32 words|uESP32|
 |main.cpp|main module| |
 ### tests
 |case|methods|note|
