@@ -5,13 +5,13 @@
 #include "forth.h"	    // Forth IO interface (include mmu.h, ucode.h, thread.h)
 
 using namespace std;    // default to C++ standard template library
-void send_to_con(int len, const char *msg) { LOG(msg); }
 ///
 /// JVM streaming IO
 ///
 istringstream   fin;                    /// forth_in
 ostringstream   fout;                   /// forth_out
 string          tib;                    /// terminal input buffer
+void send_to_con(int len, const char *msg) { LOG(msg); }
 void (*fout_cb)(int, const char*) = send_to_con;      /// forth output callback function
 
 #define ENDL    endl; fout_cb(fout.str().length(), fout.str().c_str()); fout.str("")
@@ -123,7 +123,12 @@ void outer(Thread &t, const char *cmd) {
     }
     ss_dump(t);
 }
-
+///
+/// Forth IO interface
+///
+void forth_setup(void (*callback)(int, const char*)) {
+	if (callback) fout_cb = callback;        /// setup console callback function
+}
 void forth_interpreter(Thread &t) {
 	cout << endl;
 	string line;
