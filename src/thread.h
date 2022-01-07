@@ -27,7 +27,7 @@ struct Thread {
     void na();                           /// not supported
     void dispatch(IU mx, U16 nparm=0);   /// instruction dispatcher dispatch
     ///
-    /// Java core
+    /// Java core opcodes
     ///
     void java_new();                     /// instantiate Java object
     void java_call(IU j, U16 nparm=0);   /// execute Java method
@@ -38,19 +38,19 @@ struct Thread {
     DU   *cls_var();
     DU   *inst_var(IU ox);
     ///
-    /// array access
+    /// Java array opcodes
     ///
-    void java_newarray(IU n);            /// instantiate Java array
-    void java_anewarray(IU n);           /// create multi-dimention array
-    IU   arraylen(IU ax);                /// return array length
+    void java_newa(IU n);                /// instantiate Java array
+    void java_anewa(IU n);               /// create multi-dimension array
+    IU   alen(IU ax);                    /// return array length
     void astore(IU ax, IU idx, DU v);    /// store v into array[idx]
     DU   *aload(IU ax, IU idx);          /// fetch v from array[idx]
     ///
     /// Java class file byte fetcher
     ///
     U8   fetch()        { return J.getU8(IP++); }
-    U16  fetch2()       { U16 n = J.getU16(IP); IP+=2; return n; }
-    U16  fetch4()       { U32 n = J.getU32(IP); IP+=4; return n; }
+    U16  fetch2()       { U16 n = J.getU16(IP);  IP+=2; LOG(" #"); LOX(n); return n; }
+    U16  fetch4()       { U32 n = J.getU32(IP);  IP+=4; LOG(" #"); LOX(n); return n; }
     ///
     /// branching ops
     ///

@@ -27,7 +27,7 @@ struct Pool {
     template<typename T>
     IU  lookup(T &a, IU j) {
     	for (IU i=0; i<a.idx; i++) if (a[i].key == j) {
-    		LOG(" $"); LOX(i);
+    		LOG(" =>$"); LOX(i);
     		return i;
     	}
     	return DATA_NA;
