@@ -54,7 +54,7 @@ struct Thread {
     ///
     /// branching ops
     ///
-    void ret()          { IP = 0; }
+    void ret()          { IP = 0; }		  /// exit java_call/forth_word loop
     void jmp()          { IP += J.getU16(IP) - 1; }
     void cjmp(bool f)   { IP += f ? J.getU16(IP) - 1 : sizeof(U16); }
     ///

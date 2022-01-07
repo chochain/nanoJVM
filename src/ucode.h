@@ -3,6 +3,7 @@
 #include "thread.h"       // include core.h, loader.h
 #include "mmu.h"          // memory pool manager
 
+#define OP_RETURN 0xb1
 enum { DOVAR = 0, DOLIT, DOSTR, UNNEST };   /// Forth opcodes
 
 struct Ucode {

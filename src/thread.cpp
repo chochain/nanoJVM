@@ -71,18 +71,25 @@ void Thread::java_call(IU j, U16 nparm) {   /// Java inner interpreter
     SP = ss.idx - nparm + 1;        /// adjust local variable base, extra 1=obj ref, TODO: handle types
     U16 n = ss.idx + jU16(j - 6) - nparm;   /// allocate for local variables
     while (ss.idx < n) push(0);     /// setup local variables, TODO: change ss.idx only
+
+    U8 op;                          /// opcode
     gPool.rs.push(IP);              /// save caller instruction pointer
     IP = j;                         /// pointer to class file
     while (IP) {
         ss_dump(*this);
-        U8 op = fetch();            /// fetch JVM opcode
+        op = fetch();               /// fetch JVM opcode
         LOG("j"); LOX4(IP-1); LOG(":"); LOX2(op);
         LOG(" "); LOG(uCode.vt[op].name);
         uCode.exec(*this, op);      /// execute JVM opcode (in microcode ROM)
     }
     IP = gPool.rs.pop();            /// restore to caller IP
-    while (ss.idx >= SP) pop();     /// clean up parameters, TODO: change ss.idx only
-    SP = gPool.rs.pop();            /// restore caller stack frame
+
+    DU rv = op == OP_RETURN ? 0 : pop(); /// check return value
+
+    while (ss.idx >= SP) pop();     /// clean off stack (optional)
+    SP = gPool.rs.pop();        	/// restore caller stack frame
+
+    if (op==OP_RETURN) push(rv);    /// add return value if any
 }
 void Thread::invoke(U16 itype) {    /// invoke type: 0:virtual, 1:special, 2:static, 3:interface, 4:dynamic
     IU j = fetch2();                /// 2 - method index in pool

@@ -24,7 +24,7 @@
 |---|---|---|
 |Hello|basic function call (in main)|words, clock, here, -=, -, ss|
 |IfElesThen|conditional branch|if ( > ) else|
-|ForLoop|for loop and benchmark|for (int i=0; i<4; i++); clock|
+|ForLoop|for loop and benchmark|outer; for (int i=0; i<4; i++); clock|
 |ForLoop2|for loop (2-d) and benchmark|clock|
 |InstVar|class static, instance vars|new, clock, here, delay|
 |NObj|create new objects with instance vars||
@@ -33,7 +33,7 @@
 |Print|System.out.print, println||
 |ESP32Test|ESP pin interfacing|pinMode, digitalWrite|
 |Array01|Java array|a[], a.length|
-|Array02|Java 2-d array|a[][], 2-deep loops|
+|Array02|Java 2-d array|?a[][], 2-deep loops|
 
 Use the following toolchain to produce bytecode (and analysis)
 #### ej32 subdirectories
