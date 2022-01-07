@@ -273,7 +273,7 @@ static Method _java[] = {
     /// @definegroup Return ops
     /// @brief - because we separte return stack from data stack, t.ret() is all we needed
     /// @{
-    /*AC*/  UCODE("ireturn",   t.ret()),
+    /*AC*/  UCODE("ireturn",   t.ret()),      /// return an integer from method
     /*AD*/  UCODE("lreturn",   t.ret()),
     /*AE*/  UCODE("freturn",   t.ret()),
     /*AF*/  UCODE("dreturn",   t.ret()),
@@ -298,9 +298,9 @@ static Method _java[] = {
     /// @definegroup New and Array ops
     /// @{
     /*BB*/  UCODE("new",          t.java_new()),
-    /*BC*/  UCODE("newarray",     t.java_newarray(PopI())),
-    /*BD*/  UCODE("anewarray",    t.java_anewarray(PopI())),
-    /*BE*/  UCODE("arraylength",  PushI(t.arraylen(PopI()))),
+    /*BC*/  UCODE("newarray",     t.java_newa(PopI())),
+    /*BD*/  UCODE("anewarray",    t.java_anewa(PopI())),
+    /*BE*/  UCODE("arraylength",  PushI(t.alen(PopI()))),
     /*BF*/  UCODE("athrow",       {}),
     /// @}
     /// @definegroup Misc ops
