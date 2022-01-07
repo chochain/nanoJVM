@@ -7,14 +7,14 @@ class NObj
 
     NObj(int i, int j) {
         int x = i + j;                  // 2a b7 00 01 1b 1c 60 3e
-        iv0 = i;                        // 2a b7 00 01 2a 1b b5 00 02
+        iv0 = i;                        // 2a 1b b5 00 02
         iv1 = j;                        // 2a 1c b5 00 03
     }                                   // b1
     
     public static void main(String[] av)
     {
-        NObj o0 = new NObj(1, 3);       // bb 00 04 59 04 06 b7 00 05 4b
-        NObj o1 = new NObj(2, 3);       // bb 00 04 59 05 06 bb 00 05 4c 2a
+        NObj o0 = new NObj(1, 3);       // bb 00 04 59 04 06 b7 00 05 4c
+        NObj o1 = new NObj(22, 33);     // bb 00 04 59 10 16 10 21 b7 00 05 4d 2b
         
         o0.iv1 = Forth.clock();         // b8 00 06 b5 00 03 2b
         o1.iv1 = Forth.here();          // b8 00 07 b5 00 03
