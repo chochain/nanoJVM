@@ -122,13 +122,14 @@ IU Pool::add_obj(IU cx) {
 }
 ///
 /// new Array storage
+/// Note: atype is ignored for now, TODO:
 ///
-IU Pool::add_array(U8 atype, IU n) {///
+IU Pool::add_array(U8 atype, IU n) {
 	IU oid  = heap.idx;             /// keep object index
     obj_iu(obj_root);				/// add array onto linked list
     obj_u8(n & 0xff);               /// array length (max 64K)
     obj_u8(n >> 8);                 ///
-    obj_allot(n);
+    obj_allot(n * sizeof(DU));
     return obj_root = oid;
 }
 

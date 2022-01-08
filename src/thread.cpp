@@ -83,12 +83,10 @@ void Thread::java_call(IU j, U16 nparm) {   /// Java inner interpreter
         uCode.exec(*this, op);      /// execute JVM opcode (in microcode ROM)
     }
     IP = gPool.rs.pop();            /// restore to caller IP
-
+    // restore caller stack frame
     DU rv = op == OP_RETURN ? 0 : pop(); /// check return value
-
     while (ss.idx >= SP) pop();     /// clean off stack (optional)
-    SP = gPool.rs.pop();        	/// restore caller stack frame
-
+    SP = gPool.rs.pop();        	/// restore SP
     if (op==OP_RETURN) push(rv);    /// add return value if any
 }
 void Thread::invoke(U16 itype) {    /// invoke type: 0:virtual, 1:special, 2:static, 3:interface, 4:dynamic
@@ -101,11 +99,13 @@ void Thread::invoke(U16 itype) {    /// invoke type: 0:virtual, 1:special, 2:sta
         dispatch(gPool.vt[mi].ref, gPool.vt[mi].nparm);
         return;
     }
+    ///
     /// cache missed, create new lookup entry
+    ///
     IU c_m = jOff(j);               /// [02]000f:a=>[12,13]  [class_idx, method_idx]
-    IU cj  = jU16(c_m + 1);         /// 12
-    IU mj  = jU16(c_m + 3);         /// 13
-    IU rf  = jOff(mj);              /// [13]008f:c=>[15,16]  [method_name, type_name]
+    IU cj  = jU16(c_m + 1);         /// 12 class index
+    IU mj  = jU16(c_m + 3);         /// 13 method index
+    IU rf  = jOff(mj);              /// [13]008f:c=>[15,16]  [method_name, parm_name]
 
     char cls[128], nm[128], parm[32];
     LOG(" "); LOG(jStrRef(cj, cls));        		 /// get class name
@@ -134,8 +134,8 @@ DU *Thread::cls_var() {
 
     /// cache missed, create new lookup entry
     IU c_f = jOff(j);               /// [02]000f:a=>[12,13]  [class_idx, field_idx]
-    IU cj  = jU16(c_f + 1);
-    IU fj  = jU16(c_f + 3);         /// 13
+    IU cj  = jU16(c_f + 1);         /// 12: class index
+    IU fj  = jU16(c_f + 3);         /// 13: field index
     IU rf  = jOff(fj);              /// [13]008f:c=>[15,16]  [field_name, type_name]
 
     char cls[128], nm[128], parm[32];
@@ -171,14 +171,14 @@ DU *Thread::inst_var(IU ox) {
     IU idx = gPool.iv.idx;
     LOG(" =>$"); LOX(idx);
 
-    gPool.iv.push({ j, idx });        /// create new cache entry
+    gPool.iv.push({ j, idx });      /// create new cache entry
     return iv + idx;
 }
 ///
 /// array support
 ///   Note: use gPool.heap for array storage linked list obj_root
 ///
-void Thread::java_newa(IU n) {
+void Thread::java_newa(IU n) {      /// create 1-d array
 	U8 j  = fetch();                /// fetch atype value
     if (j != 0xa) na();             /// support only integer, TODO: more types
     else {
@@ -186,22 +186,26 @@ void Thread::java_newa(IU n) {
         push(ax);
     }
 }
+///
+/// create array of references (i.e. 2-dim array)
+/// Note: using DU for ref (IU) is a bit wasteful, but uniform
+///
 void Thread::java_anewa(IU n) {
 	U16 j   = fetch2();             /// fetch 2-dim atype, ignore now, TODO: check type
-    IU  c_f = jOff(j);              /// [02]000f:a=>[12,13]  [class_idx, field_idx]
+    IU  c_f = jOff(j);              /// [02]000f =>[I
     IU  t2  = jU16(c_f);
-    IU  ax  = gPool.add_array(t2 >> 8, n);   /// Note: using DU for ref (IU) is a bit wasteful, but...
+    IU  ax  = gPool.add_array(t2 >> 8, n);   /// allocate array
     push(ax);
 }
-IU   Thread::alen(IU ax) {
+IU   Thread::alen(IU ax) {                   /// array length
     IU *p = (IU*)OBJ(ax);
     return *(p + 1);
 }
-void Thread::astore(IU ax, IU idx, DU v) {
+void Thread::astore(IU ax, IU idx, DU v) {   /// array store
     DU *a0 = (DU*)OBJ(ax)->data;
     *(a0 + idx) = v;
 }
-DU *Thread::aload(IU ax, IU idx) {
+DU *Thread::aload(IU ax, IU idx) {           /// array fetch (load onto stack)
     DU *a0 = (DU*)OBJ(ax)->data;
     return a0 + idx;
 }
