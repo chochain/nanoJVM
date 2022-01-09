@@ -24,6 +24,7 @@ struct Thread {
     ///
     /// VM Execution Unit
     ///
+    struct KV get_refs(IU j, IU itype=DATA_NA);
     void na();                           /// not supported
     void dispatch(IU mx, U16 nparm=0);   /// instruction dispatcher dispatch
     ///

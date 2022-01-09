@@ -23,10 +23,33 @@ IU get_nparm(U16 itype, char *parm) {
     char *p = parm+1;
     U16  nparm = itype==2 ? 0 : 1;  /// except static type, all have a object ref
     while (*p != ')') {             /// count number of parameters
-        if (*p++=='L') while (*p++ != ';');           /// (Ljava/lang/String;)
+        if (*p++=='L') while (*p++ != ';');          /// (Ljava/lang/String;)
         nparm++;
     }
     return nparm;
+}
+///
+/// translate Java bytestream constant pool ref to memory pointers
+///
+KV Thread::get_refs(IU j, IU itype) {
+	IU c_m = jOff(j);               				 /// [02]000f:a=>[12,13]  [class_idx, method_idx]
+	IU cj  = jU16(c_m + 1);         				 /// 12 class index
+	IU mj  = jU16(c_m + 3);         				 /// 13 method index
+	IU rf  = jOff(mj);              				 /// [13]008f:c=>[15,16]  [method_name, parm_name]
+
+	char cls[128], nm[128], parm[32];
+	LOG(" "); LOG(jStrRef(cj, cls));        		 /// get class name
+	LOG("."); LOG(jStr(jU16(rf + 1), nm));  		 /// get method name
+	LOG(":"); LOG(jStr(jU16(rf + 3), parm));		 /// get param list name
+
+    struct KV r;
+	IU cx = r.key = gPool.get_class(cls);                  /// class ref
+	if (itype!=DATA_NA) {
+		IU pi   = gPool.get_parm_idx(parm);                /// parameter list
+		r.ref   = gPool.get_method(nm, cx, pi, itype!=1);  /// special does not go up to super class
+		r.nparm = get_nparm(itype, parm);
+	}
+	return r;
 }
 ///
 /// VM Execution Unit
@@ -102,26 +125,13 @@ void Thread::invoke(U16 itype) {    /// invoke type: 0:virtual, 1:special, 2:sta
     ///
     /// cache missed, create new lookup entry
     ///
-    IU c_m = jOff(j);               /// [02]000f:a=>[12,13]  [class_idx, method_idx]
-    IU cj  = jU16(c_m + 1);         /// 12 class index
-    IU mj  = jU16(c_m + 3);         /// 13 method index
-    IU rf  = jOff(mj);              /// [13]008f:c=>[15,16]  [method_name, parm_name]
+    KV r = get_refs(j, itype);     /// { key=cx, ref=mx, nparm }
 
-    char cls[128], nm[128], parm[32];
-    LOG(" "); LOG(jStrRef(cj, cls));        		 /// get class name
-    LOG("."); LOG(jStr(jU16(rf + 1), nm));  		 /// get method name
-    LOG(":"); LOG(jStr(jU16(rf + 3), parm));		 /// get param list name
+	LOG(" =>$"); LOX(gPool.vt.idx);
+    gPool.vt.push({j, r.ref, (U16)r.nparm});
 
-    IU cx = gPool.get_class(cls);                     /// class ref
-    IU pi = gPool.get_parm_idx(parm);                 /// parameter list
-    IU mx = gPool.get_method(nm, cx, pi, itype!=1);   /// special does not go up to super class
-    LOG(" =>$"); LOX(gPool.vt.idx);
-
-    U16 nparm = get_nparm(itype, parm);
-    gPool.vt.push({j, mx, nparm});
-
-    if (mx != DATA_NA) dispatch(mx, nparm);
-    else               na();
+    if (r.ref != DATA_NA) dispatch(r.ref, r.nparm);
+    else                  na();
 }
 ///
 /// class and instance variable access
@@ -133,21 +143,12 @@ DU *Thread::cls_var() {
     if (i != DATA_NA) { return (DU*)&gPool.pmem[gPool.cv[i].ref]; }
 
     /// cache missed, create new lookup entry
-    IU c_f = jOff(j);               /// [02]000f:a=>[12,13]  [class_idx, field_idx]
-    IU cj  = jU16(c_f + 1);         /// 12: class index
-    IU fj  = jU16(c_f + 3);         /// 13: field index
-    IU rf  = jOff(fj);              /// [13]008f:c=>[15,16]  [field_name, type_name]
+    KV   r   = get_refs(j);
+    Word *w  = WORD(r.key);
+    IU   idx = gPool.cv.idx;
+    DU   *cv = (DU*)w->pfa(PFA_CLS_CV) + idx;
 
-    char cls[128], nm[128], parm[32];
-    LOG(" "); LOG(jStrRef(cj, cls));
-    LOG("."); LOG(jStr(jU16(rf + 1), nm));
-    LOG(":"); LOG(jStr(jU16(rf + 3), parm));
-
-    IU   cx  = gPool.get_class(cls);/// map to for class index in pmem
-    Word *w  = WORD(cx);
-    DU   *cv = (DU*)w->pfa(PFA_CLS_CV) + gPool.cv.idx;
-    LOG(" =>$"); LOX(gPool.cv.idx);
-
+    LOG(" =>$"); LOX(idx);
     gPool.cv.push({ j, (IU)((U8*)cv - M0) });  /// create new cache entry
     return cv;
 }
@@ -158,19 +159,9 @@ DU *Thread::inst_var(IU ox) {
     if (i != DATA_NA) return iv + gPool.iv[i].ref;
 
     // cache missed, create new lookup entry
-    IU c_f = jOff(j);               /// [02]000f:a=>[12,13]  [class_idx, field_idx]
-    IU cj  = jU16(c_f + 1);         /// 12
-    IU fj  = jU16(c_f + 3);         /// 13
-    IU rf  = jOff(fj);              /// [13]008f:c=>[15,16]  [field_name, type_name]
-
-    char cls[128], nm[128], parm[32];
-    LOG(" "); LOG(jStrRef(cj, cls));
-    LOG("."); LOG(jStr(jU16(rf + 1), nm));
-    LOG(":"); LOG(jStr(jU16(rf + 3), parm));
-
+    KV r   = get_refs(j);
     IU idx = gPool.iv.idx;
     LOG(" =>$"); LOX(idx);
-
     gPool.iv.push({ j, idx });      /// create new cache entry
     return iv + idx;
 }
