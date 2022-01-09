@@ -87,6 +87,7 @@ void mem_stat(Thread &t) {
     LOG(", ss_max=");       LOX(t.ss.max);
     LOG(", rs_max=");       LOX(gPool.rs.max);
     LOG(", pmem=");         LOX(gPool.pmem.idx);
+    LOG(", objs=");         LOX(gPool.heap.idx);
     LOG("], lowest[heap="); LOX(heap_caps_get_minimum_free_size(MALLOC_CAP_8BIT));
     LOG(", stack=");        LOX(uxTaskGetStackHighWaterMark(NULL));
     LOG("]\n");
