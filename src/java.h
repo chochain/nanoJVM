@@ -4,8 +4,7 @@
 /// Java front-end interface
 ///
 int  java_setup(const char *fname, void (*callback)(int, const char*)=NULL);
-void mem_stat();
-void java_run();
+void java_run();         // virtual function
 
 #endif // NANOJVM_JAVA_H
 

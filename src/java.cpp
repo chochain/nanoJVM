@@ -80,7 +80,7 @@ int  java_setup(const char *fname, void (*callback)(int, const char*)) {
 }
 
 #if ARDUINO
-void mem_stat() {
+void mem_stat(Thread &t) {
     LOG("Core:");           LOX(xPortGetCoreID());
     LOG(" heap[maxblk=");   LOX(heap_caps_get_largest_free_block(MALLOC_CAP_8BIT));
     LOG(", avail=");        LOX(heap_caps_get_free_size(MALLOC_CAP_8BIT));
@@ -96,24 +96,29 @@ void mem_stat() {
     }
 }
 String console_cmd;
+///
+/// interface to Forth Outer Interpreter
+///
+extern void outer(Thread &t, const char *cmd);
 void java_run() {
     if (Serial.available()) {
         console_cmd = Serial.readString();
         LOG(console_cmd);
-        outer(gT0, console_cmd.c_str(), send_to_con);
+        outer(gT0, console_cmd.c_str());
         mem_stat(gT0);
         delay(2);
     }
 }
-#else 
-void mem_stat() {}
+#else
 void java_run() {
     ///
     /// instantiate main thread (TODO: single thread for now)
     ///
     LOG("\nmain()");
     IU mx = gPool.get_method("main");
-    
+    ///
+    /// kick start main thread
+    /// 
     gT0.dispatch(mx);
 }
 #endif // ARDUINO
