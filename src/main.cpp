@@ -2,6 +2,7 @@
 #include "forth.h"  // Forth front-end interface
 #include "java.h"   // Java front-end interface
 
+#ifndef ARDUINO
 void send_to_console(int, const char* msg) { printf("%s", msg); }
 
 int main(int ac, char* av[]) {
@@ -23,3 +24,4 @@ int main(int ac, char* av[]) {
 
     return 0;
 }
+#endif // ARDUINO
