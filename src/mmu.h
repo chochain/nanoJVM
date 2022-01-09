@@ -45,16 +45,17 @@ struct Pool {
     IU   get_class(const char *cls_name);
     IU   get_method(const char *m_name, IU cls_id=DATA_NA, IU pidx=DATA_NA, bool supr=true);
     ///
-    /// dictionary builder
+    /// dictionary builder (use gPool.pmem use pmem for Forth Dictionary)
     ///
-    IU   add_word(IU &root, const char *nf, U8 flag);
+    IU   mem_hdr(IU &root, const char *nf, U8 flag);
     IU   add_ucode(IU &m_root, const Method &vt, IU pidx);
     IU   add_method(IU &m_root, const char *m_name, IU mjdx, IU pidx);
     IU   add_class(const char *c_name, IU m_root, const char *supr, U16 cvsz, U16 ivsz);
     void register_class(const char *name, const Method *vt, int vtsz, const char *supr = 0, U16 cvsz=0, U16 ivsz=0);
     ///
-    /// new object and array instance
+    /// new object and array instance (use gPool.heap for object space)
     ///
+    IU   obj_hdr(IU n, U16 sz);
     IU   add_obj(IU cx);
     IU   add_array(U8 atype, IU n);
     void obj_u8(U8 b)    { heap.push(b); }

@@ -52,12 +52,12 @@ IU Pool::get_method(const char *m_name, IU cls_id, IU pidx, bool supr) {
 }
 ///
 /// method, class constructor
+///
 ///   Word Memory Format: shared between ucode, method, and class
 ///     |   word hdr     | str  |
 ///     | 16b  |8b  | 8b | len  | 64/32b | 16b  |
 ///     | LFA  |len |flag| name | xt     | parm |
-///
-IU Pool::add_word(IU &root, const char *nf, U8 flag) {
+IU Pool::mem_hdr(IU &root, const char *nf, U8 flag) {
 	IU rx = pmem.idx;              /// capture current memory index
 	mem_iu(root);                  /// link to previous method
 	mem_u8(STRLEN(nf));            /// method name length
@@ -66,19 +66,19 @@ IU Pool::add_word(IU &root, const char *nf, U8 flag) {
 	return root = rx;              /// adjust linked list root
 }
 IU Pool::add_ucode(IU &m_root, const Method &vt, IU pidx) {
-    add_word(m_root, vt.name, vt.flag);
+    mem_hdr(m_root, vt.name, vt.flag);
 	mem_pu((PU)vt.xt);             /// encode function pointer
 	mem_iu(pidx);                  /// parameter list index
     return m_root;
 };
 IU Pool::add_method(IU &m_root, const char *m_name, IU mjdx, IU pidx) {
-    add_word(m_root, m_name, JAVA_FUNC);
+    mem_hdr(m_root, m_name, JAVA_FUNC);
 	mem_pu((PU)mjdx);              /// encode function pointer
 	mem_iu(pidx);                  /// parameter list index
     return m_root;
 };
 IU Pool::add_class(const char *c_name, IU m_root, const char *supr, U16 cvsz, U16 ivsz) {
-	add_word(cls_root, c_name, 0); /// create class header
+	mem_hdr(cls_root, c_name, 0); /// create class header
 	mem_iu(get_class(supr));       /// encode super class idx
 	mem_iu(0);                     /// reserved field
 	mem_iu(m_root);                /// encode class vtable
@@ -104,29 +104,24 @@ void Pool::register_class(const char *name, const Method *vt, int vtsz, const ch
 ///
 /// new object instance
 ///
+IU Pool::obj_hdr(IU n, U16 sz) {
+	IU oid  = heap.idx;             /// keep object index
+    obj_iu(obj_root);				/// encode object linked list root
+    obj_iu(n);                      /// encode value
+    obj_allot(sz);
+    return obj_root = oid;
+}
 IU Pool::add_obj(IU cx) {
     Word *w   = (Word*)&pmem[cx];	/// get object class pointer
     U16  ivsz = *(U16*)w->pfa(PFA_CLS_IVSZ);
-
-    if (heap.idx==0) obj_du(0);		/// reserve a null header
-    IU oid  = heap.idx;             /// keep object index
-    obj_iu(obj_root);				/// add object onto linked list
-    obj_u8(cx);                     /// class reference
-    obj_u8(0);						/// reserved(for garbage collector)
-    obj_allot(ivsz);
-    return obj_root = oid;			/// link to previous object and return object id
+    return obj_hdr(cx, ivsz);       /// encode class reference with ivsz allocation
 }
 ///
 /// new Array storage
 /// Note: atype is ignored for now, TODO:
 ///
 IU Pool::add_array(U8 atype, IU n) {
-	IU oid  = heap.idx;             /// keep object index
-    obj_iu(obj_root);				/// add array onto linked list
-    obj_u8(n & 0xff);               /// array length (max 64K)
-    obj_u8(n >> 8);                 ///
-    obj_allot(n * sizeof(DU));
-    return obj_root = oid;
+	return obj_hdr(n, sizeof(DU) * n);  /// allocate array w length (max 64K)
 }
 
 void Pool::build_op_lookup() {
@@ -147,5 +142,5 @@ void Pool::build_op_lookup() {
 void Pool::colon(IU cls, const char *name) {
     Word *w  = (Word*)&pmem[cls];	    /// get class word
     IU   *vt = (IU*)w->pfa(PFA_CLS_VT); /// pointer to method root
-    add_word(*vt, name, FORTH_FUNC);    /// create word header
+    mem_hdr(*vt, name, FORTH_FUNC);    /// create word header
 }
