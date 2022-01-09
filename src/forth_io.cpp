@@ -129,6 +129,9 @@ void outer(Thread &t, const char *cmd) {
 void forth_setup(void (*callback)(int, const char*)) {
 	if (callback) fout_cb = callback;        /// setup console callback function
 }
+#if ARDUINO
+void forth_interpreter(Thread &t) {}
+#else
 void forth_interpreter(Thread &t) {
 	cout << endl;
 	string line;
@@ -136,4 +139,5 @@ void forth_interpreter(Thread &t) {
 		outer(t, line.c_str());
 	}
 }
+#endif // ARDUINO
 
