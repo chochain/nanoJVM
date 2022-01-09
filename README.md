@@ -1,6 +1,8 @@
 # nanoJVM
 ## JVM for microcontroller
-* work in progress
+TODO:
+* dir - Java class file directory listing
+* load - Load class file into separate "namespace" as Forth volcabularies
 
 ### docs
 <img src="./img/common_incl.png">
