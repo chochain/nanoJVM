@@ -51,47 +51,43 @@ IU Pool::get_method(const char *m_name, IU cls_id, IU pidx, bool supr) {
     return mx;
 }
 ///
-/// method constructor
-/// Format:
+/// method, class constructor
+///   Word Memory Format: shared between ucode, method, and class
+///     |   word hdr     | str  |
 ///     | 16b  |8b  | 8b | len  | 64/32b | 16b  |
 ///     | LFA  |len |flag| name | xt     | parm |
 ///
-IU Pool::add_ucode(const Method &vt, IU &m_root, IU pidx) {
-    IU mx = pmem.idx;               /// store current method index
-    mem_iu(m_root);                 /// link to previous method
-    mem_u8(STRLEN(vt.name));        /// method name length
-    mem_u8((U8)vt.flag);            /// method access control
-    mem_str(vt.name);               /// inscribe method name
-    mem_pu((PU)vt.xt);              /// encode function pointer
-    mem_iu(pidx);                   /// parameter list index
-    return m_root = mx;             /// adjust method root
+IU Pool::add_word(IU &root, const char *nf, U8 flag) {
+	IU rx = pmem.idx;              /// capture current memory index
+	mem_iu(root);                  /// link to previous method
+	mem_u8(STRLEN(nf));            /// method name length
+	mem_u8(flag);                  /// method access control
+	mem_str(nf);                   /// inscribe method name
+	return root = rx;              /// adjust linked list root
+}
+IU Pool::add_ucode(IU &m_root, const Method &vt, IU pidx) {
+    add_word(m_root, vt.name, vt.flag);
+	mem_pu((PU)vt.xt);             /// encode function pointer
+	mem_iu(pidx);                  /// parameter list index
+    return m_root;
 };
-IU Pool::add_method(const char *m_name, IU &m_root, IU pidx, IU mjdx) {
-    IU mx = pmem.idx;               /// store current method index
-    mem_iu(m_root);                 /// link to previous method
-    mem_u8(STRLEN(m_name));         /// method name length
-    mem_u8(JAVA_FUNC);              /// method access control
-    mem_str(m_name);                /// inscribe method name
-    mem_pu((PU)mjdx);               /// encode function pointer
-    mem_iu(pidx);                   /// encode parameter list index
-    return m_root = mx;             /// adjust method root
+IU Pool::add_method(IU &m_root, const char *m_name, IU mjdx, IU pidx) {
+    add_word(m_root, m_name, JAVA_FUNC);
+	mem_pu((PU)mjdx);              /// encode function pointer
+	mem_iu(pidx);                  /// parameter list index
+    return m_root;
 };
-IU Pool::add_class(const char *name, IU m_root, const char *supr, U16 cvsz, U16 ivsz) {
-    /// encode class
-    IU cx = pmem.idx;               /// preserve class link
-    mem_iu(cls_root);               /// class linked list
-    mem_u8(STRLEN(name));           /// class name string length
-    mem_u8(0);                      /// public
-    mem_str(name);                  /// class name string
-    mem_iu(get_class(supr));        /// super class
-    mem_iu(0);                      /// interface
-    mem_iu(m_root);                 /// vt
-    mem_iu(cvsz);                   /// cvsz
-    mem_iu(ivsz);                   /// ivsz
+IU Pool::add_class(const char *c_name, IU m_root, const char *supr, U16 cvsz, U16 ivsz) {
+	add_word(cls_root, c_name, 0); /// create class header
+	mem_iu(get_class(supr));       /// encode super class idx
+	mem_iu(0);                     /// reserved field
+	mem_iu(m_root);                /// encode class vtable
+    mem_iu(cvsz);                  /// cvsz - class variable size
+    mem_iu(ivsz);                  /// ivsz - instance variable size
     for (int i=0; i<cvsz; i+=sizeof(DU)) {	/// allocate static variables
     	mem_du(0);
     }
-    return cls_root = cx;
+    return cls_root;
 }
 ///
 /// class constructor
@@ -101,7 +97,7 @@ void Pool::register_class(const char *name, const Method *vt, int vtsz, const ch
     IU m_root = DATA_NA;
     for (int i=0; i<vtsz; i++) {
     	IU pidx = get_parm_idx(vt[i].parm);  /// cache parameter list string
-        add_ucode(vt[i], m_root, pidx);      /// create microcode, TODO: with ROM
+        add_ucode(m_root, vt[i], pidx);      /// create microcode, TODO: with ROM
     }
     if (vtsz) add_class(name, m_root, supr, cvsz, ivsz);
 }
@@ -151,10 +147,5 @@ void Pool::build_op_lookup() {
 void Pool::colon(IU cls, const char *name) {
     Word *w  = (Word*)&pmem[cls];	    /// get class word
     IU   *vt = (IU*)w->pfa(PFA_CLS_VT); /// pointer to method root
-    int  mx  = pmem.idx;			    /// keep current
-    mem_iu(*vt);
-    mem_u8(STRLEN(name));
-    mem_u8(FORTH_FUNC);				    /// a Forth word
-    mem_str(name);
-    *vt = mx;
+    add_word(*vt, name, FORTH_FUNC);    /// create word header
 }
