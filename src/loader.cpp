@@ -24,7 +24,7 @@ U8 Loader::field_size(IU &addr) {
 
     return type_size(type);
 }
-void Loader::create_method(IU &addr, IU &m_root) {
+void Loader::create_method(IU &m_root, IU &addr) {
     U16 i_name  = getU16(addr + 2);
     U16 i_parm  = getU16(addr + 4);
     U16 n_attr  = getU16(addr + 6);
@@ -36,7 +36,7 @@ void Loader::create_method(IU &addr, IU &m_root) {
     LOG("\n  ["); LOX2(i_name); LOG("]"); LOG(getStr(i_name, name));
     LOG(getStr(i_parm, parm)); LOG(" ("); LOX(len); LOG(" bytes)");
     IU pidx = gPool.get_parm_idx(parm);
-    gPool.add_method(name, m_root, pidx, mjdx);
+    gPool.add_method(m_root, name, mjdx, pidx);
 
     while (n_attr--) addr += attr_size(addr);
 }
@@ -226,7 +226,7 @@ U16 Loader::load_class() {
     LOG("\n  n_method="); LOX(n_method); LOG(", p_method="); LOX(p_method);
     IU  m_root = DATA_NA;
     while (n_method--) {
-    	create_method(addr, m_root);
+    	create_method(m_root, addr);
     }
     LOG("\n} loaded.\n");
     

@@ -65,7 +65,7 @@ class Loader {
     U16  attr_size(U16 addr);
     U8   field_size(U16 &addr);
 
-    void create_method(U16 &addr, U16 &m_root);
+    void create_method(U16 &m_root, U16 &addr);
     
 public:
     int  init(const char *fname);
