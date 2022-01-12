@@ -11,10 +11,13 @@ int main(int ac, char* av[]) {
         return -1;
     }
     forth_setup(send_to_console);
+    java_setup(send_to_console);
 
-    switch (java_setup(av[1], send_to_console)) {
-    case -1: fprintf(stderr, " Failed to open file\n");       return -2;
-    case -2: fprintf(stderr, " Failed to load class file\n"); return -3;
+    for (int i=1; i<ac; i++) {
+    	if (!java_load(av[i])) {
+    		fprintf(stderr, " Failed to load class file: %s\n", av[i]);
+    		return -2;
+    	}
     }
     printf("\neJ32 v1 staring...\n");
 
