@@ -20,8 +20,6 @@ extern   Ucode  uCode;                  /// Java microcode ROM
 extern   Ucode  uForth;                 /// Forth microcode ROM
 extern   Ucode  uESP32;                 /// ESP32 supporting functions
 extern   Pool   gPool;                  /// memory pool manager
-Loader   gLoader;                       /// loader instance
-Thread   gT0(gLoader);  				/// main thread, only one for now
 ///
 /// Java Native IO functions
 /// Note: support only string and integer (like Arduino)
@@ -29,7 +27,7 @@ Thread   gT0(gLoader);  				/// main thread, only one for now
 void _print_s(Thread &t) {
 	IU j = t.pop(), ox = t.pop();  /// java constant pool object
 	char buf[128];
-	jout << " " << t.J.getStr(j, buf, true);
+	jout << " " << t.J->getStr(j, buf, true);
 }
 void _print_i(Thread &t) {
 	IU j = t.pop(), ox = t.pop();  /// java constant pool object
@@ -40,7 +38,7 @@ void _println_i(Thread &t) { _print_i(t); jout << ENDL; }
 ///
 /// JVM Core
 ///
-int  java_setup(const char *fname, void (*callback)(int, const char*)) {
+int  java_setup(void (*callback)(int, const char*)) {
 	const static Method uObj[] = {{ "<init>", [](Thread &t){ t.pop(); }, ACL_PUBLIC, "()V" }};
     const static Method uStr[] = {{ "<init>", [](Thread &t){ t.pop(); }, ACL_PUBLIC, "()V" }};
 	const static Method uSys[] = {{ "<init>", [](Thread &t){ t.pop(); }, ACL_PUBLIC, "()V" }};
@@ -67,15 +65,7 @@ int  java_setup(const char *fname, void (*callback)(int, const char*)) {
     gPool.register_class("ej32/Forth", uForth.vt, uForth.vtsz, "java/lang/Object");
     gPool.register_class("ej32/ESP32", uESP32.vt, uESP32.vtsz, "ej32/Forth");
     gPool.build_op_lookup();
-    ///
-    /// instantiate Java class loader
-    ///
-    if (gLoader.init(fname)) return -1;
-    
-    IU cx = gLoader.load_class();
-    if (!cx) return -2;
 
-    gT0.init(&gPool.pmem[0], cx);
     return 0;
 }
 
@@ -111,16 +101,16 @@ void java_run() {
     }
 }
 #else
+int java_load(const char *fname) {
+    return Loader::load(fname);
+}
 void java_run() {
+	int    jcf = Loader::active();
     ///
     /// instantiate main thread (TODO: single thread for now)
     ///
-    LOG("\nmain()");
-    IU mx = gPool.get_method("main");
-    ///
-    /// kick start main thread
-    /// 
-    gT0.dispatch(mx);
+	Thread t0;
+	t0.start(jcf);   /// main thread, only one for now
 }
 #endif // ARDUINO
 
