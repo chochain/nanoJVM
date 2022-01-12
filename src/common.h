@@ -12,9 +12,11 @@ using namespace std;
 ///
 #define RANGE_CHECK     1
 #define ENABLE_DEBUG    1
+#define LOADER_DUMP     0
 ///
 /// memory block size setting
 ///
+#define CLSFILE_MAX      16         /** no. of classfile supported */
 #define PMEM_SZ         1024*16     /** parameter space            */
 #define HEAP_SZ         1024*16     /** object space               */
 #define RS_SZ           128         /** return stack size per VM   */
@@ -32,6 +34,12 @@ using namespace std;
 #include <Arduino.h>
 #include "SPIFFS.h"
 #include "FS.h"
+///
+/// ESP32 memory map (flash 4M, File system size:1,2,3M)
+/// |--------------|-------|---------------|--|--|--|--|--|
+/// ^              ^       ^               ^     ^
+/// Sketch    OTA update   File system   EEPROM  WiFi config (SDK)
+///
 #else
 #include <stdio.h>
 #include <chrono>
