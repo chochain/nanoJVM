@@ -55,21 +55,24 @@
 ///
 /// Java class file loader
 ///
-class Loader {
+class ClassFile {
 #if ARDUINO
     File f;
 #else
     FILE *f;
 #endif
+	const char *fname;
     U8   type_size(char type);
     U16  attr_size(U16 addr);
     U8   field_size(U16 &addr);
 
-    void create_method(U16 &m_root, U16 &addr);
+    void create_method(char *cls, U16 &m_root, U16 &addr);
     
 public:
-    int  init(const char *fname);
-    U16  load_class();
+	IU   cls_id;
+
+    ClassFile(const char *fname);
+    IU   load();
 
     U8   getU8(U16 addr);
     U16  getU16(U16 addr);
@@ -77,5 +80,16 @@ public:
     U16  offset(U16 idx, bool debug=false);
 
     char *getStr(U16 addr, char *buf, bool ref=false);
+};
+///
+/// Class File Manager
+///
+static ClassFile *clsfile[CLSFILE_MAX];
+class Loader {
+	static int cnt;
+public:
+	static int active()            { return cnt ? cnt - 1 : 0; }
+	static ClassFile *get(int jcf) { return clsfile[jcf]; }
+	static int load(const char *fname);
 };
 #endif // NANOJVM_LOADER_H

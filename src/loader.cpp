@@ -3,7 +3,7 @@
 ///
 /// Loader - private methods
 ///
-U8 Loader::type_size(char type){
+U8 ClassFile::type_size(char type){
     switch(type){
     case TYPE_BYTE:   case TYPE_BOOL:  return 1;
     case TYPE_CHAR:   case TYPE_SHORT: return 2;
@@ -11,10 +11,10 @@ U8 Loader::type_size(char type){
     default: return 4;
     }
 }
-IU Loader::attr_size(IU addr){
+IU ClassFile::attr_size(IU addr){
     return (IU)6 + getU32(addr + 2);
 }
-U8 Loader::field_size(IU &addr) {
+U8 ClassFile::field_size(IU &addr) {
     U16 ifld = getU16(addr + 2);                 // field name index
     U16 itype= getU16(addr + 4);                 // read type destriptor index
     U16 xsz  = getU16(addr + 6);                 // get number of filed attributes
@@ -24,7 +24,7 @@ U8 Loader::field_size(IU &addr) {
 
     return type_size(type);
 }
-void Loader::create_method(IU &m_root, IU &addr) {
+void ClassFile::create_method(char *cls, IU &m_root, IU &addr) {
     U16 i_name  = getU16(addr + 2);
     U16 i_parm  = getU16(addr + 4);
     U16 n_attr  = getU16(addr + 6);
@@ -32,9 +32,17 @@ void Loader::create_method(IU &m_root, IU &addr) {
 
     IU  mjdx = addr + 14;
     U32 len  = getU32(mjdx - 4);
+
     char name[128], parm[32];
-    LOG("\n  ["); LOX2(i_name); LOG("]"); LOG(getStr(i_name, name));
-    LOG(getStr(i_parm, parm)); LOG(" ("); LOX(len); LOG(" bytes)");
+    getStr(i_name, name);
+    getStr(i_parm, parm);
+
+#if ENABLE_DEBUG
+    LOG("\n  ["); LOX2(i_name); LOG("]");
+    LOG(cls);  LOG("::");
+    LOG(name); LOG(parm); LOG(" ("); LOX(len); LOG(" bytes)");
+#endif // ENABLE_DEBUG
+
     IU pidx = gPool.get_parm_idx(parm);
     gPool.add_method(m_root, name, mjdx, pidx);
 
@@ -43,20 +51,20 @@ void Loader::create_method(IU &m_root, IU &addr) {
 ///
 /// Loader - public methods
 ///
-U8 Loader::getU8(IU addr) {
+U8 ClassFile::getU8(IU addr) {
     FSEEK(f, addr);
     return FGETC(f);
 }
-U16 Loader::getU16(IU addr) {
+U16 ClassFile::getU16(IU addr) {
     U16 v = (U16)getU8(addr) << 8;
     return v | FGETC(f);
 }
-U32 Loader::getU32(IU addr) {
+U32 ClassFile::getU32(IU addr) {
     U32 v = (U32)getU8(addr);
     for(U8 i = 0; i < 3; i++) v = (v << 8) | FGETC(f);
     return v;
 }
-char *Loader::getStr(IU idx, char *buf, bool ref) {
+char *ClassFile::getStr(IU idx, char *buf, bool ref) {
     IU n = offset(idx - 1);    	    /// [17]:00b6:1=>ej32/Forth, or
     if (ref) {                      /// [12]008e:7=>17
     	n = getU16(n + 1);     		/// 17
@@ -73,7 +81,7 @@ char *Loader::getStr(IU idx, char *buf, bool ref) {
 ///
 /// calculate offset of an index in constant pool
 ///
-U16 Loader::offset(U16 jdx, bool debug) {
+U16 ClassFile::offset(U16 jdx, bool debug) {
     IU addr = 10;
     ///
     /// loop over the constant pool to get the offset
@@ -82,7 +90,7 @@ U16 Loader::offset(U16 jdx, bool debug) {
     for (int i=0; i<jdx; i++) {
         U8 t = getU8(addr);
         if (debug) {
-        	LOG("\n["); LOX2(i+1); LOG("]"); LOX4(addr); LOG(":"); LOX2(t);
+            LOG("\n["); LOX2(i+1); LOG("]"); LOX4(addr); LOG(":"); LOX2(t);
         }
         addr++;
         switch(t){
@@ -90,12 +98,12 @@ U16 Loader::offset(U16 jdx, bool debug) {
         	if (debug) { LOG("=>0x"); LOX(getU32(addr)); }
             addr += 4; break;
         case CONST_UTF8:
-        	if (debug) {
-        		LOG("=>");
-        		for (U16 i=0, n=getU16(addr); i<n; i++) {
-        			CHR(getU8(addr+2+i));
-        		}
-        	}
+            if (debug) {
+                LOG("=>");
+                for (U16 i=0, n=getU16(addr); i<n; i++) {
+                    CHR(getU8(addr+2+i));
+                }
+            }
             addr += 2 + getU16(addr); break;
         case CONST_STRING:
         case CONST_CLASS:
@@ -107,10 +115,10 @@ U16 Loader::offset(U16 jdx, bool debug) {
         case CONST_FIELD:
         case CONST_METHOD:
         case CONST_NAME_TYPE:
-        	if (debug) {
-        		LOG("=>["); LOX(getU16(addr));
-        		LOG(",");   LOX(getU16(addr+2)); LOG("]");
-        	}
+            if (debug) {
+                LOG("=>["); LOX(getU16(addr));
+                LOG(",");   LOX(getU16(addr+2)); LOG("]");
+            }
             addr += 4; break;
         default: addr += 4; break;
         }
@@ -162,17 +170,20 @@ attribute_info {
     u1 info[attribute_length];
 }
 */
-int Loader::init(const char *fname) {
+ClassFile::ClassFile(const char *fname) {
+	this->fname = fname;
 #if ARDUINO
-    if (!SPIFFS.begin()) { LOG("failed to open SPIFFS"); return -1; }
+    if (!SPIFFS.begin()) { LOG("failed to open SPIFFS"); }
     f = SPIFFS.open(fname, "r");
-    if (!f.available()) { LOG("failed to open file: "); LOG(fname); return -2; }
+    if (!f.available()) { LOG("failed to open file: "); LOG(fname); }
 #else
     f = fopen(fname, "rb");
-    if (!f) { LOG("failed to open file: "); LOG(fname); return -2; }
+    if (!f) { LOG("failed to open file: "); LOG(fname); }
 #endif
-    LOG("\nJava class file: "); LOG(fname);
 #if ENABLE_DEBUG
+    LOG("\nJava class file: "); LOG(fname);
+#endif // ENABLE_DEBUG
+#if LOADER_DUMP
     ///
     /// dump Java class file content
     ///
@@ -189,28 +200,26 @@ int Loader::init(const char *fname) {
         buf[16] = '\0';
         LOG(buf);
     }
-#endif // ENABLE_DEBUG
-    return 0;
+#endif // LOADER_DUMP
 }
-U16 Loader::load_class() {
+U16 ClassFile::load() {
     if ((U32)getU32(0) != MAGIC) return ERR_MAGIC;
 
     U16 n_cnst = getU16(8) - 1;                 // number of constant pool entries
-    IU  addr   = offset(n_cnst, true);          // skip constant descriptors
+    IU  addr   = offset(n_cnst, LOADER_DUMP);   // skip constant descriptors
     U16 acc    = getU16(addr);  addr += 2;      // class access flag
     U16 i_cls  = getU16(addr);  addr += 2;      // this class
     U16 i_supr = getU16(addr);  addr += 2;      // super class
 
     char cls[128], supr[128];
-    LOG("\nclass ["); LOX(i_cls); LOG("]"); LOG(getStr(i_cls,  cls, true));
-    LOG(" : ["); LOX(i_supr); LOG("]"); LOG(getStr(i_supr, supr, true));
+    getStr(i_cls, cls, true);                   // fetch class name
+    getStr(i_supr, supr, true);                 // fetch super class name
 
     U16 n_intf = getU16(addr);  addr += 2;      // number of interfaces
     IU  p_intf = addr;                          // pointer to interface section
     U16 n_fld  = getU16((addr += n_intf*2));    // number of fields
     IU  p_fld  = (addr += 2);
-    LOG("\n  p_intf="); LOX(p_intf); LOG(", p_attr="); LOX(p_fld);
-    
+
     U16 sz_cv = 0, sz_iv = 0;
     while (n_fld--) {                           // scan fields
         U16 flag = getU16(addr);                // get access flags
@@ -219,16 +228,33 @@ U16 Loader::load_class() {
         if (is_cls) sz_cv += sz;
         else        sz_iv += sz;
     }
-    LOG("\n  sz_cls="); LOX(sz_cv); LOG(", sz_inst="); LOX(sz_iv);
-
     U16 n_method = getU16(addr);                // number of methods
     IU  p_method = (addr += 2);                 // pointer to methods
+
+#if LOADER_DUMP
+    LOG("\nclass ["); LOX(i_cls);  LOG("]"); LOG(cls);
+    LOG(" : [");      LOX(i_supr); LOG("]"); LOG(supr);
+    LOG("\n  p_intf=");   LOX(p_intf);   LOG(", p_attr=");   LOX(p_fld);
+    LOG("\n  sz_cls=");   LOX(sz_cv);    LOG(", sz_inst=");  LOX(sz_iv);
     LOG("\n  n_method="); LOX(n_method); LOG(", p_method="); LOX(p_method);
-    IU  m_root = DATA_NA;
-    while (n_method--) {
-    	create_method(m_root, addr);
-    }
-    LOG("\n} loaded.\n");
+    LOG("\n} loaded.");
+#endif // LOADER_DUMP
     
-    return gPool.add_class(cls, m_root, supr, sz_cv, sz_iv);
+    IU  m_root = DATA_NA;
+    for (int i=0; i<n_method; i++) {
+    	create_method(cls, m_root, addr);
+    }
+    return this->cls_id = gPool.add_class(cls, m_root, supr, sz_cv, sz_iv);
+}
+///
+/// Loader class implementation
+///
+int Loader::cnt = 0;
+int Loader::load(const char *fname) {
+	ClassFile *cf = new ClassFile(fname);
+	if (cf) {
+		cf->load();
+		clsfile[cnt++] = cf;
+	}
+	return cnt;
 }
