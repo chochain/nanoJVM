@@ -7,8 +7,8 @@
 ///
 struct Thread {
     List<DU, SS_SZ>  ss;    /// data stack
-    Loader &J;              /// Java class loader
-    U8     *M0    = NULL;   /// cached base address of memory pool
+    ClassFile *J;           /// Java class file interface
+    U8 *M0;                 /// cached base address of memory pool
 
     bool  compile = false;  /// compile flag
     bool  wide    = false;  /// wide flag
@@ -17,15 +17,12 @@ struct Thread {
     DU    TOS     = -1;     /// top of stack
     IU    IP      = 0;      /// instruction pointer (program counter)
     U16   SP      = 0;      /// local stack frame index
-
-    Thread(Loader &ldr) : J(ldr) {}
-
-    void init(U8 *mem, IU cx) { M0 = mem; cls = cx; }
     ///
     /// VM Execution Unit
     ///
     struct KV get_refs(IU j, IU itype=DATA_NA);
     void na();                           /// not supported
+    void start(int jcf);
     void dispatch(IU mx, U16 nparm=0);   /// instruction dispatcher dispatch
     ///
     /// Java core opcodes
@@ -49,15 +46,15 @@ struct Thread {
     ///
     /// Java class file byte fetcher
     ///
-    U8   fetch()        { return J.getU8(IP++); }
-    U16  fetch2()       { U16 n = J.getU16(IP);  IP+=2; LOG(" #"); LOX(n); return n; }
-    U16  fetch4()       { U32 n = J.getU32(IP);  IP+=4; LOG(" #"); LOX(n); return n; }
+    U8   fetch()        { return J->getU8(IP++); }
+    U16  fetch2()       { U16 n = J->getU16(IP);  IP+=2; LOG(" #"); LOX(n); return n; }
+    U16  fetch4()       { U32 n = J->getU32(IP);  IP+=4; LOG(" #"); LOX(n); return n; }
     ///
     /// branching ops
     ///
     void ret()          { IP = 0; }		  /// exit java_call/forth_word loop
-    void jmp()          { IP += J.getU16(IP) - 1; }
-    void cjmp(bool f)   { IP += f ? J.getU16(IP) - 1 : sizeof(U16); }
+    void jmp()          { IP += J->getU16(IP) - 1; }
+    void cjmp(bool f)   { IP += f ? J->getU16(IP) - 1 : sizeof(U16); }
     ///
     /// stack ops
     ///

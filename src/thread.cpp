@@ -11,10 +11,10 @@ extern void  ss_dump(Thread &t);
 ///
 /// Java class file constant pool access macros
 ///
-#define jOff(j)      J.offset(j - 1)
-#define jU16(a)      J.getU16(a)
-#define jStrRef(j,s) J.getStr(j, s, true)
-#define jStr(j,s)    J.getStr(j, s, false)
+#define jOff(j)      J->offset(j - 1)
+#define jU16(a)      J->getU16(a)
+#define jStrRef(j,s) J->getStr(j, s, true)
+#define jStr(j,s)    J->getStr(j, s, false)
 #define J16          (wide ? fetch4() : fetch2())
 ///
 /// utilities
@@ -55,6 +55,13 @@ KV Thread::get_refs(IU j, IU itype) {
 /// VM Execution Unit
 ///
 void Thread::na() { LOG(" **NA**"); }/// feature not supported yet
+void Thread::start(int jcf) {
+	M0  = &gPool.pmem[0];
+	J   = Loader::get(jcf);
+	cls = J->cls_id;
+    IU mx = gPool.get_method("main", cls);
+    dispatch(mx);
+}
 void Thread::dispatch(IU mx, U16 nparm) {
     Word *w = WORD(mx);
     if (w->java) {                   /// call Java inner interpreter
