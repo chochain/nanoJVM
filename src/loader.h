@@ -84,7 +84,7 @@ public:
 ///
 /// Class File Manager
 ///
-static ClassFile *clsfile[CLSFILE_MAX];
+extern ClassFile *clsfile[CLSFILE_MAX];
 class Loader {
 	static int cnt;
 public:

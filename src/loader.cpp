@@ -249,6 +249,7 @@ U16 ClassFile::load() {
 ///
 /// Loader class implementation
 ///
+ClassFile *clsfile[CLSFILE_MAX];
 int Loader::cnt = 0;
 int Loader::load(const char *fname) {
 	ClassFile *cf = new ClassFile(fname);
