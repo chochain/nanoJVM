@@ -68,8 +68,12 @@ int  java_setup(void (*callback)(int, const char*)) {
 
     return 0;
 }
+int java_load(const char *fname) {
+    return Loader::load(fname);
+}
 
 #if ARDUINO
+extern void outer(Thread &t, const char *cmd);
 void mem_stat(Thread &t) {
     LOG("Core:");           LOX(xPortGetCoreID());
     LOG(" heap[maxblk=");   LOX(heap_caps_get_largest_free_block(MALLOC_CAP_8BIT));
@@ -86,12 +90,17 @@ void mem_stat(Thread &t) {
         abort();                 // bail, on any memory error
     }
 }
-String console_cmd;
 ///
 /// interface to Forth Outer Interpreter
 ///
-extern void outer(Thread &t, const char *cmd);
+Thread gT0;
+String console_cmd;
 void java_run() {
+    static int jcf = -1;
+    if (jcf == -1) {
+        jcf = Loader::active();
+        gT0.start(jcf);
+    }
     if (Serial.available()) {
         console_cmd = Serial.readString();
         LOG(console_cmd);
@@ -101,16 +110,14 @@ void java_run() {
     }
 }
 #else
-int java_load(const char *fname) {
-    return Loader::load(fname);
-}
 void java_run() {
-	int    jcf = Loader::active();
     ///
     /// instantiate main thread (TODO: single thread for now)
     ///
 	Thread t0;
-	t0.start(jcf);   /// main thread, only one for now
+	int jcf = Loader::active();
+	t0.init(jcf);
+    t0.dispatch();
 }
 #endif // ARDUINO
 
