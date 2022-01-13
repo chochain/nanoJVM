@@ -72,7 +72,7 @@ public:
 	IU   cls_id;
 
     ClassFile(const char *fname);
-    IU   load();
+    IU   load(IU jdx);
 
     U8   getU8(U16 addr);
     U16  getU16(U16 addr);

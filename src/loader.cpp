@@ -202,7 +202,7 @@ ClassFile::ClassFile(const char *fname) {
     }
 #endif // LOADER_DUMP
 }
-U16 ClassFile::load() {
+U16 ClassFile::load(IU jdx) {
     if ((U32)getU32(0) != MAGIC) return ERR_MAGIC;
 
     U16 n_cnst = getU16(8) - 1;                 // number of constant pool entries
@@ -244,7 +244,7 @@ U16 ClassFile::load() {
     for (int i=0; i<n_method; i++) {
     	create_method(cls, m_root, addr);
     }
-    return this->cls_id = gPool.add_class(cls, m_root, supr, sz_cv, sz_iv);
+    return this->cls_id = gPool.add_class(cls, jdx, m_root, supr, sz_cv, sz_iv);
 }
 ///
 /// Loader class implementation
@@ -254,7 +254,7 @@ int Loader::cnt = 0;
 int Loader::load(const char *fname) {
 	ClassFile *cf = new ClassFile(fname);
 	if (cf) {
-		cf->load();
+		cf->load(cnt);
 		clsfile[cnt++] = cf;
 	}
 	return cnt;
