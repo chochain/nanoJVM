@@ -72,12 +72,12 @@ struct Method {
 ///   class list - linked list of words, dict[cls_root], pfa => next_class
 ///   vtable     - linked list of words, dict[class.pfa], pfa => next_method
 ///
-#define PFA_CLS_SUPR    0
-#define PFA_CLS_INTF    2
-#define PFA_CLS_VT      4
-#define PFA_CLS_CVSZ    6
-#define PFA_CLS_IVSZ    8
-#define PFA_CLS_CV      10
+#define PFA_CLS_SUPR    0    /** super class            */
+#define PFA_CLS_JDX     2    /** java class file index  */
+#define PFA_CLS_VT      4    /** java virtual table     */
+#define PFA_CLS_CVSZ    6    /** class variable count   */
+#define PFA_CLS_IVSZ    8    /** instance var count     */
+#define PFA_CLS_CV      10   /** class variable storage */
 #define PFA_PARM_IDX    sizeof(PU)
 struct Word {                /// 4-byte header
     IU  lfa;                 /// link field to previous word
