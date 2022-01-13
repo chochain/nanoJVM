@@ -19,6 +19,7 @@ IU Pool::get_parm_idx(const char *parm) {
 }
 IU Pool::find(const char *name, IU root, IU pidx) {
 	if (root==DATA_NA) return DATA_NA; /// no entry yet
+    yield();                           /// gives some cycles to main thread (ESP32)
     IU idx = root;
     U8 len = STRLEN(name);             /// get length first, speed up matching
     do {
@@ -48,6 +49,7 @@ IU Pool::get_method(const char *m_name, IU cls_id, IU pidx, bool supr) {
         if (mx != DATA_NA || !supr) break;
         cls = (cls->lfa == DATA_NA) ? 0 : (Word*)&pmem[cls->lfa];
     }
+    yield();                       /// gives some cycles to main thread (ESP32)
     return mx;
 }
 ///
@@ -77,10 +79,10 @@ IU Pool::add_method(IU &m_root, const char *m_name, IU mjdx, IU pidx) {
 	mem_iu(pidx);                  /// parameter list index
     return m_root;
 };
-IU Pool::add_class(const char *c_name, IU m_root, const char *supr, U16 cvsz, U16 ivsz) {
+IU Pool::add_class(const char *c_name, IU jdx, IU m_root, const char *supr, U16 cvsz, U16 ivsz) {
 	mem_hdr(cls_root, c_name, 0); /// create class header
 	mem_iu(get_class(supr));       /// encode super class idx
-	mem_iu(0);                     /// reserved field
+	mem_iu(jdx);                   /// java class file index
 	mem_iu(m_root);                /// encode class vtable
     mem_iu(cvsz);                  /// cvsz - class variable size
     mem_iu(ivsz);                  /// ivsz - instance variable size
@@ -99,7 +101,7 @@ void Pool::register_class(const char *name, const Method *vt, int vtsz, const ch
     	IU pidx = get_parm_idx(vt[i].parm);  /// cache parameter list string
         add_ucode(m_root, vt[i], pidx);      /// create microcode, TODO: with ROM
     }
-    if (vtsz) add_class(name, m_root, supr, cvsz, ivsz);
+    if (vtsz) add_class(name, 0, m_root, supr, cvsz, ivsz);
 }
 ///
 /// new object instance

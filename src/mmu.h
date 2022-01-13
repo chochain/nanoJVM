@@ -50,7 +50,7 @@ struct Pool {
     IU   mem_hdr(IU &root, const char *nf, U8 flag);
     IU   add_ucode(IU &m_root, const Method &vt, IU pidx);
     IU   add_method(IU &m_root, const char *m_name, IU mjdx, IU pidx);
-    IU   add_class(const char *c_name, IU m_root, const char *supr, U16 cvsz, U16 ivsz);
+    IU   add_class(const char *c_name, IU jdx, IU m_root, const char *supr, U16 cvsz, U16 ivsz);
     void register_class(const char *name, const Method *vt, int vtsz, const char *supr = 0, U16 cvsz=0, U16 ivsz=0);
     ///
     /// new object and array instance (use gPool.heap for object space)
