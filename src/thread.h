@@ -22,8 +22,8 @@ struct Thread {
     ///
     struct KV get_refs(IU j, IU itype=DATA_NA);
     void na();                           /// not supported
-    void start(int jcf);
-    void dispatch(IU mx, U16 nparm=0);   /// instruction dispatcher dispatch
+    void init(int jcf);                  /// initialize
+    void dispatch(IU mx=DATA_NA, U16 nparm=0); /// instruction dispatcher
     ///
     /// Java core opcodes
     ///

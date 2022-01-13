@@ -55,14 +55,15 @@ KV Thread::get_refs(IU j, IU itype) {
 /// VM Execution Unit
 ///
 void Thread::na() { LOG(" **NA**"); }/// feature not supported yet
-void Thread::start(int jcf) {
+void Thread::init(int jcf) {
 	M0  = &gPool.pmem[0];
 	J   = Loader::get(jcf);
 	cls = J->cls_id;
-    IU mx = gPool.get_method("main", cls);
-    dispatch(mx);
 }
 void Thread::dispatch(IU mx, U16 nparm) {
+    if (mx==DATA_NA) {
+    	mx = gPool.get_method("main", cls);
+    }
     Word *w = WORD(mx);
     if (w->java) {                   /// call Java inner interpreter
         IU  addr = *(IU*)w->pfa();
@@ -76,6 +77,7 @@ void Thread::dispatch(IU mx, U16 nparm) {
             LOG("\nm"); LOX4(IP-1); LOG(":"); LOX4(mx);
             LOG(" "); LOG(WORD(mx)->nfa());
             IP += sizeof(IU);        /// too bad, we cannot do IP++
+            yield();                 /// gives some cycles to main thread (ESP32)
             dispatch(mx);            /// recursively call
         }
         IP = gPool.rs.pop();         /// restore call frame
@@ -106,6 +108,7 @@ void Thread::java_call(IU j, U16 nparm) {   /// Java inner interpreter
     gPool.rs.push(IP);              /// save caller instruction pointer
     IP = j;                         /// pointer to class file
     while (IP) {
+        yield();                    /// gives main thread some cycles (ESP32)
         ss_dump(*this);
         op = fetch();               /// fetch JVM opcode
         LOG("j"); LOX4(IP-1); LOG(":"); LOX2(op);
