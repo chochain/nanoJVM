@@ -115,8 +115,10 @@ void outer(Thread &t, const char *cmd) {
         }
         m = gPool.get_class(idiom);			 ///> try as a class name (vocabulary)
         if (m != DATA_NA) {                  ///
-            LOG("class 0x"); LOX(m); LOG("\n");
-        	t.cls = m;					     /// * switch class (context)
+            Word *w  = WORD(m);
+            IU   jcf = *(IU*)w->pfa(PFA_CLS_JDX);
+            LOG("class "); LOG(w->nfa()); LOG(" 0x"); LOX(m); ("\n");
+            t.init((int)jcf);
         }
         else if (handle_number(t, idiom)) {	 ///> try as a number
         	fout << idiom << "? " << ENDL;   ///> display error prompt
