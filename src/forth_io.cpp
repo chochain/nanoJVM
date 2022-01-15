@@ -115,7 +115,7 @@ void outer(Thread &t, const char *cmd) {
         }
         m = gPool.get_class(idiom);			 ///> try as a class name (vocabulary)
         if (m != DATA_NA) {                  ///
-            Word *w  = WORD(m);
+            Word *w  = WORD(m);              /// switch vocabulary
             IU   jcf = *(IU*)w->pfa(PFA_CLS_JDX);
             LOG("class "); LOG(w->nfa()); LOG(" 0x"); LOX(m); ("\n");
             t.init((int)jcf);

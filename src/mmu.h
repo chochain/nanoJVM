@@ -4,6 +4,7 @@
 
 struct KV {
 	IU key;
+	IU cx;						  /// class index
 	IU ref;
 	IU nparm;
 };
@@ -25,8 +26,8 @@ struct Pool {
     List<KV, IV_LU_SZ>  iv;       /// instance variable lookup
 
     template<typename T>
-    IU  lookup(T &a, IU j) {
-    	for (IU i=0; i<a.idx; i++) if (a[i].key == j) {
+    IU  lookup(T &a, IU j, IU cls) {
+    	for (IU i=0; i<a.idx; i++) if (a[i].key == j && a[i].cx == cls) {
     		LOG(" =>$"); LOX(i);
     		return i;
     	}
