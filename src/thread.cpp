@@ -43,10 +43,11 @@ KV Thread::get_refs(IU j, IU itype) {
 	LOG(":"); LOG(jStr(jU16(rf + 3), parm));		 /// get param list name
 
     struct KV r;
-	IU cx = r.key = gPool.get_class(cls);                  /// class ref
+    r.key = j;                                               /// java class file index
+	r.cx  = gPool.get_class(cls);                            /// class ref
 	if (itype!=DATA_NA) {
-		IU pi   = gPool.get_parm_idx(parm);                /// parameter list
-		r.ref   = gPool.get_method(nm, cx, pi, itype!=1);  /// special does not go up to super class
+		IU pi   = gPool.get_parm_idx(parm);                  /// parameter list
+		r.ref   = gPool.get_method(nm, r.cx, pi, itype!=1);  /// special does not go up to super class
 		r.nparm = get_nparm(itype, parm);
 	}
 	return r;
@@ -125,7 +126,7 @@ void Thread::java_call(IU j, U16 nparm) {   /// Java inner interpreter
 void Thread::invoke(U16 itype) {    /// invoke type: 0:virtual, 1:special, 2:static, 3:interface, 4:dynamic
     IU j = fetch2();                /// 2 - method index in pool
     if (itype>2) IP += 2;           /// extra 2 for interface and dynamic
-    IU mi = gPool.lookup(gPool.vt, j);  /// search cache first
+    IU mi = gPool.lookup(gPool.vt, j, cls);  /// search cache first
     if (mi != DATA_NA) {
         Word *w = WORD(gPool.vt[mi].ref);
         LOG(" "); LOG(w->nfa());
@@ -135,10 +136,10 @@ void Thread::invoke(U16 itype) {    /// invoke type: 0:virtual, 1:special, 2:sta
     ///
     /// cache missed, create new lookup entry
     ///
-    KV r = get_refs(j, itype);     /// { key=cx, ref=mx, nparm }
+    KV r = get_refs(j, itype);     /// { key=j, cls=cx, val=mx, nparm }
 
 	LOG(" =>$"); LOX(gPool.vt.idx);
-    gPool.vt.push({j, r.ref, (U16)r.nparm});
+    gPool.vt.push(r);
 
     if (r.ref != DATA_NA) dispatch(r.ref, r.nparm);
     else                  na();
@@ -149,31 +150,32 @@ void Thread::invoke(U16 itype) {    /// invoke type: 0:virtual, 1:special, 2:sta
 ///
 DU *Thread::cls_var() {
 	U16 j = J16;
-    IU  i = gPool.lookup(gPool.cv, j);
+    IU  i = gPool.lookup(gPool.cv, j, cls);
     if (i != DATA_NA) { return (DU*)&gPool.pmem[gPool.cv[i].ref]; }
 
     /// cache missed, create new lookup entry
-    KV   r   = get_refs(j);
-    Word *w  = WORD(r.key);
     IU   idx = gPool.cv.idx;
+    KV   r   = get_refs(j);
+    Word *w  = WORD(r.cx);              /// class storage
     DU   *cv = (DU*)w->pfa(PFA_CLS_CV) + idx;
+    IU   ref = (IU)((U8*)cv - M0);
 
     LOG(" =>$"); LOX(idx);
-    gPool.cv.push({ j, (IU)((U8*)cv - M0) });  /// create new cache entry
+    gPool.cv.push({ j, cls, ref, 0 });  /// create new cache entry
     return cv;
 }
 DU *Thread::inst_var(IU ox) {
 	U16 j   = J16;
     DU  *iv = (DU*)OBJ(ox)->pfa();
-    IU  i   = gPool.lookup(gPool.iv, j);
+    IU  i   = gPool.lookup(gPool.iv, j, cls);
     if (i != DATA_NA) return iv + gPool.iv[i].ref;
 
     // cache missed, create new lookup entry
-    KV r   = get_refs(j);
-    IU idx = gPool.iv.idx;
-    LOG(" =>$"); LOX(idx);
-    gPool.iv.push({ j, idx });      /// create new cache entry
-    return iv + idx;
+    KV r   = get_refs(j);              /// for debug display only
+    IU ref = gPool.iv.idx;
+    LOG(" =>$"); LOX(ref);
+    gPool.iv.push({ j, cls, ref, 0 }); /// create new cache entry
+    return iv + ref;
 }
 ///
 /// array support
