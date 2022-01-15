@@ -3,10 +3,10 @@
 #include "core.h"
 
 struct KV {
-	IU key;
-	IU cx;						  /// class index
-	IU ref;
-	IU nparm;
+	IU key;                       /// Java class file index
+	IU ctx;						  /// context (class/vocabulary) index
+	IU ref;                       /// reference (function pointer)
+	IU nparm;                     /// optional parameter count
 };
 ///
 /// Memory Pool Manager
@@ -26,8 +26,8 @@ struct Pool {
     List<KV, IV_LU_SZ>  iv;       /// instance variable lookup
 
     template<typename T>
-    IU  lookup(T &a, IU j, IU cls) {
-    	for (IU i=0; i<a.idx; i++) if (a[i].key == j && a[i].cx == cls) {
+    IU  lookup(T &a, IU j, IU ctx) {
+    	for (IU i=0; i<a.idx; i++) if (a[i].key == j && a[i].ctx == ctx) {
     		LOG(" =>$"); LOX(i);
     		return i;
     	}
@@ -44,7 +44,7 @@ struct Pool {
     IU   get_parm_idx(const char *parm);
     IU   find(const char *m_name, IU root, IU pidx=DATA_NA);
     IU   get_class(const char *cls_name);
-    IU   get_method(const char *m_name, IU cls_id=DATA_NA, IU pidx=DATA_NA, bool supr=true);
+    IU   get_method(const char *m_name, IU ctx=DATA_NA, IU pidx=DATA_NA, bool supr=true);
     ///
     /// dictionary builder (use gPool.pmem use pmem for Forth Dictionary)
     ///
@@ -67,7 +67,7 @@ struct Pool {
     /// compiler methods
     ///
     void build_op_lookup();
-    void colon(IU cls, const char *name);
+    void colon(const char *name, IU ctx);
 
     void mem_u8(U8 b) { pmem.push(b); }
     void mem_iu(IU i) { pmem.push((U8*)&i, sizeof(IU)); }
