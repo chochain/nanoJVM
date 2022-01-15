@@ -99,7 +99,7 @@ void java_run() {
     static int jcf = -1;
     if (jcf == -1) {
         jcf = Loader::active();
-        gT0.start(jcf);
+        gT0.init(jcf);
     }
     if (Serial.available()) {
         console_cmd = Serial.readString();
