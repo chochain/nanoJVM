@@ -41,8 +41,8 @@ IU Pool::get_class(const char *cls_name) {
 ///
 /// return m_root if m_name is NULL
 ///
-IU Pool::get_method(const char *m_name, IU cls_id, IU pidx, bool supr) {
-    Word *cls = (Word*)&pmem[cls_id != DATA_NA ? cls_id : cls_root];
+IU Pool::get_method(const char *m_name, IU ctx, IU pidx, bool supr) {
+    Word *cls = (Word*)&pmem[ctx != DATA_NA ? ctx : cls_root];
     IU mx = DATA_NA;
     while (cls) {
         mx = find(m_name, *(IU*)cls->pfa(PFA_CLS_VT), pidx);
@@ -80,7 +80,7 @@ IU Pool::add_method(IU &m_root, const char *m_name, IU mjdx, IU pidx) {
     return m_root;
 };
 IU Pool::add_class(const char *c_name, IU jdx, IU m_root, const char *supr, U16 cvsz, U16 ivsz) {
-	mem_hdr(cls_root, c_name, 0); /// create class header
+	mem_hdr(cls_root, c_name, 0);  /// create class header
 	mem_iu(get_class(supr));       /// encode super class idx
 	mem_iu(jdx);                   /// java class file index
 	mem_iu(m_root);                /// encode class vtable
@@ -89,7 +89,7 @@ IU Pool::add_class(const char *c_name, IU jdx, IU m_root, const char *supr, U16 
     for (int i=0; i<cvsz; i+=sizeof(DU)) {	/// allocate static variables
     	mem_du(0);
     }
-    return cls_root;
+    return cls_root;               /// return head of class linked list (as context)
 }
 ///
 /// class constructor
@@ -141,8 +141,8 @@ void Pool::build_op_lookup() {
 ///
 /// word constructor
 ///
-void Pool::colon(IU cls, const char *name) {
-    Word *w  = (Word*)&pmem[cls];	    /// get class word
+void Pool::colon(const char *name, IU ctx) {
+    Word *w  = (Word*)&pmem[ctx];	    /// get context (class/vocabulary)
     IU   *vt = (IU*)w->pfa(PFA_CLS_VT); /// pointer to method root
-    mem_hdr(*vt, name, FORTH_FUNC);    /// create word header
+    mem_hdr(*vt, name, FORTH_FUNC);     /// create word header
 }
