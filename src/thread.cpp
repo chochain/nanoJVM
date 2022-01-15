@@ -44,10 +44,10 @@ KV Thread::get_refs(IU j, IU itype) {
 
     struct KV r;
     r.key = j;                                               /// java class file index
-	r.cx  = gPool.get_class(cls);                            /// class ref
+	r.ctx = gPool.get_class(cls);                            /// context (class/vocabulary) ref
 	if (itype!=DATA_NA) {
 		IU pi   = gPool.get_parm_idx(parm);                  /// parameter list
-		r.ref   = gPool.get_method(nm, r.cx, pi, itype!=1);  /// special does not go up to super class
+		r.ref   = gPool.get_method(nm, r.ctx, pi, itype!=1); /// special does not go up to super class
 		r.nparm = get_nparm(itype, parm);
 	}
 	return r;
@@ -57,35 +57,32 @@ KV Thread::get_refs(IU j, IU itype) {
 ///
 void Thread::na() { LOG(" **NA**"); }/// feature not supported yet
 void Thread::init(int jcf) {
-	M0  = &gPool.pmem[0];
-	J   = Loader::get(jcf);
-	cls = J->cls_id;
+	M0  = &gPool.pmem[0];            /// cache memory-base pointer
+	J   = Loader::get(jcf);          /// cache Java class file pointer
+	ctx = J->ctx;                    /// reset context (class/vocabulary)
 }
 void Thread::dispatch(IU mx, U16 nparm) {
-    if (mx==DATA_NA) {
-    	mx = gPool.get_method("main", cls);
+    Word *w = WORD(mx);              /// method store in dictionary (pmem)
+    if (w->java) {                   /// is a Java function?
+        IU  addr = *(IU*)w->pfa();   /// * fetch Java function storage
+        java_call(addr, nparm);      /// * call Java inner interpreter
     }
-    Word *w = WORD(mx);
-    if (w->java) {                   /// call Java inner interpreter
-        IU  addr = *(IU*)w->pfa();
-        java_call(addr, nparm);
-    }
-    else if (w->forth) {             /// user defined Forth word
-        gPool.rs.push(IP);           /// setup call frame
-        IP = (IU)(w->pfa() - M0);    /// get new IP
+    else if (w->forth) {             /// is a user defined Forth word?
+        gPool.rs.push(IP);           /// * setup call frame
+        IP = (IU)(w->pfa() - M0);    /// * get new IP
         while (IP) {                 /// Forth inner interpreter
-            mx = *(IU*)(M0 + IP);    /// fetch next instruction
+            mx = *(IU*)(M0 + IP);    /// * fetch next instruction
             LOG("\nm"); LOX4(IP-1); LOG(":"); LOX4(mx);
             LOG(" "); LOG(WORD(mx)->nfa());
-            IP += sizeof(IU);        /// too bad, we cannot do IP++
-            yield();                 /// gives some cycles to main thread (ESP32)
-            dispatch(mx);            /// recursively call
+            IP += sizeof(IU);        /// * increment IP (too bad, we cannot do IP++)
+            yield();                 /// * gives some cycles to main thread (ESP32)
+            dispatch(mx);            /// * recursively call Forth inner interpreter
         }
-        IP = gPool.rs.pop();         /// restore call frame
+        IP = gPool.rs.pop();         /// * restore call frame
     }
-    else {
-        fop xt = *(fop*)w->pfa();    /// Native method pointer
-        xt(*this);
+    else {                           /// must be a native method
+        fop xt = *(fop*)w->pfa();    /// * get native method pointer
+        xt(*this);                   /// * call native method
     }
 }
 ///
@@ -126,7 +123,7 @@ void Thread::java_call(IU j, U16 nparm) {   /// Java inner interpreter
 void Thread::invoke(U16 itype) {    /// invoke type: 0:virtual, 1:special, 2:static, 3:interface, 4:dynamic
     IU j = fetch2();                /// 2 - method index in pool
     if (itype>2) IP += 2;           /// extra 2 for interface and dynamic
-    IU mi = gPool.lookup(gPool.vt, j, cls);  /// search cache first
+    IU mi = gPool.lookup(gPool.vt, j, ctx);  /// search cache first
     if (mi != DATA_NA) {
         Word *w = WORD(gPool.vt[mi].ref);
         LOG(" "); LOG(w->nfa());
@@ -136,7 +133,7 @@ void Thread::invoke(U16 itype) {    /// invoke type: 0:virtual, 1:special, 2:sta
     ///
     /// cache missed, create new lookup entry
     ///
-    KV r = get_refs(j, itype);     /// { key=j, cls=cx, val=mx, nparm }
+    KV r = get_refs(j, itype);     /// { key=j, ctx, ref=mx, nparm }
 
 	LOG(" =>$"); LOX(gPool.vt.idx);
     gPool.vt.push(r);
@@ -150,31 +147,31 @@ void Thread::invoke(U16 itype) {    /// invoke type: 0:virtual, 1:special, 2:sta
 ///
 DU *Thread::cls_var() {
 	U16 j = J16;
-    IU  i = gPool.lookup(gPool.cv, j, cls);
+    IU  i = gPool.lookup(gPool.cv, j, ctx);
     if (i != DATA_NA) { return (DU*)&gPool.pmem[gPool.cv[i].ref]; }
 
     /// cache missed, create new lookup entry
     IU   idx = gPool.cv.idx;
-    KV   r   = get_refs(j);
-    Word *w  = WORD(r.cx);              /// class storage
+    KV   r   = get_refs(j);             /// fetch java class file references
+    Word *w  = WORD(r.ctx);             /// remap to storage
     DU   *cv = (DU*)w->pfa(PFA_CLS_CV) + idx;
     IU   ref = (IU)((U8*)cv - M0);
 
     LOG(" =>$"); LOX(idx);
-    gPool.cv.push({ j, cls, ref, 0 });  /// create new cache entry
+    gPool.cv.push({ j, ctx, ref, 0 });  /// create new cache entry
     return cv;
 }
 DU *Thread::inst_var(IU ox) {
 	U16 j   = J16;
     DU  *iv = (DU*)OBJ(ox)->pfa();
-    IU  i   = gPool.lookup(gPool.iv, j, cls);
+    IU  i   = gPool.lookup(gPool.iv, j, ctx);
     if (i != DATA_NA) return iv + gPool.iv[i].ref;
 
     // cache missed, create new lookup entry
     KV r   = get_refs(j);              /// for debug display only
     IU ref = gPool.iv.idx;
     LOG(" =>$"); LOX(ref);
-    gPool.iv.push({ j, cls, ref, 0 }); /// create new cache entry
+    gPool.iv.push({ j, ctx, ref, 0 }); /// create new cache entry
     return iv + ref;
 }
 ///
