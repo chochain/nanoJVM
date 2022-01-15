@@ -244,7 +244,7 @@ U16 ClassFile::load(IU jdx) {
     for (int i=0; i<n_method; i++) {
     	create_method(cls, m_root, addr);
     }
-    return this->cls_id = gPool.add_class(cls, jdx, m_root, supr, sz_cv, sz_iv);
+    return this->ctx = gPool.add_class(cls, jdx, m_root, supr, sz_cv, sz_iv);
 }
 ///
 /// Loader class implementation

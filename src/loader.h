@@ -69,7 +69,7 @@ class ClassFile {
     void create_method(char *cls, U16 &m_root, U16 &addr);
     
 public:
-	IU   cls_id;
+	IU   ctx;             /// context (class addr in dictionary)
 
     ClassFile(const char *fname);
     IU   load(IU jdx);
