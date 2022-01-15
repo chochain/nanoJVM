@@ -6,24 +6,29 @@
 /// Thread class
 ///
 struct Thread {
-    List<DU, SS_SZ>  ss;    /// data stack
-    ClassFile *J;           /// Java class file interface
-    U8 *M0;                 /// cached base address of memory pool
-
-    bool  compile = false;  /// compile flag
-    bool  wide    = false;  /// wide flag
-    DU    base    = 10;     /// radix
-    IU    cls     = 0;      /// current class, =~ Forth context
-    DU    TOS     = -1;     /// top of stack
+    ///
+    /// user variables
+    ///
     IU    IP      = 0;      /// instruction pointer (program counter)
     U16   SP      = 0;      /// local stack frame index
+    DU    TOS     = -1;     /// top of stack (cached value)
+    IU    ctx     = 0;      /// current context (class/vocabulary)
+    DU    base    = 10;     /// radix
+    bool  compile = false;  /// compile flag
+    bool  wide    = false;  /// wide flag
+    ///
+    /// local storage
+    ///
+    List<DU, SS_SZ>  ss;    /// data stack
+    ClassFile *J;           /// Java class file pointer
+    U8 *M0;                 /// cached base address of memory pool
     ///
     /// VM Execution Unit
     ///
     struct KV get_refs(IU j, IU itype=DATA_NA);
     void na();                           /// not supported
     void init(int jcf);                  /// initialize
-    void dispatch(IU mx=DATA_NA, U16 nparm=0); /// instruction dispatcher
+    void dispatch(IU mx, U16 nparm=0);   /// instruction dispatcher
     ///
     /// Java core opcodes
     ///
