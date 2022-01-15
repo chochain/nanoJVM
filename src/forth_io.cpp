@@ -96,14 +96,14 @@ int handle_number(Thread &t, const char *idiom) {
 ///
 /// outer interpreter
 ///
-void outer(Thread &t, const char *cmd) {
+void forth_outer(Thread &t, const char *cmd) {
     fin.clear();                             /// clear input stream error bit if any
     fin.str(cmd);                            /// feed user command into input stream
     fout.str("");                            /// clean output buffer, ready for next
     while (fin >> tib) {
         const char *idiom = tib.c_str();
         LOG(idiom); LOG("=>");
-        IU m = gPool.get_method(idiom, t.cls);    /// search for word in current context
+        IU m = gPool.get_method(idiom, t.ctx);    /// search for word in current context
         if (m != DATA_NA) {					 ///> if handle method found
             Word *w = WORD(m);
             LOG(w->nfa()); LOG(" 0x"); LOX(m);
@@ -139,7 +139,7 @@ void forth_interpreter(Thread &t) {
 	cout << endl;
 	string line;
 	while (getline(cin, line)) {             /// fetch line from user console input
-		outer(t, line.c_str());
+		forth_outer(t, line.c_str());
 	}
 }
 #endif // ARDUINO
