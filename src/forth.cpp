@@ -17,18 +17,18 @@ static Method _word[] = {
          PUSH(t.IP); t.IP += STRLEN(s)),
     CODE("unnest", t.IP = 0),
     CODE("create",
-         gPool.colon(t.cls, next_word());
+         gPool.colon(next_word(), t.ctx);
          gPool.mem_op(DOVAR)),
     CODE("variable",
-         gPool.colon(t.cls, next_word());
+         gPool.colon(next_word(), t.ctx);
          DU n = 0;
          gPool.mem_op(DOVAR);
          gPool.mem_du(n)),
     CODE("constant",
-         gPool.colon(t.cls, next_word());
+         gPool.colon(next_word(), t.ctx);
          gPool.mem_op(DOLIT);
          gPool.mem_du(POP)),
-    CODE(":",     gPool.colon(t.cls, next_word()); t.compile=true),
+    CODE(":",     gPool.colon(next_word(), t.ctx); t.compile=true),
     IMMD(";",     gPool.mem_op(UNNEST); t.compile = false),
     CODE("@",     IU w = POP; PUSH(CELL(w))),          // w -- n
     CODE("!",     IU w = POP; CELL(w) = POP;),       // n w --
@@ -41,7 +41,7 @@ static Method _word[] = {
     CODE("words", words(t)),
     CODE("ss",    ss_dump(t)),
     CODE("dump",  DU n = POP; IU a = POP; mem_dump(t, a, n)),
-    CODE("tick",  IU w = gPool.get_method(next_word(), 0, t.cls); PUSH(w)),
+    CODE("tick",  IU w = gPool.get_method(next_word()); PUSH(w)),
     CODE("clock", PUSH(millis())),
     CODE("delay", delay(POP)),
     CODE("interpreter", forth_interpreter(t)),
