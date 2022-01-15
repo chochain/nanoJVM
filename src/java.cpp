@@ -24,6 +24,8 @@ extern   Pool   gPool;                  /// memory pool manager
 /// Java Native IO functions
 /// Note: support only string and integer (like Arduino)
 ///
+Thread gT0;                             /// default thread, TODO: multi-thread
+
 void _print_s(Thread &t) {
 	IU j = t.pop(), ox = t.pop();  /// java constant pool object
 	char buf[128];
@@ -73,7 +75,7 @@ int java_load(const char *fname) {
 }
 
 #if ARDUINO
-extern void outer(Thread &t, const char *cmd);
+extern void forth_outer(Thread &t, const char *cmd);
 void mem_stat(Thread &t) {
     LOG("Core:");           LOX(xPortGetCoreID());
     LOG(" heap[maxblk=");   LOX(heap_caps_get_largest_free_block(MALLOC_CAP_8BIT));
@@ -93,18 +95,17 @@ void mem_stat(Thread &t) {
 ///
 /// interface to Forth Outer Interpreter
 ///
-Thread gT0;
 String console_cmd;
 void java_run() {
-    static int jcf = -1;
-    if (jcf == -1) {
-        jcf = Loader::active();
-        gT0.init(jcf);
-    }
+	static int jct = -1;
+	if (jct < 0) {
+		jct = Loader::active();
+		gT0.init(jct);
+	}
     if (Serial.available()) {
         console_cmd = Serial.readString();
         LOG(console_cmd);
-        outer(gT0, console_cmd.c_str());
+        forth_outer(gT0, console_cmd.c_str());
         mem_stat(gT0);
         delay(2);
     }
@@ -114,10 +115,13 @@ void java_run() {
     ///
     /// instantiate main thread (TODO: single thread for now)
     ///
-	Thread t0;
 	int jcf = Loader::active();
-	t0.init(jcf);
-    t0.dispatch();
+	gT0.init(jcf);
+	///
+	/// find and dispatch main() function of latest loaded class
+	///
+    IU mx = gPool.get_method("main");
+    gT0.dispatch(mx);
 }
 #endif // ARDUINO
 
